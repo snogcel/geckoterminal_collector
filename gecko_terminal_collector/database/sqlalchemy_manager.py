@@ -220,6 +220,48 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 )
         return None
     
+    # DEX operations
+    async def store_dex_data(self, dexes: List[DEXModel]) -> int:
+        """Store DEX data with upsert logic."""
+        if not dexes:
+            return 0
+        
+        stored_count = 0
+        
+        with self.connection.get_session() as session:
+            try:
+                for dex in dexes:
+                    existing_dex = session.query(DEXModel).filter_by(id=dex.id).first()
+                    if existing_dex:
+                        # Update existing DEX
+                        existing_dex.name = dex.name
+                        existing_dex.network = dex.network
+                        existing_dex.last_updated = datetime.utcnow()
+                    else:
+                        # Create new DEX
+                        session.add(dex)
+                        stored_count += 1
+                
+                session.commit()
+                logger.info(f"Stored {stored_count} new DEXes, updated {len(dexes) - stored_count} existing DEXes")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing DEX data: {e}")
+                raise
+        
+        return stored_count
+    
+    async def get_dex_by_id(self, dex_id: str) -> Optional[DEXModel]:
+        """Get a DEX by ID."""
+        with self.connection.get_session() as session:
+            return session.query(DEXModel).filter_by(id=dex_id).first()
+    
+    async def get_dexes_by_network(self, network: str) -> List[DEXModel]:
+        """Get all DEXes for a specific network."""
+        with self.connection.get_session() as session:
+            return session.query(DEXModel).filter_by(network=network).all()
+    
     # OHLCV operations
     async def store_ohlcv_data(self, data: List[OHLCVRecord]) -> int:
         """

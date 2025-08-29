@@ -83,5 +83,25 @@ def mock_database_manager(mock_database_config):
         
         async def get_collection_metadata(self, collector_type):
             return None
+        
+        # DEX operations
+        async def store_dex_data(self, dexes):
+            return len(dexes)
+        
+        async def get_dex_by_id(self, dex_id):
+            return None
+        
+        async def get_dexes_by_network(self, network):
+            return []
+        
+        # Data integrity and statistics methods
+        async def check_data_integrity(self, pool_id):
+            return {}
+        
+        async def get_data_statistics(self, pool_id):
+            return {}
+        
+        async def cleanup_old_data(self, days_to_keep=90):
+            return {}
     
     return MockDatabaseManager(mock_database_config)

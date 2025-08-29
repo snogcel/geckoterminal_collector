@@ -86,7 +86,12 @@
     - _Requirements: 9.2, 9.3_
 
 - [ ] 5. Implement DEX and pool monitoring collectors
-  - [ ] 5.1 Create DEX monitoring collector
+  - [x] 5.1 Create DEX monitoring collector
+
+
+
+
+
     - Write DEXMonitoringCollector to fetch and validate available DEXes
     - Implement DEX data storage and update logic with change detection
     - Create tests using get_dexes_by_network.csv fixture data

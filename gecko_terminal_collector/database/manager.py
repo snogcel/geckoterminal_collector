@@ -153,6 +153,30 @@ class DatabaseManager(ABC):
         """Remove a pool from the watchlist."""
         pass
     
+    # DEX operations
+    @abstractmethod
+    async def store_dex_data(self, dexes: List[Any]) -> int:
+        """
+        Store DEX data with upsert logic.
+        
+        Args:
+            dexes: List of DEX records to store
+            
+        Returns:
+            Number of records stored/updated
+        """
+        pass
+    
+    @abstractmethod
+    async def get_dex_by_id(self, dex_id: str) -> Optional[Any]:
+        """Get a DEX by ID."""
+        pass
+    
+    @abstractmethod
+    async def get_dexes_by_network(self, network: str) -> List[Any]:
+        """Get all DEXes for a specific network."""
+        pass
+
     # Collection metadata operations
     @abstractmethod
     async def update_collection_metadata(

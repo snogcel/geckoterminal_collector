@@ -63,23 +63,24 @@ async def test_base_collector_validate_data(mock_collection_config, mock_databas
     collector = MockCollector(mock_collection_config, mock_database_manager)
     
     # Test with valid data
-    assert await collector.validate_data({"test": "data"}) is True
+    result = await collector.validate_data({"test": "data"})
+    assert result.is_valid is True
     
     # Test with None data
-    assert await collector.validate_data(None) is False
+    result = await collector.validate_data(None)
+    assert result.is_valid is False
 
 
-def test_base_collector_handle_error(mock_collection_config, mock_database_manager, capsys):
+def test_base_collector_handle_error(mock_collection_config, mock_database_manager, caplog):
     """Test BaseDataCollector handle_error method."""
     collector = MockCollector(mock_collection_config, mock_database_manager)
     
     test_error = ValueError("Test error")
     collector.handle_error(test_error, "test context")
     
-    captured = capsys.readouterr()
-    assert "Error in test_collector" in captured.out
-    assert "test context" in captured.out
-    assert "Test error" in captured.out
+    # Check that error was logged
+    assert "test context" in caplog.text
+    assert "Test error" in caplog.text
 
 
 def test_collector_registry():
@@ -93,9 +94,11 @@ def test_collector_registry():
     # Create mock collectors
     collector1 = Mock(spec=BaseDataCollector)
     collector1.get_collection_key.return_value = "collector1"
+    collector1.metadata_tracker = registry.metadata_tracker
     
     collector2 = Mock(spec=BaseDataCollector)
     collector2.get_collection_key.return_value = "collector2"
+    collector2.metadata_tracker = registry.metadata_tracker
     
     # Test registration
     registry.register(collector1)
@@ -122,9 +125,11 @@ def test_collector_registry_duplicate_registration():
     
     collector1 = Mock(spec=BaseDataCollector)
     collector1.get_collection_key.return_value = "test_collector"
+    collector1.metadata_tracker = registry.metadata_tracker
     
     collector2 = Mock(spec=BaseDataCollector)
     collector2.get_collection_key.return_value = "test_collector"
+    collector2.metadata_tracker = registry.metadata_tracker
     
     # Register first collector
     registry.register(collector1)
@@ -138,8 +143,12 @@ def test_collector_registry_duplicate_registration():
 
 @pytest.mark.asyncio
 async def test_base_collector_client_property(mock_collection_config, mock_database_manager):
-    """Test BaseDataCollector client property raises NotImplementedError."""
+    """Test BaseDataCollector client property creates client."""
     collector = MockCollector(mock_collection_config, mock_database_manager)
     
-    with pytest.raises(NotImplementedError, match="API client not yet implemented"):
-        _ = collector.client
+    # Client should be created when accessed
+    client = collector.client
+    assert client is not None
+    
+    # Should return same instance on subsequent calls
+    assert collector.client is client
