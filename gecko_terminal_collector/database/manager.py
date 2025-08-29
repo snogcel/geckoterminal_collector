@@ -144,6 +144,21 @@ class DatabaseManager(ABC):
         pass
     
     @abstractmethod
+    async def add_watchlist_entry(self, entry: Any) -> None:
+        """Add a new watchlist entry."""
+        pass
+    
+    @abstractmethod
+    async def get_watchlist_entry_by_pool_id(self, pool_id: str) -> Optional[Any]:
+        """Get a watchlist entry by pool ID."""
+        pass
+    
+    @abstractmethod
+    async def update_watchlist_entry_status(self, pool_id: str, is_active: bool) -> None:
+        """Update the active status of a watchlist entry."""
+        pass
+    
+    @abstractmethod
     async def get_watchlist_pools(self) -> List[str]:
         """Get all active watchlist pool IDs."""
         pass

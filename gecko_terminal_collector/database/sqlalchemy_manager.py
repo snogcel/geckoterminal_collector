@@ -718,16 +718,55 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         token_symbol=metadata.get('token_symbol'),
                         token_name=metadata.get('token_name'),
                         network_address=metadata.get('network_address'),
-                        is_active=True,
+                        is_active=True
                     )
                     session.add(new_entry)
                 
                 session.commit()
-                logger.info(f"Stored watchlist entry for pool {pool_id}")
+                logger.info(f"Stored watchlist entry for pool: {pool_id}")
                 
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error storing watchlist entry: {e}")
+                raise
+    
+    async def add_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+        """Add a new watchlist entry."""
+        with self.connection.get_session() as session:
+            try:
+                session.add(entry)
+                session.commit()
+                logger.info(f"Added watchlist entry for pool: {entry.pool_id}")
+                
+            except IntegrityError as e:
+                session.rollback()
+                logger.warning(f"Watchlist entry already exists for pool {entry.pool_id}: {e}")
+                raise
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error adding watchlist entry: {e}")
+                raise
+    
+    async def get_watchlist_entry_by_pool_id(self, pool_id: str) -> Optional[WatchlistEntryModel]:
+        """Get a watchlist entry by pool ID."""
+        with self.connection.get_session() as session:
+            return session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+    
+    async def update_watchlist_entry_status(self, pool_id: str, is_active: bool) -> None:
+        """Update the active status of a watchlist entry."""
+        with self.connection.get_session() as session:
+            try:
+                entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                if entry:
+                    entry.is_active = is_active
+                    session.commit()
+                    logger.info(f"Updated watchlist entry status for pool {pool_id}: active={is_active}")
+                else:
+                    logger.warning(f"Watchlist entry not found for pool: {pool_id}")
+                    
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating watchlist entry status: {e}")
                 raise
     
     async def get_watchlist_pools(self) -> List[str]:

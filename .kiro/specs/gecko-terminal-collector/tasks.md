@@ -61,7 +61,9 @@
     - Create unit tests for database operations and constraint validation
     - _Requirements: 4.2, 4.3, 5.2, 9.1, 9.4_
 
-- [ ] 4. Build API client and base collector framework
+- [x] 4. Build API client and base collector framework
+
+
   - [x] 4.1 Create GeckoTerminal API client wrapper
 
 
@@ -102,6 +104,9 @@
 
 
 
+
+
+
     - Code TopPoolsCollector for heaven and pumpswap DEX monitoring
     - Write pool data processing and storage with volume and liquidity tracking
     - Implement configurable monitoring intervals with scheduler integration
@@ -109,7 +114,12 @@
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
 - [ ] 6. Build watchlist processing system
-  - [ ] 6.1 Implement watchlist CSV file monitoring
+  - [x] 6.1 Implement watchlist CSV file monitoring
+
+
+
+
+
     - Write WatchlistMonitor class to detect CSV file changes and updates
     - Code CSV parsing logic with proper address type handling (pool vs network)
     - Implement watchlist change detection and new token processing workflows
