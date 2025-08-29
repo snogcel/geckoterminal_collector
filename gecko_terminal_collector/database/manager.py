@@ -211,6 +211,46 @@ class DatabaseManager(ABC):
             data_quality_score=quality_score
         )
     
+    # Enhanced data integrity methods
+    @abstractmethod
+    async def check_data_integrity(self, pool_id: str) -> Dict[str, Any]:
+        """
+        Perform comprehensive data integrity checks for a pool.
+        
+        Args:
+            pool_id: Pool identifier
+            
+        Returns:
+            Dictionary containing integrity check results
+        """
+        pass
+    
+    @abstractmethod
+    async def get_data_statistics(self, pool_id: str) -> Dict[str, Any]:
+        """
+        Get comprehensive data statistics for a pool.
+        
+        Args:
+            pool_id: Pool identifier
+            
+        Returns:
+            Dictionary containing data statistics
+        """
+        pass
+    
+    @abstractmethod
+    async def cleanup_old_data(self, days_to_keep: int = 90) -> Dict[str, int]:
+        """
+        Clean up old data beyond the retention period.
+        
+        Args:
+            days_to_keep: Number of days of data to retain
+            
+        Returns:
+            Dictionary with cleanup statistics
+        """
+        pass
+    
     def _calculate_expected_intervals(
         self, 
         start: datetime, 
