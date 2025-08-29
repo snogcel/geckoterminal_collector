@@ -7,6 +7,7 @@ from .dex_monitoring import DEXMonitoringCollector
 from .top_pools import TopPoolsCollector
 from .watchlist_monitor import WatchlistMonitor
 from .watchlist_collector import WatchlistCollector
+from .ohlcv_collector import OHLCVCollector
 
 __all__ = [
     "BaseDataCollector",
@@ -14,5 +15,6 @@ __all__ = [
     "DEXMonitoringCollector",
     "TopPoolsCollector",
     "WatchlistMonitor",
-    "WatchlistCollector"
+    "WatchlistCollector",
+    "OHLCVCollector"
 ]
