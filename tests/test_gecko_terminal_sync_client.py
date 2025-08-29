@@ -10,7 +10,7 @@ from geckoterminal_py import GeckoTerminalAsyncClient, GeckoTerminalSyncClient
 def load_json(filename):
     """Load JSON data from a file."""
     import json
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='utf-8') as file:
         return json.load(file)
 
 

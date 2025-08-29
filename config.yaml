@@ -1,0 +1,32 @@
+api:
+  base_url: https://api.geckoterminal.com/api/v2
+  max_concurrent: 5
+  timeout: 30
+database:
+  echo: false
+  pool_size: 10
+  url: sqlite:///gecko_data.db
+dexes:
+  network: solana
+  targets:
+  - heaven
+  - pumpswap
+intervals:
+  ohlcv_collection: 1h
+  top_pools_monitoring: 1h
+  trade_collection: 30m
+  watchlist_check: 1h
+thresholds:
+  max_retries: 3
+  min_trade_volume_usd: 100
+  rate_limit_delay: 1.0
+timeframes:
+  ohlcv_default: 1h
+  supported:
+  - 1m
+  - 5m
+  - 15m
+  - 1h
+  - 4h
+  - 12h
+  - 1d
