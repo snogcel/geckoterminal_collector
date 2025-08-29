@@ -81,7 +81,7 @@ class OHLCVData(Base):
     
     __tablename__ = "ohlcv_data"
     
-    id = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True) # SQLite's auto-increment only works with INTEGER types, not SMALLINT.
     pool_id = Column(String(100), ForeignKey("pools.id"), nullable=False)
     timeframe = Column(String(10), nullable=False)
     timestamp = Column(BigInteger, nullable=False)
@@ -129,7 +129,7 @@ class WatchlistEntry(Base):
     
     __tablename__ = "watchlist"
     
-    id = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     pool_id = Column(String(100), ForeignKey("pools.id"), nullable=False)
     token_symbol = Column(String(20))
     token_name = Column(String(200))

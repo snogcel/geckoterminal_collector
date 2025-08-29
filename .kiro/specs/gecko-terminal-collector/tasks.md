@@ -36,7 +36,11 @@
     - _Requirements: 8.4_
 
 - [ ] 3. Create database layer and data models
-  - [-] 3.1 Implement database schema and models
+  - [x] 3.1 Implement database schema and models
+
+
+
+
 
 
 

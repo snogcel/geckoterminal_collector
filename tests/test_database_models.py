@@ -113,7 +113,7 @@ class TestDatabaseModels:
     
     def test_ohlcv_unique_constraint(self, db_config):
         """Test OHLCV unique constraint prevents duplicates."""
-        engine = create_engine(db_config.url, implicit_returning=False)
+        engine = create_engine(db_config.url)
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
         
@@ -141,6 +141,7 @@ class TestDatabaseModels:
                 volume_usd=Decimal("1000.0"),
                 datetime=datetime(2022, 1, 1, 0, 0, 0)
             )
+            print("test insert: ", ohlcv1.id)
             session.add(ohlcv1)
             session.commit()
             
