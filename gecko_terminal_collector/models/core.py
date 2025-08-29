@@ -5,7 +5,7 @@ Core data models for the GeckoTerminal collector system.
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 @dataclass
@@ -70,6 +70,7 @@ class CollectionResult:
     errors: list[str]
     collection_time: datetime
     collector_type: str
+    metadata: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -86,7 +87,10 @@ class Gap:
     start_time: datetime
     end_time: datetime
     pool_id: str
-    timeframe: str
+    timeframe: str = ""
+    duration_hours: float = 0.0
+    gap_type: str = "data_gap"
+    severity: str = "medium"
 
 
 @dataclass

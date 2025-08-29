@@ -49,6 +49,15 @@ class TestTradeCollector:
         config.trade_limit = 300
         config.max_trade_age_hours = 24
         
+        # Continuity verification settings
+        config.continuity_check_interval_hours = 1
+        config.significant_gap_threshold_hours = 2
+        
+        # Fair rotation settings
+        config.api_rate_limit_threshold = 0.8
+        config.high_volume_threshold_usd = 10000.0
+        config.rotation_window_minutes = 30
+        
         return config
     
     @pytest.fixture
@@ -633,3 +642,334 @@ class TestTradeCollectorIntegration:
         
         # Verify database storage was called
         db_manager.store_trade_data.assert_called_once()
+
+
+class TestTradeDataContinuityVerification:
+    """Test trade data continuity verification functionality."""
+    
+    @pytest.fixture
+    def continuity_config(self):
+        """Create configuration for continuity testing."""
+        config = MagicMock(spec=CollectionConfig)
+        config.dexes = MagicMock(spec=DEXConfig)
+        config.dexes.network = "solana"
+        config.thresholds = MagicMock(spec=ThresholdConfig)
+        config.thresholds.min_trade_volume_usd = 100.0
+        config.error_handling = MagicMock()
+        config.error_handling.max_retries = 3
+        config.error_handling.backoff_factor = 2.0
+        config.error_handling.circuit_breaker_threshold = 5
+        config.error_handling.circuit_breaker_timeout = 300
+        config.api = MagicMock()
+        config.api.timeout = 30
+        config.api.max_concurrent = 5
+        config.trade_limit = 300
+        config.max_trade_age_hours = 24
+        
+        # Continuity verification settings
+        config.continuity_check_interval_hours = 1
+        config.significant_gap_threshold_hours = 2
+        
+        # Fair rotation settings
+        config.api_rate_limit_threshold = 0.8
+        config.high_volume_threshold_usd = 10000.0
+        config.rotation_window_minutes = 30
+        
+        return config
+    
+    @pytest.fixture
+    def continuity_collector(self, continuity_config):
+        """Create TradeCollector for continuity testing."""
+        db_manager = AsyncMock()
+        return TradeCollector(continuity_config, db_manager, use_mock=True)
+    
+    @pytest.mark.asyncio
+    async def test_detect_trade_data_gaps_no_data(self, continuity_collector):
+        """Test gap detection when no trade data exists."""
+        pool_id = "test_pool"
+        
+        # Mock no trade data
+        continuity_collector.db_manager.get_trade_data.return_value = []
+        
+        gaps = await continuity_collector.detect_trade_data_gaps(pool_id)
+        
+        assert len(gaps) == 1
+        assert gaps[0].gap_type == "no_data"
+        assert gaps[0].severity == "high"
+        assert gaps[0].duration_hours == 24.0
+        assert gaps[0].pool_id == pool_id
+    
+    @pytest.mark.asyncio
+    async def test_detect_trade_data_gaps_with_gaps(self, continuity_collector):
+        """Test gap detection with actual gaps in data."""
+        pool_id = "test_pool"
+        now = datetime.now()
+        
+        # Create trade data with significant gaps
+        trades = [
+            TradeRecord(
+                id="trade1", pool_id=pool_id, block_number=1, tx_hash="hash1",
+                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                price_usd=Decimal('2'), volume_usd=Decimal('200'),
+                side="buy", block_timestamp=now - timedelta(hours=20)
+            ),
+            TradeRecord(
+                id="trade2", pool_id=pool_id, block_number=2, tx_hash="hash2",
+                from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
+                price_usd=Decimal('3'), volume_usd=Decimal('300'),
+                side="sell", block_timestamp=now - timedelta(hours=15)  # 5 hour gap
+            ),
+            TradeRecord(
+                id="trade3", pool_id=pool_id, block_number=3, tx_hash="hash3",
+                from_token_amount=Decimal('3'), to_token_amount=Decimal('300'),
+                price_usd=Decimal('4'), volume_usd=Decimal('400'),
+                side="buy", block_timestamp=now - timedelta(hours=2)  # 13 hour gap
+            )
+        ]
+        
+        continuity_collector.db_manager.get_trade_data.return_value = trades
+        
+        gaps = await continuity_collector.detect_trade_data_gaps(pool_id)
+        
+        # Should detect beginning gap, middle gap, and ending gap
+        assert len(gaps) >= 2  # At least the two significant gaps
+        
+        # Check for data gaps between trades
+        data_gaps = [g for g in gaps if g.gap_type == "data_gap"]
+        assert len(data_gaps) >= 2
+        
+        # Verify gap durations are calculated correctly
+        for gap in data_gaps:
+            assert gap.duration_hours > continuity_collector.significant_gap_threshold_hours
+    
+    @pytest.mark.asyncio
+    async def test_prioritize_pools_by_activity(self, continuity_collector):
+        """Test pool prioritization based on volume and activity."""
+        pool_ids = ["pool1", "pool2", "pool3"]
+        
+        # Mock different activity levels for each pool
+        def mock_get_trade_data(pool_id, start_time, end_time, min_volume_usd):
+            if pool_id == "pool1":
+                # High volume, high activity
+                return [
+                    TradeRecord(
+                        id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
+                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        price_usd=Decimal('2'), volume_usd=Decimal('15000'),  # High volume
+                        side="buy", block_timestamp=datetime.now() - timedelta(minutes=i*10)
+                    ) for i in range(25)  # High activity
+                ]
+            elif pool_id == "pool2":
+                # Medium volume, medium activity
+                return [
+                    TradeRecord(
+                        id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
+                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        price_usd=Decimal('2'), volume_usd=Decimal('5000'),  # Medium volume
+                        side="buy", block_timestamp=datetime.now() - timedelta(minutes=i*20)
+                    ) for i in range(10)  # Medium activity
+                ]
+            else:
+                # Low volume, low activity
+                return [
+                    TradeRecord(
+                        id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
+                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        price_usd=Decimal('2'), volume_usd=Decimal('500'),  # Low volume
+                        side="buy", block_timestamp=datetime.now() - timedelta(hours=i)
+                    ) for i in range(3)  # Low activity
+                ]
+        
+        continuity_collector.db_manager.get_trade_data.side_effect = mock_get_trade_data
+        
+        # Mock gap detection to return no gaps for simplicity
+        continuity_collector.detect_trade_data_gaps = AsyncMock(return_value=[])
+        
+        prioritized = await continuity_collector.prioritize_pools_by_activity(pool_ids)
+        
+        assert len(prioritized) == 3
+        
+        # Verify pools are sorted by priority (highest first)
+        priorities = [priority for _, priority in prioritized]
+        assert priorities == sorted(priorities, reverse=True)
+        
+        # pool1 should have highest priority due to high volume and activity
+        assert prioritized[0][0] == "pool1"
+        assert prioritized[0][1] > prioritized[1][1]  # Higher than pool2
+        assert prioritized[1][1] > prioritized[2][1]  # pool2 higher than pool3
+    
+    @pytest.mark.asyncio
+    async def test_implement_fair_rotation(self, continuity_collector):
+        """Test fair rotation logic for pool selection."""
+        pool_ids = ["pool1", "pool2", "pool3", "pool4", "pool5"]
+        
+        # Mock pool priorities
+        async def mock_prioritize_pools(pools):
+            return [
+                ("pool1", 2.5),  # High priority
+                ("pool2", 2.2),  # High priority
+                ("pool3", 1.8),  # Medium priority
+                ("pool4", 1.5),  # Medium priority
+                ("pool5", 1.0),  # Low priority
+            ]
+        
+        continuity_collector.prioritize_pools_by_activity = mock_prioritize_pools
+        
+        rotated = await continuity_collector.implement_fair_rotation(pool_ids)
+        
+        assert len(rotated) <= len(pool_ids)
+        assert len(rotated) > 0
+        
+        # High priority pools should be included
+        assert "pool1" in rotated or "pool2" in rotated
+    
+    @pytest.mark.asyncio
+    async def test_verify_and_recover_continuity(self, continuity_collector):
+        """Test continuity verification and recovery."""
+        pool_ids = ["pool1", "pool2"]
+        
+        # Mock gap detection
+        async def mock_detect_gaps(pool_id):
+            if pool_id == "pool1":
+                return [
+                    MagicMock(
+                        start_time=datetime.now() - timedelta(hours=5),
+                        end_time=datetime.now() - timedelta(hours=3),
+                        duration_hours=2.0,
+                        gap_type="data_gap",
+                        severity="high"
+                    )
+                ]
+            return []
+        
+        continuity_collector.detect_trade_data_gaps = mock_detect_gaps
+        
+        # Mock recovery attempt
+        continuity_collector._attempt_gap_recovery = AsyncMock(return_value=True)
+        
+        results = await continuity_collector.verify_and_recover_continuity(pool_ids)
+        
+        assert results["pools_checked"] == 2
+        assert results["pools_with_gaps"] == 1
+        assert results["total_gaps_found"] == 1
+        assert results["recovery_attempts"] == 1
+        assert results["recovery_successes"] == 1
+        
+        assert "pool1" in results["pool_details"]
+        assert "pool2" in results["pool_details"]
+        
+        pool1_details = results["pool_details"]["pool1"]
+        assert pool1_details["gaps_found"] == 1
+        assert pool1_details["recovery_attempted"] is True
+        assert pool1_details["recovery_successful"] is True
+    
+    @pytest.mark.asyncio
+    async def test_collect_with_continuity_verification(self, continuity_collector):
+        """Test main collect method with continuity verification enabled."""
+        # Mock watchlist pools
+        continuity_collector.db_manager.get_watchlist_pools.return_value = ["pool1", "pool2"]
+        
+        # Mock fair rotation
+        continuity_collector.implement_fair_rotation = AsyncMock(return_value=["pool1"])
+        
+        # Mock pool data collection
+        continuity_collector._collect_pool_trade_data = AsyncMock(return_value=5)
+        
+        # Mock continuity verification
+        continuity_collector.verify_and_recover_continuity = AsyncMock(return_value={
+            "pools_checked": 1,
+            "pools_with_gaps": 0,
+            "total_gaps_found": 0,
+            "recovery_attempts": 0,
+            "recovery_successes": 0
+        })
+        
+        result = await continuity_collector.collect()
+        
+        assert result.success is True
+        assert result.records_collected == 5
+        assert result.metadata is not None
+        
+        # Verify continuity verification metadata
+        assert "continuity_verification" in result.metadata
+        assert "fair_rotation" in result.metadata
+        
+        continuity_meta = result.metadata["continuity_verification"]
+        assert continuity_meta["pools_with_gaps"] == 0
+        assert continuity_meta["total_gaps_found"] == 0
+        
+        rotation_meta = result.metadata["fair_rotation"]
+        assert rotation_meta["total_pools"] == 2
+        assert rotation_meta["selected_pools"] == 1
+    
+    @pytest.mark.asyncio
+    async def test_gap_recovery_attempt(self, continuity_collector):
+        """Test gap recovery attempt functionality."""
+        pool_id = "test_pool"
+        
+        # Create mock gaps
+        gaps = [
+            MagicMock(
+                start_time=datetime.now() - timedelta(hours=5),
+                end_time=datetime.now() - timedelta(hours=3),
+                duration_hours=2.0,
+                gap_type="data_gap",
+                severity="high"
+            )
+        ]
+        
+        # Mock successful data collection
+        continuity_collector._collect_pool_trade_data = AsyncMock(return_value=3)
+        
+        success = await continuity_collector._attempt_gap_recovery(pool_id, gaps)
+        
+        assert success is True
+        continuity_collector._collect_pool_trade_data.assert_called_once_with(pool_id)
+    
+    @pytest.mark.asyncio
+    async def test_gap_recovery_attempt_no_data(self, continuity_collector):
+        """Test gap recovery attempt when no new data is collected."""
+        pool_id = "test_pool"
+        
+        # Create mock gaps
+        gaps = [
+            MagicMock(
+                start_time=datetime.now() - timedelta(hours=5),
+                end_time=datetime.now() - timedelta(hours=3),
+                duration_hours=2.0,
+                gap_type="data_gap",
+                severity="high"
+            )
+        ]
+        
+        # Mock no data collection
+        continuity_collector._collect_pool_trade_data = AsyncMock(return_value=0)
+        
+        success = await continuity_collector._attempt_gap_recovery(pool_id, gaps)
+        
+        assert success is False
+    
+    @pytest.mark.asyncio
+    async def test_gap_recovery_old_gaps(self, continuity_collector):
+        """Test gap recovery with gaps older than API window."""
+        pool_id = "test_pool"
+        
+        # Mock the data collection method
+        continuity_collector._collect_pool_trade_data = AsyncMock(return_value=0)
+        
+        # Create mock gaps older than 24 hours
+        gaps = [
+            MagicMock(
+                start_time=datetime.now() - timedelta(hours=30),  # Too old
+                end_time=datetime.now() - timedelta(hours=28),
+                duration_hours=2.0,
+                gap_type="data_gap",
+                severity="high"
+            )
+        ]
+        
+        success = await continuity_collector._attempt_gap_recovery(pool_id, gaps)
+        
+        assert success is False
+        # Should not attempt data collection for old gaps
+        continuity_collector._collect_pool_trade_data.assert_not_called()
