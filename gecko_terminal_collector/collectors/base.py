@@ -7,6 +7,7 @@ from typing import Any, Optional
 from gecko_terminal_collector.models.core import CollectionResult
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
+from gecko_terminal_collector.clients import BaseGeckoClient, create_gecko_client
 
 
 class BaseDataCollector(ABC):
@@ -17,24 +18,29 @@ class BaseDataCollector(ABC):
     different types of data from the GeckoTerminal API.
     """
     
-    def __init__(self, config: CollectionConfig, db_manager: DatabaseManager):
+    def __init__(self, config: CollectionConfig, db_manager: DatabaseManager, use_mock: bool = False):
         """
         Initialize the collector with configuration and database manager.
         
         Args:
             config: Collection configuration settings
             db_manager: Database manager for data storage
+            use_mock: Whether to use mock client for testing
         """
         self.config = config
         self.db_manager = db_manager
-        self._client: Optional[Any] = None
+        self.use_mock = use_mock
+        self._client: Optional[BaseGeckoClient] = None
     
     @property
-    def client(self) -> Any:
+    def client(self) -> BaseGeckoClient:
         """Get or create the GeckoTerminal API client."""
         if self._client is None:
-            # Will be implemented when API client is created
-            raise NotImplementedError("API client not yet implemented")
+            self._client = create_gecko_client(
+                self.config.api,
+                self.config.error_handling,
+                use_mock=self.use_mock
+            )
         return self._client
     
     @abstractmethod

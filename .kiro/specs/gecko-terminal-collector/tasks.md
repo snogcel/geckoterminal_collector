@@ -62,7 +62,12 @@
     - _Requirements: 4.2, 4.3, 5.2, 9.1, 9.4_
 
 - [ ] 4. Build API client and base collector framework
-  - [ ] 4.1 Create GeckoTerminal API client wrapper
+  - [x] 4.1 Create GeckoTerminal API client wrapper
+
+
+
+
+
     - Write async API client class wrapping geckoterminal-py SDK
     - Implement rate limiting, retry logic, and error handling for API calls
     - Create mock client for testing with provided CSV data fixtures
