@@ -220,7 +220,7 @@ class CollectionConfigValidator(BaseModel):
         """Convert to legacy CollectionConfig format for backward compatibility."""
         from gecko_terminal_collector.config.models import (
             CollectionConfig, DEXConfig, IntervalConfig, ThresholdConfig,
-            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig
+            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, WatchlistConfig
         )
         
         return CollectionConfig(
@@ -261,6 +261,12 @@ class CollectionConfigValidator(BaseModel):
                 backoff_factor=self.error_handling.backoff_factor,
                 circuit_breaker_threshold=self.error_handling.circuit_breaker_threshold,
                 circuit_breaker_timeout=self.error_handling.circuit_breaker_timeout
+            ),
+            watchlist=WatchlistConfig(
+                file_path=self.watchlist.file_path,
+                check_interval=self.watchlist.check_interval,
+                auto_add_new_tokens=self.watchlist.auto_add_new_tokens,
+                remove_inactive_tokens=self.watchlist.remove_inactive_tokens
             )
         )
 

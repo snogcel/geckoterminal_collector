@@ -69,6 +69,15 @@ class ErrorConfig:
 
 
 @dataclass
+class WatchlistConfig:
+    """Watchlist monitoring configuration."""
+    file_path: str = "watchlist.csv"
+    check_interval: str = "1h"
+    auto_add_new_tokens: bool = True
+    remove_inactive_tokens: bool = False
+
+
+@dataclass
 class CollectionConfig:
     """Main collection configuration container."""
     dexes: DEXConfig = field(default_factory=DEXConfig)
@@ -78,6 +87,7 @@ class CollectionConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     api: APIConfig = field(default_factory=APIConfig)
     error_handling: ErrorConfig = field(default_factory=ErrorConfig)
+    watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
     
     def validate(self) -> List[str]:
         """
@@ -127,12 +137,3 @@ class CollectionConfig:
         
         # Basic validation - ends with 'm', 'h', or 'd'
         return interval[-1] in ['m', 'h', 'd'] and interval[:-1].isdigit()
-
-
-@dataclass
-class WatchlistConfig:
-    """Watchlist monitoring configuration."""
-    file_path: str = "watchlist.csv"
-    check_interval: str = "1h"
-    auto_add_new_tokens: bool = True
-    remove_inactive_tokens: bool = False
