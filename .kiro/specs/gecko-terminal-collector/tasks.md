@@ -97,7 +97,11 @@
     - Create tests using get_dexes_by_network.csv fixture data
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [ ] 5.2 Implement top pools monitoring collector
+  - [x] 5.2 Implement top pools monitoring collector
+
+
+
+
     - Code TopPoolsCollector for heaven and pumpswap DEX monitoring
     - Write pool data processing and storage with volume and liquidity tracking
     - Implement configurable monitoring intervals with scheduler integration
