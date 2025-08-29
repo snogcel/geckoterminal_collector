@@ -1,32 +1,109 @@
-api:
-  base_url: https://api.geckoterminal.com/api/v2
-  max_concurrent: 5
-  timeout: 30
-database:
-  echo: false
-  pool_size: 10
-  url: sqlite:///gecko_data.db
+# GeckoTerminal Data Collector Configuration
+# This file contains all configurable settings for the data collection system
+
+# DEX Configuration
 dexes:
-  network: solana
   targets:
-  - heaven
-  - pumpswap
+    - heaven
+    - pumpswap
+  network: solana
+
+# Collection Intervals
 intervals:
-  ohlcv_collection: 1h
-  top_pools_monitoring: 1h
-  trade_collection: 30m
-  watchlist_check: 1h
+  top_pools_monitoring: "1h"    # How often to check top pools
+  ohlcv_collection: "1h"        # OHLCV data collection frequency
+  trade_collection: "30m"       # Trade data collection frequency
+  watchlist_check: "1h"         # Watchlist file check frequency
+
+# Thresholds and Limits
 thresholds:
-  max_retries: 3
-  min_trade_volume_usd: 100
-  rate_limit_delay: 1.0
+  min_trade_volume_usd: 100     # Minimum trade volume to collect (USD)
+  max_retries: 3                # Maximum retry attempts for failed operations
+  rate_limit_delay: 1.0         # Delay between API requests (seconds)
+  backoff_factor: 2.0           # Exponential backoff multiplier
+
+# OHLCV Timeframe Configuration
 timeframes:
-  ohlcv_default: 1h
-  supported:
-  - 1m
-  - 5m
-  - 15m
-  - 1h
-  - 4h
-  - 12h
-  - 1d
+  ohlcv_default: "1h"           # Default timeframe for OHLCV collection
+  supported:                    # All supported timeframes
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "12h"
+    - "1d"
+
+# Database Configuration
+database:
+  url: "sqlite:///gecko_data.db"  # Database connection URL
+  pool_size: 10                   # Connection pool size
+  echo: false                     # Enable SQL query logging
+  timeout: 30                     # Connection timeout (seconds)
+
+# API Configuration
+api:
+  base_url: "https://api.geckoterminal.com/api/v2"
+  timeout: 30                     # Request timeout (seconds)
+  max_concurrent: 5               # Maximum concurrent API requests
+  rate_limit_delay: 1.0           # Rate limiting delay (seconds)
+
+# Error Handling Configuration
+error_handling:
+  max_retries: 3                  # Maximum retry attempts
+  backoff_factor: 2.0             # Exponential backoff factor
+  circuit_breaker_threshold: 5    # Failures before circuit breaker opens
+  circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
+
+# Watchlist Configuration
+watchlist:
+  file_path: "watchlist.csv"      # Path to watchlist CSV file
+  check_interval: "1h"            # How often to check for file changes
+  auto_add_new_tokens: true       # Automatically add new tokens from watchlist
+  remove_inactive_tokens: false   # Remove tokens no longer in watchlist
+
+# Environment Variable Overrides:
+# You can override any configuration value using environment variables:
+#
+# Database:
+#   GECKO_DB_URL - Database connection URL
+#   GECKO_DB_POOL_SIZE - Connection pool size
+#   GECKO_DB_ECHO - Enable SQL logging (true/false)
+#   GECKO_DB_TIMEOUT - Connection timeout
+#
+# API:
+#   GECKO_API_BASE_URL - API base URL
+#   GECKO_API_TIMEOUT - Request timeout
+#   GECKO_API_MAX_CONCURRENT - Max concurrent requests
+#   GECKO_API_RATE_LIMIT_DELAY - Rate limit delay
+#
+# DEX:
+#   GECKO_DEX_TARGETS - Comma-separated list of DEX targets
+#   GECKO_DEX_NETWORK - Blockchain network
+#
+# Thresholds:
+#   GECKO_MIN_TRADE_VOLUME - Minimum trade volume
+#   GECKO_MAX_RETRIES - Maximum retries
+#   GECKO_RATE_LIMIT_DELAY - Rate limit delay
+#   GECKO_BACKOFF_FACTOR - Backoff factor
+#
+# Intervals:
+#   GECKO_TOP_POOLS_INTERVAL - Top pools monitoring interval
+#   GECKO_OHLCV_INTERVAL - OHLCV collection interval
+#   GECKO_TRADE_INTERVAL - Trade collection interval
+#   GECKO_WATCHLIST_INTERVAL - Watchlist check interval
+#
+# Timeframes:
+#   GECKO_OHLCV_DEFAULT_TIMEFRAME - Default OHLCV timeframe
+#
+# Error Handling:
+#   GECKO_ERROR_MAX_RETRIES - Error handling max retries
+#   GECKO_ERROR_BACKOFF_FACTOR - Error handling backoff factor
+#   GECKO_ERROR_CIRCUIT_BREAKER_THRESHOLD - Circuit breaker threshold
+#   GECKO_ERROR_CIRCUIT_BREAKER_TIMEOUT - Circuit breaker timeout
+#
+# Watchlist:
+#   GECKO_WATCHLIST_FILE_PATH - Watchlist file path
+#   GECKO_WATCHLIST_CHECK_INTERVAL - Watchlist check interval
+#   GECKO_WATCHLIST_AUTO_ADD - Auto add new tokens (true/false)
+#   GECKO_WATCHLIST_REMOVE_INACTIVE - Remove inactive tokens (true/false)

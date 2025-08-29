@@ -10,6 +10,9 @@ from typing import Dict, Any, Optional, Callable
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from gecko_terminal_collector.config.models import CollectionConfig
+from gecko_terminal_collector.config.validation import (
+    CollectionConfigValidator, validate_config_dict, get_env_var_mappings
+)
 
 
 class ConfigFileHandler(FileSystemEventHandler):
@@ -65,13 +68,11 @@ class ConfigManager:
         # Apply environment variable overrides
         config_data = self._apply_env_overrides(config_data)
         
-        # Create config object
-        self._config = self._create_config_from_dict(config_data)
+        # Validate using Pydantic
+        validated_config = validate_config_dict(config_data)
         
-        # Validate configuration
-        validation_errors = self._config.validate()
-        if validation_errors:
-            raise ValueError(f"Configuration validation failed: {validation_errors}")
+        # Convert to legacy format for backward compatibility
+        self._config = validated_config.to_legacy_config()
         
         return self._config
     
@@ -150,19 +151,14 @@ class ConfigManager:
     
     def _apply_env_overrides(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
         """Apply environment variable overrides to configuration."""
-        # Environment variable mapping
-        env_mappings = {
-            'GECKO_DB_URL': ['database', 'url'],
-            'GECKO_API_TIMEOUT': ['api', 'timeout'],
-            'GECKO_MIN_TRADE_VOLUME': ['thresholds', 'min_trade_volume_usd'],
-            'GECKO_MAX_RETRIES': ['thresholds', 'max_retries'],
-            'GECKO_DEX_TARGETS': ['dexes', 'targets'],
-            'GECKO_NETWORK': ['dexes', 'network'],
-        }
+        env_mappings = get_env_var_mappings()
         
-        for env_var, config_path in env_mappings.items():
+        for env_var, config_path_str in env_mappings.items():
             env_value = os.getenv(env_var)
             if env_value is not None:
+                # Parse the config path (e.g., "database.url" -> ["database", "url"])
+                config_path = config_path_str.split('.')
+                
                 # Navigate to the nested config location
                 current = config_data
                 for key in config_path[:-1]:
@@ -172,16 +168,43 @@ class ConfigManager:
                 
                 # Set the value with appropriate type conversion
                 final_key = config_path[-1]
-                if env_var in ['GECKO_API_TIMEOUT', 'GECKO_MAX_RETRIES']:
-                    current[final_key] = int(env_value)
-                elif env_var == 'GECKO_MIN_TRADE_VOLUME':
-                    current[final_key] = float(env_value)
-                elif env_var == 'GECKO_DEX_TARGETS':
-                    current[final_key] = env_value.split(',')
-                else:
-                    current[final_key] = env_value
+                current[final_key] = self._convert_env_value(env_var, env_value)
         
         return config_data
+    
+    def _convert_env_value(self, env_var: str, env_value: str) -> Any:
+        """Convert environment variable value to appropriate type."""
+        # Integer fields
+        if env_var in [
+            'GECKO_DB_POOL_SIZE', 'GECKO_DB_TIMEOUT', 'GECKO_API_TIMEOUT',
+            'GECKO_API_MAX_CONCURRENT', 'GECKO_MAX_RETRIES',
+            'GECKO_ERROR_MAX_RETRIES', 'GECKO_ERROR_CIRCUIT_BREAKER_THRESHOLD',
+            'GECKO_ERROR_CIRCUIT_BREAKER_TIMEOUT'
+        ]:
+            return int(env_value)
+        
+        # Float fields
+        elif env_var in [
+            'GECKO_MIN_TRADE_VOLUME', 'GECKO_API_RATE_LIMIT_DELAY',
+            'GECKO_RATE_LIMIT_DELAY', 'GECKO_BACKOFF_FACTOR',
+            'GECKO_ERROR_BACKOFF_FACTOR'
+        ]:
+            return float(env_value)
+        
+        # Boolean fields
+        elif env_var in [
+            'GECKO_DB_ECHO', 'GECKO_WATCHLIST_AUTO_ADD',
+            'GECKO_WATCHLIST_REMOVE_INACTIVE'
+        ]:
+            return env_value.lower() in ('true', '1', 'yes', 'on')
+        
+        # List fields (comma-separated)
+        elif env_var in ['GECKO_DEX_TARGETS']:
+            return [item.strip() for item in env_value.split(',') if item.strip()]
+        
+        # String fields (default)
+        else:
+            return env_value
     
     def _create_config_from_dict(self, config_data: Dict[str, Any]) -> CollectionConfig:
         """Create CollectionConfig object from dictionary data."""
