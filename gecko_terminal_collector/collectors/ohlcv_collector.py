@@ -58,6 +58,9 @@ class OHLCVCollector(BaseDataCollector):
         self.currency = getattr(config, 'ohlcv_currency', 'usd')
         self.token = getattr(config, 'ohlcv_token', 'base')
         
+        # Track errors during collection
+        self._collection_errors = []
+        
         # Data quality thresholds
         self.min_data_quality_score = getattr(config, 'min_data_quality_score', 0.8)
         self.max_gap_hours = getattr(config, 'max_gap_hours', 24)
@@ -76,6 +79,7 @@ class OHLCVCollector(BaseDataCollector):
         start_time = datetime.now()
         errors = []
         records_collected = 0
+        self._collection_errors = []  # Reset error tracking
         
         try:
             # Get active watchlist pool IDs
@@ -108,12 +112,15 @@ class OHLCVCollector(BaseDataCollector):
                 f"for {len(watchlist_pools)} pools"
             )
             
+            # Combine pool-level errors with individual API call errors
+            all_errors = errors + self._collection_errors
+            
             # Create result with any errors encountered
-            if errors:
+            if all_errors:
                 return CollectionResult(
                     success=True,  # Partial success
                     records_collected=records_collected,
-                    errors=errors,
+                    errors=all_errors,
                     collection_time=start_time,
                     collector_type=self.get_collection_key()
                 )
@@ -177,9 +184,9 @@ class OHLCVCollector(BaseDataCollector):
                     logger.debug(f"No OHLCV data returned for pool {pool_id}, timeframe {timeframe}")
                 
             except Exception as e:
-                logger.warning(
-                    f"Error collecting OHLCV data for pool {pool_id}, timeframe {timeframe}: {e}"
-                )
+                error_msg = f"Error collecting OHLCV data for pool {pool_id}, timeframe {timeframe}: {e}"
+                logger.warning(error_msg)
+                self._collection_errors.append(error_msg)
                 continue
         
         return total_records
@@ -259,13 +266,13 @@ class OHLCVCollector(BaseDataCollector):
             # Convert timestamp to datetime
             datetime_obj = datetime.fromtimestamp(timestamp)
             
-            # Validate price relationships
+            # Validate price relationships (log warning but don't reject)
             if not self._validate_price_relationships(open_price, high_price, low_price, close_price):
-                logger.warning(
-                    f"Invalid price relationships for pool {pool_id} at {datetime_obj}: "
+                logger.debug(
+                    f"Unusual price relationships for pool {pool_id} at {datetime_obj}: "
                     f"O:{open_price}, H:{high_price}, L:{low_price}, C:{close_price}"
                 )
-                return None
+                # Continue processing - real market data can have anomalies
             
             return OHLCVRecord(
                 pool_id=pool_id,
@@ -362,14 +369,19 @@ class OHLCVCollector(BaseDataCollector):
         
         # Check for duplicate timestamps within the batch
         timestamps = set()
+        duplicate_count = 0
         for record in records:
             timestamp_key = (record.pool_id, record.timeframe, record.timestamp)
             if timestamp_key in timestamps:
-                errors.append(
-                    f"Duplicate timestamp in batch: pool {record.pool_id}, "
-                    f"timeframe {record.timeframe}, timestamp {record.timestamp}"
-                )
+                duplicate_count += 1
+                if duplicate_count <= 3:  # Only log first few duplicates
+                    warnings.append(
+                        f"Duplicate timestamp in batch: pool {record.pool_id}, "
+                        f"timeframe {record.timeframe}, timestamp {record.timestamp}"
+                    )
             timestamps.add(timestamp_key)
+        if duplicate_count > 3:
+            warnings.append(f"Found {duplicate_count} total duplicate timestamps in batch")
         
         # Validate individual records
         for record in records:

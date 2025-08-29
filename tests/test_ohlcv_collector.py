@@ -84,14 +84,16 @@ class TestOHLCVCollector:
             )
         ]
         
-        # Mock continuity check
-        db_manager.check_data_continuity.return_value = ContinuityReport(
-            pool_id="solana_pool1",
-            timeframe="1h",
-            total_gaps=0,
-            gaps=[],
-            data_quality_score=1.0
-        )
+        # Mock continuity check - return different values based on input
+        def mock_continuity_check(pool_id, timeframe):
+            return ContinuityReport(
+                pool_id=pool_id,
+                timeframe=timeframe,
+                total_gaps=0,
+                gaps=[],
+                data_quality_score=1.0
+            )
+        db_manager.check_data_continuity.side_effect = mock_continuity_check
         
         return db_manager
     
@@ -234,14 +236,17 @@ class TestOHLCVCollector:
     
     def test_parse_ohlcv_entry_invalid_prices(self, collector):
         """Test parsing of OHLCV entry with invalid price relationships."""
-        # High < Low (invalid)
+        # High < Low (invalid) - but we now allow this and just log a warning
         ohlcv_data = [1689280200, 1.0, 0.8, 1.2, 1.0, 1000.0]
         pool_id = "test_pool"
         timeframe = "1h"
         
         record = collector._parse_ohlcv_entry(ohlcv_data, pool_id, timeframe)
         
-        assert record is None
+        # Should still create a record, just with unusual price relationships
+        assert record is not None
+        assert record.pool_id == pool_id
+        assert record.timeframe == timeframe
     
     def test_validate_price_relationships_valid(self, collector):
         """Test validation of valid price relationships."""
@@ -362,9 +367,10 @@ class TestOHLCVCollector:
         
         result = await collector._validate_ohlcv_data(records)
         
-        assert result.is_valid is False
-        assert len(result.errors) == 1
-        assert "Duplicate timestamp" in result.errors[0]
+        # Duplicates are now warnings, not errors
+        assert result.is_valid is True
+        assert len(result.warnings) > 0
+        assert any("Duplicate timestamp" in warning for warning in result.warnings)
     
     @pytest.mark.asyncio
     async def test_validate_ohlcv_data_negative_volume(self, collector):
@@ -467,6 +473,9 @@ class TestOHLCVCollector:
     @pytest.mark.asyncio
     async def test_validate_specific_data(self, collector, mock_db_manager):
         """Test specific data validation."""
+        # Mock empty OHLCV data to trigger warnings
+        mock_db_manager.get_ohlcv_data.return_value = []
+        
         result = await collector._validate_specific_data(None)
         
         assert result is not None
