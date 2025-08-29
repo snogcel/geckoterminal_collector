@@ -125,7 +125,12 @@
     - Implement watchlist change detection and new token processing workflows
     - _Requirements: 3.1, 3.4_
 
-  - [ ] 6.2 Create watchlist token data collector
+  - [x] 6.2 Create watchlist token data collector
+
+
+
+
+
     - Write WatchlistCollector using multiple pools API for efficiency
     - Implement individual token and pool data collection as fallback
     - Code token information storage and relationship management
