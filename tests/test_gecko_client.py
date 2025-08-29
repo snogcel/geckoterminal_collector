@@ -201,7 +201,7 @@ class TestGeckoTerminalClient:
         result = await client.get_multiple_pools_by_network("solana", addresses)
         
         assert result == expected_response
-        mock_instance.get_multiple_pools_by_network.assert_called_once_with("solana", "addr1,addr2")
+        mock_instance.get_multiple_pools_by_network.assert_called_once_with("solana", ["addr1", "addr2"])
 
 
 class TestMockGeckoTerminalClient:

@@ -36,24 +36,48 @@ async def demo_real_client():
             print("\n1. Getting available networks...")
             networks = await client.get_networks()
             print(f"Found {len(networks)} networks")
-            for network in networks[:3]:  # Show first 3
-                print(f"  - {network.get('id')}: {network.get('attributes', {}).get('name')}")
+            
+            # Handle pandas DataFrame response
+            if hasattr(networks, 'iterrows'):  # pandas DataFrame
+                for i, (_, network) in enumerate(networks.head(3).iterrows()):
+                    print(f"  - {network.get('id', 'N/A')}: {network.get('name', 'N/A')}")
+            else:  # Expected dict/list format
+                for network in networks[:3]:  # Show first 3
+                    print(f"  - {network.get('id')}: {network.get('attributes', {}).get('name')}")
             
             # Get DEXes for Solana
             print("\n2. Getting DEXes for Solana...")
             dexes = await client.get_dexes_by_network("solana")
             print(f"Found {len(dexes)} DEXes on Solana")
-            for dex in dexes[:5]:  # Show first 5
-                print(f"  - {dex.get('id')}: {dex.get('attributes', {}).get('name')}")
+            
+            # Handle pandas DataFrame response
+            if hasattr(dexes, 'iterrows'):  # pandas DataFrame
+                for i, (_, dex) in enumerate(dexes.head(5).iterrows()):
+                    print(f"  - {dex.get('id', 'N/A')}: {dex.get('name', 'N/A')}")
+            else:  # Expected dict/list format
+                for dex in dexes[:5]:  # Show first 5
+                    print(f"  - {dex.get('id')}: {dex.get('attributes', {}).get('name')}")
             
             # Get top pools for Heaven DEX
             print("\n3. Getting top pools for Heaven DEX...")
             pools = await client.get_top_pools_by_network_dex("solana", "heaven")
-            pool_data = pools.get("data", [])
-            print(f"Found {len(pool_data)} pools on Heaven DEX")
-            for pool in pool_data[:3]:  # Show first 3
-                attrs = pool.get("attributes", {})
-                print(f"  - {pool.get('id')}: {attrs.get('name')} (${attrs.get('reserve_in_usd', 0):,.2f})")
+            
+            # Handle different response formats
+            if hasattr(pools, 'iterrows'):  # pandas DataFrame
+                print(f"Found {len(pools)} pools on Heaven DEX")
+                for i, (_, pool) in enumerate(pools.head(3).iterrows()):
+                    reserve = pool.get('reserve_in_usd', 0)
+                    try:
+                        reserve_float = float(reserve) if reserve else 0
+                        print(f"  - {pool.get('id', 'N/A')}: {pool.get('name', 'N/A')} (${reserve_float:,.2f})")
+                    except (ValueError, TypeError):
+                        print(f"  - {pool.get('id', 'N/A')}: {pool.get('name', 'N/A')} (${reserve})")
+            else:  # Expected dict format
+                pool_data = pools.get("data", []) if isinstance(pools, dict) else []
+                print(f"Found {len(pool_data)} pools on Heaven DEX")
+                for pool in pool_data[:3]:  # Show first 3
+                    attrs = pool.get("attributes", {})
+                    print(f"  - {pool.get('id')}: {attrs.get('name')} (${attrs.get('reserve_in_usd', 0):,.2f})")
     
     except Exception as e:
         logger.error(f"Error with real client: {e}")

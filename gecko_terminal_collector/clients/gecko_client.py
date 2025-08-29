@@ -81,32 +81,32 @@ class BaseGeckoClient(ABC):
     """Abstract base class for GeckoTerminal clients."""
     
     @abstractmethod
-    async def get_networks(self) -> List[Dict[str, Any]]:
+    async def get_networks(self) -> Any:
         """Get available networks."""
         pass
     
     @abstractmethod
-    async def get_dexes_by_network(self, network: str) -> List[Dict[str, Any]]:
+    async def get_dexes_by_network(self, network: str) -> Any:
         """Get DEXes available on a network."""
         pass
     
     @abstractmethod
-    async def get_top_pools_by_network(self, network: str, page: int = 1) -> Dict[str, Any]:
+    async def get_top_pools_by_network(self, network: str, page: int = 1) -> Any:
         """Get top pools by network."""
         pass
     
     @abstractmethod
-    async def get_top_pools_by_network_dex(self, network: str, dex: str, page: int = 1) -> Dict[str, Any]:
+    async def get_top_pools_by_network_dex(self, network: str, dex: str, page: int = 1) -> Any:
         """Get top pools by network and DEX."""
         pass
     
     @abstractmethod
-    async def get_multiple_pools_by_network(self, network: str, addresses: List[str]) -> Dict[str, Any]:
+    async def get_multiple_pools_by_network(self, network: str, addresses: List[str]) -> Any:
         """Get multiple pools by their addresses."""
         pass
     
     @abstractmethod
-    async def get_pool_by_network_address(self, network: str, address: str) -> Dict[str, Any]:
+    async def get_pool_by_network_address(self, network: str, address: str) -> Any:
         """Get specific pool by network and address."""
         pass
     
@@ -116,17 +116,17 @@ class BaseGeckoClient(ABC):
                            before_timestamp: Optional[int] = None,
                            limit: int = 1000,
                            currency: str = "usd",
-                           token: str = "base") -> Dict[str, Any]:
+                           token: str = "base") -> Any:
         """Get OHLCV data for a pool."""
         pass
     
     @abstractmethod
-    async def get_trades(self, network: str, pool_address: str) -> Dict[str, Any]:
+    async def get_trades(self, network: str, pool_address: str) -> Any:
         """Get recent trades for a pool."""
         pass
     
     @abstractmethod
-    async def get_token_info(self, network: str, token_address: str) -> Dict[str, Any]:
+    async def get_token_info(self, network: str, token_address: str) -> Any:
         """Get token information."""
         pass
 
@@ -227,44 +227,45 @@ class GeckoTerminalClient(BaseGeckoClient):
         logger.error(f"All retries exhausted for API call: {last_exception}")
         raise last_exception
     
-    async def get_networks(self) -> List[Dict[str, Any]]:
+    async def get_networks(self) -> Any:
         """Get available networks."""
         async def _get_networks():
             return await self._sdk_client.get_networks()
         
         return await self._execute_with_retry(_get_networks)
     
-    async def get_dexes_by_network(self, network: str) -> List[Dict[str, Any]]:
+    async def get_dexes_by_network(self, network: str) -> Any:
         """Get DEXes available on a network."""
         async def _get_dexes():
             return await self._sdk_client.get_dexes_by_network(network)
         
         return await self._execute_with_retry(_get_dexes)
     
-    async def get_top_pools_by_network(self, network: str, page: int = 1) -> Dict[str, Any]:
+    async def get_top_pools_by_network(self, network: str, page: int = 1) -> Any:
         """Get top pools by network."""
         async def _get_top_pools():
-            return await self._sdk_client.get_top_pools_by_network(network, page=page)
+            # SDK doesn't support pagination, ignore page parameter
+            return await self._sdk_client.get_top_pools_by_network(network)
         
         return await self._execute_with_retry(_get_top_pools)
     
-    async def get_top_pools_by_network_dex(self, network: str, dex: str, page: int = 1) -> Dict[str, Any]:
+    async def get_top_pools_by_network_dex(self, network: str, dex: str, page: int = 1) -> Any:
         """Get top pools by network and DEX."""
         async def _get_top_pools_dex():
-            return await self._sdk_client.get_top_pools_by_network_dex(network, dex, page=page)
+            # SDK doesn't support pagination, ignore page parameter
+            return await self._sdk_client.get_top_pools_by_network_dex(network, dex)
         
         return await self._execute_with_retry(_get_top_pools_dex)
     
-    async def get_multiple_pools_by_network(self, network: str, addresses: List[str]) -> Dict[str, Any]:
+    async def get_multiple_pools_by_network(self, network: str, addresses: List[str]) -> Any:
         """Get multiple pools by their addresses."""
         async def _get_multiple_pools():
-            # Join addresses with comma as expected by the API
-            addresses_str = ",".join(addresses)
-            return await self._sdk_client.get_multiple_pools_by_network(network, addresses_str)
+            # SDK expects list, not comma-separated string
+            return await self._sdk_client.get_multiple_pools_by_network(network, addresses)
         
         return await self._execute_with_retry(_get_multiple_pools)
     
-    async def get_pool_by_network_address(self, network: str, address: str) -> Dict[str, Any]:
+    async def get_pool_by_network_address(self, network: str, address: str) -> Any:
         """Get specific pool by network and address."""
         async def _get_pool():
             return await self._sdk_client.get_pool_by_network_address(network, address)
@@ -276,7 +277,7 @@ class GeckoTerminalClient(BaseGeckoClient):
                            before_timestamp: Optional[int] = None,
                            limit: int = 1000,
                            currency: str = "usd",
-                           token: str = "base") -> Dict[str, Any]:
+                           token: str = "base") -> Any:
         """Get OHLCV data for a pool."""
         async def _get_ohlcv():
             return await self._sdk_client.get_ohlcv(
@@ -287,14 +288,14 @@ class GeckoTerminalClient(BaseGeckoClient):
         
         return await self._execute_with_retry(_get_ohlcv)
     
-    async def get_trades(self, network: str, pool_address: str) -> Dict[str, Any]:
+    async def get_trades(self, network: str, pool_address: str, trade_volume_filter: Optional[float] = None) -> Any:
         """Get recent trades for a pool."""
         async def _get_trades():
-            return await self._sdk_client.get_trades(network, pool_address)
+            return await self._sdk_client.get_trades(network, pool_address, trade_volume_filter)
         
         return await self._execute_with_retry(_get_trades)
     
-    async def get_token_info(self, network: str, token_address: str) -> Dict[str, Any]:
+    async def get_token_info(self, network: str, token_address: str) -> Any:
         """Get token information."""
         async def _get_token():
             return await self._sdk_client.get_specific_token_on_network(network, token_address)
