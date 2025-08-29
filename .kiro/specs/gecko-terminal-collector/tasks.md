@@ -36,7 +36,10 @@
     - _Requirements: 8.4_
 
 - [ ] 3. Create database layer and data models
-  - [ ] 3.1 Implement database schema and models
+  - [-] 3.1 Implement database schema and models
+
+
+
     - Write SQLAlchemy models for pools, tokens, OHLCV, trades, and watchlist tables
     - Create database migration scripts for schema setup and updates
     - Implement database connection management with connection pooling

@@ -11,7 +11,9 @@ from decimal import Decimal
 class DatabaseConfig:
     """Database connection configuration."""
     url: str = "sqlite:///gecko_data.db"
+    async_url: Optional[str] = None
     pool_size: int = 10
+    max_overflow: int = 20
     echo: bool = False
     timeout: int = 30
 
