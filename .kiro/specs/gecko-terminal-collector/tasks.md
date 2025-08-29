@@ -150,7 +150,11 @@
     - Create tests using get_ohlcv.csv fixture data with all supported timeframes
     - _Requirements: 4.1, 4.2, 4.3, 4.5_
 
-  - [ ] 7.2 Implement historical OHLCV data collector
+  - [x] 7.2 Implement historical OHLCV data collector
+
+
+
+
     - Write HistoricalOHLCVCollector using direct API requests with query parameters
     - Code pagination logic for large historical data sets using before_timestamp
     - Implement backfill functionality for data gaps and missing intervals
