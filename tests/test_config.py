@@ -91,11 +91,11 @@ def test_config_manager_load_existing():
     with tempfile.TemporaryDirectory() as temp_dir:
         config_path = os.path.join(temp_dir, "test_config.yaml")
         
-        # Create test config
+        # Create test config with valid network value
         test_config = {
             'dexes': {
                 'targets': ['test_dex'],
-                'network': 'test_network'
+                'network': 'ethereum'  # Use valid network enum value
             },
             'intervals': {
                 'ohlcv_collection': '2h'
@@ -108,7 +108,7 @@ def test_config_manager_load_existing():
         manager = ConfigManager(config_path)
         config = manager.load_config()
         
-        assert config.dexes.network == "test_network"
+        assert config.dexes.network == "ethereum"
         assert "test_dex" in config.dexes.targets
 
 
@@ -117,20 +117,20 @@ def test_config_manager_env_overrides():
     with tempfile.TemporaryDirectory() as temp_dir:
         config_path = os.path.join(temp_dir, "test_config.yaml")
         
-        # Set environment variables
-        os.environ['GECKO_NETWORK'] = 'env_network'
+        # Set environment variables with valid values
+        os.environ['GECKO_DEX_NETWORK'] = 'bsc'  # Use correct env var name and valid network
         os.environ['GECKO_MAX_RETRIES'] = '5'
         
         try:
             manager = ConfigManager(config_path)
             config = manager.load_config()
             
-            assert config.dexes.network == "env_network"
+            assert config.dexes.network == "bsc"
             assert config.thresholds.max_retries == 5
             
         finally:
             # Clean up environment variables
-            os.environ.pop('GECKO_NETWORK', None)
+            os.environ.pop('GECKO_DEX_NETWORK', None)
             os.environ.pop('GECKO_MAX_RETRIES', None)
 
 
