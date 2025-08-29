@@ -8,6 +8,7 @@ from .top_pools import TopPoolsCollector
 from .watchlist_monitor import WatchlistMonitor
 from .watchlist_collector import WatchlistCollector
 from .ohlcv_collector import OHLCVCollector
+from .trade_collector import TradeCollector
 
 __all__ = [
     "BaseDataCollector",
@@ -16,5 +17,6 @@ __all__ = [
     "TopPoolsCollector",
     "WatchlistMonitor",
     "WatchlistCollector",
-    "OHLCVCollector"
+    "OHLCVCollector",
+    "TradeCollector"
 ]
