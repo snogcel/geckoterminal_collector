@@ -371,7 +371,7 @@ class CollectionScheduler:
             
             # Complete execution tracking
             warnings = []
-            if result.warnings:
+            if hasattr(result, 'warnings') and result.warnings:
                 warnings.extend(result.warnings)
             
             self.execution_history.complete_execution(

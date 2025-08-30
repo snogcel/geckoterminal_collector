@@ -48,7 +48,8 @@ class DEXMonitoringCollector(BaseDataCollector):
     
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
-        return f"dex_monitoring_{self.network}"
+        network = getattr(self, 'network', 'solana')
+        return f"dex_monitoring_{network}"
     
     async def collect(self) -> CollectionResult:
         """

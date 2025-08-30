@@ -596,7 +596,7 @@ class MockGeckoTerminalClient(BaseGeckoClient):
                 row.get("high"), 
                 row.get("low"),
                 row.get("close"),
-                row.get("volume")
+                row.get("volume_usd")  # Use volume_usd from CSV
             ])
         
         return {
@@ -635,8 +635,9 @@ class MockGeckoTerminalClient(BaseGeckoClient):
                     "price_to_in_currency_token": str(trade.get("price_usd", 0)),
                     "price_from_in_usd": str(trade.get("price_usd", 0)),
                     "price_to_in_usd": str(trade.get("price_usd", 0)),
+                    "volume_usd": str(trade.get("volume_usd", 0)),
                     "block_timestamp": trade.get("block_timestamp"),
-                    "kind": trade.get("side", "buy")
+                    "side": trade.get("side", "buy")
                 }
             }
             formatted_trades.append(formatted_trade)

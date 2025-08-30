@@ -48,7 +48,8 @@ class TopPoolsCollector(BaseDataCollector):
     
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
-        return f"top_pools_{self.network}"
+        network = getattr(self, 'network', 'solana')
+        return f"top_pools_{network}"
     
     async def collect(self) -> CollectionResult:
         """

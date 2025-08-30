@@ -49,9 +49,9 @@ class OHLCVCollector(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
-        self.network = config.dexes.network
-        self.supported_timeframes = config.timeframes.supported
-        self.default_timeframe = config.timeframes.ohlcv_default
+        self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
+        self.supported_timeframes = config.timeframes['supported'] if isinstance(config.timeframes, dict) else config.timeframes.supported
+        self.default_timeframe = config.timeframes['ohlcv_default'] if isinstance(config.timeframes, dict) else config.timeframes.ohlcv_default
         
         # OHLCV collection settings
         self.limit = getattr(config, 'ohlcv_limit', 1000)  # Max records per API call

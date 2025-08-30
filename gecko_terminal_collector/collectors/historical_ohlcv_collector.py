@@ -52,9 +52,9 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
-        self.network = config.dexes.network
-        self.supported_timeframes = config.timeframes.supported
-        self.api_base_url = config.api.base_url
+        self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
+        self.supported_timeframes = config.timeframes['supported'] if isinstance(config.timeframes, dict) else config.timeframes.supported
+        self.api_base_url = config.api['base_url'] if isinstance(config.api, dict) else config.api.base_url
         
         # Historical collection settings
         self.max_history_days = getattr(config, 'max_history_days', 180)  # 6 months

@@ -49,7 +49,7 @@ class TradeCollector(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
-        self.network = config.dexes.network
+        self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
         
         # Trade collection settings
         self.min_trade_volume_usd = getattr(config.thresholds, 'min_trade_volume_usd', 100.0)
