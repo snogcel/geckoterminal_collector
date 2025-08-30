@@ -389,11 +389,11 @@ class PerformanceTestRunner:
             if isinstance(tests, dict):
                 for test_name, result in tests.items():
                     if not test_name.endswith('_details'):
-                        status = "✓" if result == 'PASSED' else "✗"
-                        report_lines.append(f"  {status} {test_name}: {result}")
+                        status = "PASS" if result == 'PASSED' else "FAIL"
+                        report_lines.append(f"  [{status}] {test_name}: {result}")
             else:
-                status = "✓" if tests == 'PASSED' else "✗"
-                report_lines.append(f"  {status} {category}: {tests}")
+                status = "PASS" if tests == 'PASSED' else "FAIL"
+                report_lines.append(f"  [{status}] {category}: {tests}")
         
         # Migration recommendations
         if 'migration' in self.results:
@@ -415,7 +415,7 @@ class PerformanceTestRunner:
         report_content = "\n".join(report_lines)
         
         if output_file:
-            with open(output_file, 'w') as f:
+            with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(report_content)
             logger.info(f"Performance report saved to: {output_file}")
         
