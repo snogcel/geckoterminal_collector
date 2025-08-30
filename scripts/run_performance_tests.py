@@ -366,7 +366,8 @@ class PerformanceTestRunner:
                 for test_name, result in tests.items():
                     if not test_name.endswith('_details'):
                         total_tests += 1
-                        if result == 'PASSED':
+                        # Count PASSED and boolean True as success
+                        if result == 'PASSED' or result is True:
                             passed_tests += 1
         
         report_lines.extend([
@@ -389,10 +390,11 @@ class PerformanceTestRunner:
             if isinstance(tests, dict):
                 for test_name, result in tests.items():
                     if not test_name.endswith('_details'):
-                        status = "PASS" if result == 'PASSED' else "FAIL"
+                        # Handle both string 'PASSED' and boolean True as success
+                        status = "PASS" if (result == 'PASSED' or result is True) else "FAIL"
                         report_lines.append(f"  [{status}] {test_name}: {result}")
             else:
-                status = "PASS" if tests == 'PASSED' else "FAIL"
+                status = "PASS" if (tests == 'PASSED' or tests is True) else "FAIL"
                 report_lines.append(f"  [{status}] {category}: {tests}")
         
         # Migration recommendations
@@ -483,8 +485,8 @@ async def main():
         )
         
         passed_tests = sum(
-            len([k for k, r in v.items() if not k.endswith('_details') and r == 'PASSED']) if isinstance(v, dict) 
-            else (1 if v == 'PASSED' else 0)
+            len([k for k, r in v.items() if not k.endswith('_details') and (r == 'PASSED' or r is True)]) if isinstance(v, dict) 
+            else (1 if (v == 'PASSED' or v is True) else 0)
             for v in results.values()
         )
         

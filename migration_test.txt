@@ -1,0 +1,30 @@
+================================================================================
+GECKO TERMINAL COLLECTOR - PERFORMANCE TEST REPORT
+================================================================================
+Test Start Time: 2025-08-30 16:13:42.409501
+Test End Time: 2025-08-30 16:13:42.748263
+Total Duration: 0.34 seconds
+
+SUMMARY
+----------------------------------------
+Total Tests: 4
+Passed: 2
+Failed: 2
+Success Rate: 50.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+MIGRATION TESTS:
+  [PASS] performance_thresholds: PASSED
+  [FAIL] migration_recommended: True
+  [PASS] abstraction_validation: PASSED
+  [FAIL] migration_ready: False
+
+POSTGRESQL MIGRATION RECOMMENDATION
+----------------------------------------
+Migration Recommended: YES
+  write_throughput_degradation: MIGRATE
+  query_response_time: MIGRATE
+  concurrent_user_limit: MIGRATE
+  database_size_limit: MIGRATE

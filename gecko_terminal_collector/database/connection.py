@@ -211,8 +211,9 @@ class DatabaseConnection:
             True if database is accessible, False otherwise
         """
         try:
+            from sqlalchemy import text
             with self.get_session() as session:
-                session.execute("SELECT 1")
+                session.execute(text("SELECT 1"))
                 return True
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
@@ -226,8 +227,9 @@ class DatabaseConnection:
             True if database is accessible, False otherwise
         """
         try:
+            from sqlalchemy import text
             async with self.get_async_session() as session:
-                await session.execute("SELECT 1")
+                await session.execute(text("SELECT 1"))
                 return True
         except Exception as e:
             logger.error(f"Async database health check failed: {e}")

@@ -1,0 +1,74 @@
+================================================================================
+GECKO TERMINAL COLLECTOR - PERFORMANCE TEST REPORT
+================================================================================
+Test Start Time: 2025-08-30 16:09:49.407732
+Test End Time: 2025-08-30 16:10:06.076806
+Total Duration: 16.67 seconds
+
+SUMMARY
+----------------------------------------
+Total Tests: 18
+Passed: 8
+Failed: 10
+Success Rate: 44.4%
+
+DETAILED RESULTS
+----------------------------------------
+
+BASELINE TESTS:
+  [PASS] ohlcv_throughput: PASSED
+  [PASS] trade_throughput: PASSED
+  [PASS] batch_optimization: PASSED
+
+CONCURRENCY TESTS:
+  [FAIL] concurrent_ohlcv: FAILED: Some collectors failed: [IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed'), IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed'), IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed')]
+  [FAIL] mixed_concurrency: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('mixed_pool_ohlcv', '1h', 1753711794, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-07-28 08:09:54.967746')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+  [FAIL] database_contention: FAILED: Some writes failed due to contention: 1500
+
+SCALABILITY TESTS:
+  [FAIL] data_volume_limits: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('volume_test_5000', '1m', 1738595396, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-02-03 08:09:56.469268')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+  [FAIL] query_performance_scaling: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('query_perf_test_0', '1h', 1752991796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-07-20 00:09:56.492872')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+  [FAIL] file_size_growth: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('growth_test_pool_0', '5m', 1749391796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-06-08 08:09:56.500412')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+MEMORY TESTS:
+  [FAIL] memory_usage_high_volume: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('memory_test_pool_0', '1m', 1738595396, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-02-03 08:09:56.508921')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+  [FAIL] resource_cleanup: FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('cleanup_test_pool_0', '1h', 1720591796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2024-07-10 00:09:56.632740')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+RATE_LIMIT TESTS:
+  [PASS] rate_limit_backoff: PASSED
+  [PASS] concurrent_rate_limit: PASSED
+
+MIGRATION TESTS:
+  [PASS] performance_thresholds: PASSED
+  [FAIL] migration_recommended: True
+  [PASS] abstraction_validation: PASSED
+  [FAIL] migration_ready: False
+
+COMPREHENSIVE TESTS:
+  [PASS] comprehensive_suite: PASSED
+
+POSTGRESQL MIGRATION RECOMMENDATION
+----------------------------------------
+Migration Recommended: YES
+  write_throughput_degradation: MIGRATE
+  query_response_time: MIGRATE
+  concurrent_user_limit: MIGRATE
+  database_size_limit: MIGRATE

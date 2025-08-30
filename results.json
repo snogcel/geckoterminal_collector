@@ -1,0 +1,132 @@
+{
+  "baseline": {
+    "ohlcv_throughput": "PASSED",
+    "trade_throughput": "PASSED",
+    "batch_optimization": "PASSED"
+  },
+  "concurrency": {
+    "concurrent_ohlcv": "FAILED: Some collectors failed: [IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed'), IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed'), IntegrityError('(sqlite3.IntegrityError) FOREIGN KEY constraint failed')]",
+    "mixed_concurrency": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('mixed_pool_ohlcv', '1h', 1753711794, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-07-28 08:09:54.967746')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+    "database_contention": "FAILED: Some writes failed due to contention: 1500"
+  },
+  "scalability": {
+    "data_volume_limits": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('volume_test_5000', '1m', 1738595396, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-02-03 08:09:56.469268')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+    "query_performance_scaling": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('query_perf_test_0', '1h', 1752991796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-07-20 00:09:56.492872')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+    "file_size_growth": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('growth_test_pool_0', '5m', 1749391796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-06-08 08:09:56.500412')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+  },
+  "memory": {
+    "memory_usage_high_volume": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('memory_test_pool_0', '1m', 1738595396, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-02-03 08:09:56.508921')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+    "resource_cleanup": "FAILED: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('cleanup_test_pool_0', '1h', 1720591796, 95.0, 96.9, 93.1, 94.05, 1000.0, '2024-07-10 00:09:56.632740')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+  },
+  "rate_limit": {
+    "rate_limit_backoff": "PASSED",
+    "backoff_details": {
+      "successful_requests": 10,
+      "failed_requests": 5,
+      "backoff_events": 10
+    },
+    "concurrent_rate_limit": "PASSED",
+    "concurrent_details": {
+      "collectors": 3,
+      "total_successful": 20,
+      "total_backoff_events": 10
+    }
+  },
+  "migration": {
+    "performance_thresholds": "PASSED",
+    "migration_recommended": true,
+    "threshold_details": {
+      "write_throughput_degradation": {
+        "description": "Write throughput below acceptable levels",
+        "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('threshold_test_pool', '1h', 1738595399, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-02-03 08:09:59.862763')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+        "migration_recommended": true
+      },
+      "query_response_time": {
+        "description": "Query response time exceeds limits",
+        "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('query_threshold_pool', '1h', 1576595399, 95.0, 96.9, 93.1, 94.05, 1000.0, '2019-12-17 08:09:59.886235')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+        "migration_recommended": true
+      },
+      "concurrent_user_limit": {
+        "description": "Concurrent access performance degradation",
+        "measured_value": 0,
+        "threshold": 3,
+        "unit": "concurrent users",
+        "exceeds_threshold": true,
+        "migration_recommended": true
+      },
+      "database_size_limit": {
+        "description": "Database file size approaching practical limits",
+        "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('size_test_pool_0', '1m', 1720591800, 95.0, 96.9, 93.1, 94.05, 1000.0, '2024-07-10 00:10:00.149420')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+        "migration_recommended": true
+      }
+    },
+    "abstraction_validation": "PASSED",
+    "migration_ready": false,
+    "abstraction_details": {
+      "connection_management": {
+        "description": "Connection pooling and management",
+        "success": true,
+        "details": {
+          "health_check": false
+        },
+        "migration_ready": false
+      },
+      "transaction_handling": {
+        "description": "Transaction management across databases",
+        "success": false,
+        "details": {
+          "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('transaction_test', '1h', 1756231800, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-08-26 12:10:00.186218')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+        },
+        "migration_ready": false
+      },
+      "query_portability": {
+        "description": "Query compatibility across database engines",
+        "success": false,
+        "details": {
+          "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('portability_test', '1h', 1754791800, 95.0, 96.9, 93.1, 94.05, 1000.0, '2025-08-09 20:10:00.190214')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+        },
+        "migration_ready": false
+      },
+      "data_type_compatibility": {
+        "description": "Data type handling across databases",
+        "success": false,
+        "details": {
+          "error": "(sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]\n[parameters: ('data_type_test', '1h', 1756591800, 1e-18, 1000000000000.0, 1e-18, 123.45678901234568, 0.0, '2025-08-30 16:10:00.193782')]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+        },
+        "migration_ready": false
+      }
+    }
+  },
+  "comprehensive": {
+    "comprehensive_suite": "PASSED",
+    "suite_details": {
+      "total_records_processed": 12500,
+      "total_operations": 6,
+      "peak_memory_mb": 5.9140625,
+      "test_results": {
+        "ohlcv_baseline": {
+          "throughput": 1928.0504106808273,
+          "duration": 1.0373172760009766,
+          "memory_mb": 129.21484375
+        },
+        "trade_baseline": {
+          "throughput": 2560.4490370829194,
+          "duration": 1.1716694831848145,
+          "memory_mb": 129.234375
+        },
+        "concurrent_operations": {
+          "total_records": 7500,
+          "duration": 3.531935691833496,
+          "throughput": 2123.4814714609383
+        },
+        "query_performance": {
+          "ohlcv_results": 23,
+          "trade_results": 3000,
+          "gaps_found": 1,
+          "total_duration": 0.10360431671142578
+        }
+      },
+      "total_duration": 5.869095325469971
+    }
+  }
+}
