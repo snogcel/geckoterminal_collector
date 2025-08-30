@@ -1,0 +1,204 @@
+version: '3.8'
+
+services:
+  gecko-collector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VERSION: ${VERSION:-0.1.0}
+        VCS_REF: ${VCS_REF:-}
+    image: gecko-terminal-collector:${VERSION:-latest}
+    container_name: gecko-collector
+    restart: unless-stopped
+    
+    environment:
+      # Database configuration
+      - GECKO_DB_URL=${GECKO_DB_URL:-sqlite:///app/data/gecko_data.db}
+      - GECKO_DB_POOL_SIZE=${GECKO_DB_POOL_SIZE:-10}
+      - GECKO_DB_ECHO=${GECKO_DB_ECHO:-false}
+      
+      # API configuration
+      - GECKO_API_TIMEOUT=${GECKO_API_TIMEOUT:-30}
+      - GECKO_API_MAX_CONCURRENT=${GECKO_API_MAX_CONCURRENT:-5}
+      - GECKO_API_RATE_LIMIT_DELAY=${GECKO_API_RATE_LIMIT_DELAY:-1.0}
+      
+      # Collection configuration
+      - GECKO_DEX_TARGETS=${GECKO_DEX_TARGETS:-heaven,pumpswap}
+      - GECKO_DEX_NETWORK=${GECKO_DEX_NETWORK:-solana}
+      - GECKO_MIN_TRADE_VOLUME=${GECKO_MIN_TRADE_VOLUME:-100}
+      
+      # Intervals
+      - GECKO_TOP_POOLS_INTERVAL=${GECKO_TOP_POOLS_INTERVAL:-1h}
+      - GECKO_OHLCV_INTERVAL=${GECKO_OHLCV_INTERVAL:-1h}
+      - GECKO_TRADE_INTERVAL=${GECKO_TRADE_INTERVAL:-30m}
+      - GECKO_WATCHLIST_INTERVAL=${GECKO_WATCHLIST_INTERVAL:-1h}
+      
+      # Error handling
+      - GECKO_MAX_RETRIES=${GECKO_MAX_RETRIES:-3}
+      - GECKO_BACKOFF_FACTOR=${GECKO_BACKOFF_FACTOR:-2.0}
+      
+      # Logging
+      - GECKO_LOG_LEVEL=${GECKO_LOG_LEVEL:-INFO}
+      
+    volumes:
+      # Persistent data storage
+      - gecko_data:/app/data
+      - gecko_logs:/app/logs
+      - gecko_backups:/app/backups
+      
+      # Configuration file (optional override)
+      - ${CONFIG_FILE:-./config.yaml}:/app/config.yaml:ro
+      
+      # Watchlist file (if using file-based watchlist)
+      - ${WATCHLIST_FILE:-./watchlist.csv}:/app/watchlist.csv:ro
+    
+    ports:
+      # Health check endpoint (if implemented)
+      - "${HEALTH_PORT:-8080}:8080"
+    
+    networks:
+      - gecko-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-1G}
+          cpus: ${CPU_LIMIT:-1.0}
+        reservations:
+          memory: ${MEMORY_RESERVATION:-512M}
+          cpus: ${CPU_RESERVATION:-0.5}
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-m", "gecko_terminal_collector.cli", "health-check", "--json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: PostgreSQL database (alternative to SQLite)
+  postgres:
+    image: postgres:15-alpine
+    container_name: gecko-postgres
+    restart: unless-stopped
+    
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-gecko_data}
+      - POSTGRES_USER=${POSTGRES_USER:-gecko}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gecko_password}
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    
+    networks:
+      - gecko-network
+    
+    # Only start if explicitly enabled
+    profiles:
+      - postgres
+
+  # Optional: Redis for caching (if implemented)
+  redis:
+    image: redis:7-alpine
+    container_name: gecko-redis
+    restart: unless-stopped
+    
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    
+    volumes:
+      - redis_data:/data
+    
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    networks:
+      - gecko-network
+    
+    # Only start if explicitly enabled
+    profiles:
+      - redis
+
+  # Optional: Monitoring with Prometheus (if metrics are implemented)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gecko-prometheus
+    restart: unless-stopped
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    
+    networks:
+      - gecko-network
+    
+    profiles:
+      - monitoring
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gecko-grafana
+    restart: unless-stopped
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    
+    networks:
+      - gecko-network
+    
+    profiles:
+      - monitoring
+
+volumes:
+  gecko_data:
+    driver: local
+  gecko_logs:
+    driver: local
+  gecko_backups:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  gecko-network:
+    driver: bridge
