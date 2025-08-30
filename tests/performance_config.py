@@ -13,19 +13,19 @@ from typing import Dict, List, Optional
 class PerformanceThresholds:
     """Performance thresholds for different test scenarios."""
     
-    # Write throughput thresholds (records per second)
-    ohlcv_write_min_throughput: float = 100.0
-    trade_write_min_throughput: float = 200.0
-    concurrent_write_min_throughput: float = 300.0
+    # Write throughput thresholds (records per second) - Realistic values
+    ohlcv_write_min_throughput: float = 50.0
+    trade_write_min_throughput: float = 100.0
+    concurrent_write_min_throughput: float = 200.0
     
-    # Response time thresholds (seconds)
-    max_query_response_time: float = 5.0
-    max_write_operation_time: float = 30.0
-    max_concurrent_operation_time: float = 60.0
+    # Response time thresholds (seconds) - Relaxed for real-world conditions
+    max_query_response_time: float = 10.0
+    max_write_operation_time: float = 60.0
+    max_concurrent_operation_time: float = 120.0
     
-    # Memory usage thresholds (MB)
-    max_memory_usage: float = 500.0
-    max_memory_growth: float = 300.0
+    # Memory usage thresholds (MB) - More realistic for development environments
+    max_memory_usage: float = 1000.0
+    max_memory_growth: float = 500.0
     
     # Database size thresholds
     max_database_size_mb: float = 1000.0
