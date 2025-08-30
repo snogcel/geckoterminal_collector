@@ -13,6 +13,8 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.clients import BaseGeckoClient, create_gecko_client
 from gecko_terminal_collector.utils.error_handling import ErrorHandler, RetryConfig
 from gecko_terminal_collector.utils.metadata import MetadataTracker
+from gecko_terminal_collector.utils.structured_logging import get_logger, LogContext
+from gecko_terminal_collector.utils.resilience import HealthChecker, HealthStatus
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,13 @@ class BaseDataCollector(ABC):
             jitter=True
         )
         self.error_handler = ErrorHandler(retry_config)
+        
+        # Initialize structured logger with context
+        log_context = LogContext(
+            collector_type=self.get_collection_key(),
+            additional_fields={"use_mock": use_mock}
+        )
+        self.logger = get_logger(f"{__name__}.{self.__class__.__name__}", log_context)
         
         self._client: Optional[BaseGeckoClient] = None
     
@@ -108,7 +117,8 @@ class BaseDataCollector(ABC):
             result = await self.error_handler.with_retry(
                 self.collect,
                 context=f"{self.get_collection_key()} collection",
-                circuit_breaker_name=self.get_collection_key()
+                circuit_breaker_name=self.get_collection_key(),
+                collector_type=self.get_collection_key()
             )
             
             # Update metadata tracker
@@ -225,6 +235,7 @@ class BaseDataCollector(ABC):
             operation,
             context=f"{self.get_collection_key()} - {context}",
             circuit_breaker_name=f"{self.get_collection_key()}_operations",
+            collector_type=self.get_collection_key(),
             *args,
             **kwargs
         )
