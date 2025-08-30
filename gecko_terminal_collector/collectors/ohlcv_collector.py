@@ -133,6 +133,89 @@ class OHLCVCollector(BaseDataCollector):
             errors.append(error_msg)
             return self.create_failure_result(errors, records_collected, start_time)
     
+    async def collect_for_pool(self, pool_id: str, timeframe: Optional[str] = None) -> CollectionResult:
+        """
+        Collect OHLCV data for a specific pool and timeframe.
+        
+        Args:
+            pool_id: Pool identifier to collect data for
+            timeframe: Specific timeframe to collect (optional, uses default if not provided)
+            
+        Returns:
+            CollectionResult with details about the collection operation
+        """
+        start_time = datetime.now()
+        errors = []
+        records_collected = 0
+        
+        try:
+            # Use provided timeframe or default
+            target_timeframe = timeframe or self.default_timeframe
+            
+            if target_timeframe not in self.supported_timeframes:
+                error_msg = f"Unsupported timeframe: {target_timeframe}. Supported: {self.supported_timeframes}"
+                logger.error(error_msg)
+                return self.create_failure_result([error_msg], 0, start_time)
+            
+            logger.info(f"Collecting OHLCV data for pool {pool_id}, timeframe {target_timeframe}")
+            
+            try:
+                # Get OHLCV data from API
+                response = await self.client.get_ohlcv_data(
+                    network=self.network,
+                    pool_address=pool_id,
+                    timeframe=self._convert_timeframe_to_api_format(target_timeframe),
+                    limit=self.limit,
+                    currency=self.currency,
+                    token=self.token
+                )
+                
+                # Parse and validate OHLCV data
+                ohlcv_records = self._parse_ohlcv_response(response, pool_id, target_timeframe)
+                
+                if ohlcv_records:
+                    # Validate data before storage
+                    validation_result = await self._validate_ohlcv_data(ohlcv_records)
+                    
+                    if validation_result.is_valid:
+                        # Store OHLCV data with duplicate prevention
+                        stored_count = await self.db_manager.store_ohlcv_data(ohlcv_records)
+                        records_collected = stored_count
+                        
+                        logger.info(
+                            f"Stored {stored_count} OHLCV records for pool {pool_id}, "
+                            f"timeframe {target_timeframe}"
+                        )
+                        
+                        # Verify data continuity for this pool
+                        await self._verify_data_continuity(pool_id)
+                        
+                    else:
+                        error_msg = (
+                            f"OHLCV data validation failed for pool {pool_id}, "
+                            f"timeframe {target_timeframe}: {validation_result.errors}"
+                        )
+                        logger.warning(error_msg)
+                        errors.append(error_msg)
+                else:
+                    logger.info(f"No OHLCV data returned for pool {pool_id}, timeframe {target_timeframe}")
+                
+            except Exception as e:
+                error_msg = f"Error collecting OHLCV data for pool {pool_id}, timeframe {target_timeframe}: {e}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+            
+            if records_collected > 0:
+                return self.create_success_result(records_collected, start_time)
+            else:
+                return self.create_failure_result(errors or ["No data collected"], records_collected, start_time)
+            
+        except Exception as e:
+            error_msg = f"Error in single pool OHLCV collection: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            errors.append(error_msg)
+            return self.create_failure_result(errors, records_collected, start_time)
+    
     async def _collect_pool_ohlcv_data(self, pool_id: str) -> int:
         """
         Collect OHLCV data for a specific pool across all configured timeframes.
@@ -335,20 +418,18 @@ class OHLCVCollector(BaseDataCollector):
             timeframe: Internal timeframe (e.g., '1m', '1h', '1d')
             
         Returns:
-            API timeframe format (e.g., 'minute', 'hour', 'day')
+            API timeframe format - geckoterminal-py expects the same format
         """
-        # Map internal timeframes to API formats
-        timeframe_mapping = {
-            '1m': 'minute',
-            '5m': 'minute',
-            '15m': 'minute',
-            '1h': 'hour',
-            '4h': 'hour',
-            '12h': 'hour',
-            '1d': 'day'
-        }
+        # geckoterminal-py SDK expects timeframes as-is: ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
+        # No conversion needed, just validate it's supported
+        supported_timeframes = ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
         
-        return timeframe_mapping.get(timeframe, 'hour')
+        if timeframe in supported_timeframes:
+            return timeframe
+        else:
+            # Fallback to 1h if unsupported
+            logger.warning(f"Unsupported timeframe {timeframe}, using 1h as fallback")
+            return '1h'
     
     async def _validate_ohlcv_data(self, records: List[OHLCVRecord]) -> ValidationResult:
         """

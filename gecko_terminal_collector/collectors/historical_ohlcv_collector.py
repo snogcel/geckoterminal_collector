@@ -152,6 +152,99 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             errors.append(error_msg)
             return self.create_failure_result(errors, records_collected, start_time)
     
+    async def collect_for_pool(self, 
+                              pool_id: str, 
+                              timeframe: str,
+                              start_date: Optional[datetime] = None,
+                              end_date: Optional[datetime] = None,
+                              force_refresh: bool = False) -> CollectionResult:
+        """
+        Collect historical OHLCV data for a specific pool and timeframe.
+        
+        Args:
+            pool_id: Pool identifier to collect data for
+            timeframe: Specific timeframe to collect
+            start_date: Start date for historical data (optional)
+            end_date: End date for historical data (optional)
+            force_refresh: Whether to force refresh existing data
+            
+        Returns:
+            CollectionResult with details about the collection operation
+        """
+        start_time = datetime.now()
+        errors = []
+        records_collected = 0
+        
+        try:
+            if timeframe not in self.supported_timeframes:
+                error_msg = f"Unsupported timeframe: {timeframe}. Supported: {self.supported_timeframes}"
+                logger.error(error_msg)
+                return self.create_failure_result([error_msg], 0, start_time)
+            
+            # Set default date range if not provided
+            if end_date is None:
+                end_date = datetime.utcnow()
+            if start_date is None:
+                start_date = end_date - timedelta(days=self.max_history_days)
+            
+            logger.info(f"Collecting historical OHLCV data for pool {pool_id}, timeframe {timeframe}")
+            logger.info(f"Date range: {start_date.date()} to {end_date.date()}")
+            
+            # Initialize HTTP session
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=self.config.api.timeout)
+            ) as session:
+                self._session = session
+                
+                try:
+                    # Check existing data if not forcing refresh
+                    if not force_refresh:
+                        existing_data_range = await self._get_existing_data_range(pool_id, timeframe)
+                        if existing_data_range:
+                            # Adjust date range to avoid duplicates
+                            earliest_existing = existing_data_range[0]
+                            latest_existing = existing_data_range[1]
+                            
+                            # Only collect data before earliest existing or after latest existing
+                            if start_date >= earliest_existing and end_date <= latest_existing:
+                                logger.info(f"Data already exists for the requested range")
+                                return self.create_success_result(0, start_time)
+                            
+                            if start_date < earliest_existing:
+                                end_date = min(end_date, earliest_existing)
+                            elif end_date > latest_existing:
+                                start_date = max(start_date, latest_existing)
+                    
+                    # Collect historical data for the specified range
+                    pool_records = await self._collect_pool_timeframe_data(
+                        pool_id, timeframe, start_date, end_date
+                    )
+                    records_collected = pool_records
+                    
+                    logger.info(
+                        f"Historical collection completed for pool {pool_id}: "
+                        f"{records_collected} records collected"
+                    )
+                    
+                except Exception as e:
+                    error_msg = f"Error collecting historical data for pool {pool_id}: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                
+                finally:
+                    self._session = None
+            
+            if records_collected > 0:
+                return self.create_success_result(records_collected, start_time)
+            else:
+                return self.create_failure_result(errors or ["No data collected"], records_collected, start_time)
+            
+        except Exception as e:
+            error_msg = f"Error in single pool historical OHLCV collection: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            errors.append(error_msg)
+            return self.create_failure_result(errors, records_collected, start_time)
+    
     async def _collect_pool_historical_data(self, pool_id: str) -> int:
         """
         Collect historical OHLCV data for a specific pool across all configured timeframes.
@@ -597,20 +690,18 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             timeframe: Internal timeframe (e.g., '1m', '1h', '1d')
             
         Returns:
-            API timeframe format (e.g., 'minute', 'hour', 'day')
+            API timeframe format - geckoterminal-py expects the same format
         """
-        # Map internal timeframes to API formats
-        timeframe_mapping = {
-            '1m': 'minute',
-            '5m': 'minute',
-            '15m': 'minute',
-            '1h': 'hour',
-            '4h': 'hour',
-            '12h': 'hour',
-            '1d': 'day'
-        }
+        # geckoterminal-py SDK expects timeframes as-is: ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
+        # No conversion needed, just validate it's supported
+        supported_timeframes = ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
         
-        return timeframe_mapping.get(timeframe, 'hour')
+        if timeframe in supported_timeframes:
+            return timeframe
+        else:
+            # Fallback to 1h if unsupported
+            logger.warning(f"Unsupported timeframe {timeframe}, using 1h as fallback")
+            return '1h'
     
     async def _validate_ohlcv_data(self, records: List[OHLCVRecord]) -> ValidationResult:
         """

@@ -1087,3 +1087,95 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 raise
         
         return cleanup_stats
+    
+    async def get_table_names(self) -> List[str]:
+        """
+        Get list of existing table names in the database.
+        
+        Returns:
+            List of table names
+        """
+        try:
+            with self.connection.get_session() as session:
+                # Get table names from database metadata
+                inspector = session.get_bind().dialect.get_table_names(session.get_bind())
+                return inspector
+        except Exception as e:
+            logger.error(f"Error getting table names: {e}")
+            return []
+    
+    async def count_records(self, table_name: str) -> int:
+        """
+        Count records in a specific table.
+        
+        Args:
+            table_name: Name of the table to count records in
+            
+        Returns:
+            Number of records in the table
+        """
+        try:
+            with self.connection.get_session() as session:
+                if table_name == 'pools':
+                    return session.query(PoolModel).count()
+                elif table_name == 'tokens':
+                    return session.query(TokenModel).count()
+                elif table_name == 'ohlcv_data':
+                    return session.query(OHLCVDataModel).count()
+                elif table_name == 'trades':
+                    return session.query(TradeModel).count()
+                elif table_name == 'watchlist':
+                    return session.query(WatchlistEntryModel).count()
+                elif table_name == 'dexes':
+                    return session.query(DEXModel).count()
+                else:
+                    logger.warning(f"Unknown table name: {table_name}")
+                    return 0
+        except Exception as e:
+            logger.error(f"Error counting records in table {table_name}: {e}")
+            return 0
+    
+    async def store_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+        """
+        Store a watchlist entry.
+        
+        Args:
+            entry: WatchlistEntry object to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(entry)
+                session.commit()
+                logger.debug(f"Stored watchlist entry for pool {entry.pool_id}")
+            except IntegrityError:
+                session.rollback()
+                # Entry already exists, update it
+                existing = session.query(WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
+                if existing:
+                    existing.token_symbol = entry.token_symbol
+                    existing.token_name = entry.token_name
+                    existing.network_address = entry.network_address
+                    existing.is_active = entry.is_active
+                    session.commit()
+                    logger.debug(f"Updated existing watchlist entry for pool {entry.pool_id}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing watchlist entry: {e}")
+                raise
+    
+    async def update_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+        """
+        Update an existing watchlist entry.
+        
+        Args:
+            entry: WatchlistEntry object to update
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.merge(entry)
+                session.commit()
+                logger.debug(f"Updated watchlist entry for pool {entry.pool_id}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating watchlist entry: {e}")
+                raise

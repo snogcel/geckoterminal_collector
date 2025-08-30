@@ -335,8 +335,15 @@
     - Document troubleshooting procedures and operational best practices
     - _Requirements: System usability_
 
-  - [ ] 14.2 Final system integration and validation
-    - Integrate all components into complete working system
-    - Validate system against all requirements using real API connections
-    - Perform end-to-end testing with actual GeckoTerminal API and data validation
-    - _Requirements: All requirements final validation_
+  - [ ] 14.2 Complete watchlist-to-QLib workflow validation with real API
+
+
+
+
+
+    - Test complete watchlist-to-QLib export workflow using real GeckoTerminal API data
+    - Validate end-to-end flow: watchlist CSV → token collection → OHLCV collection → QLib export
+    - Create CLI command for standalone OHLCV dataset building for a given watchlist item
+    - Test CLI functionality to build complete historical + real-time OHLCV dataset for single token
+    - Validate data quality and completeness in QLib-compatible format using real API responses
+    - _Requirements: 3.1-3.5, 4.1-4.5, 6.1-6.6, 7.1-7.4_

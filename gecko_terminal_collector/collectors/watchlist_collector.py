@@ -9,7 +9,7 @@ with fallback to individual token and pool data collection.
 import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Any
 
 from gecko_terminal_collector.collectors.base import BaseDataCollector
 from gecko_terminal_collector.config.models import CollectionConfig
@@ -100,6 +100,145 @@ class WatchlistCollector(BaseDataCollector):
             logger.error(error_msg, exc_info=True)
             errors.append(error_msg)
             return self.create_failure_result(errors, records_collected, start_time)
+    
+    async def collect_single_item(self, watchlist_item: Dict[str, str]) -> CollectionResult:
+        """
+        Collect data for a single watchlist item.
+        
+        Args:
+            watchlist_item: Dictionary containing watchlist item data
+            
+        Returns:
+            CollectionResult with details about the collection operation
+        """
+        start_time = datetime.now()
+        errors = []
+        records_collected = 0
+        
+        try:
+            logger.info(f"Collecting data for single watchlist item: {watchlist_item.get('tokenSymbol', 'Unknown')}")
+            
+            # Extract addresses from watchlist item
+            pool_address = watchlist_item.get('poolAddress')
+            network_address = watchlist_item.get('networkAddress')
+            
+            # Collect pool data if pool address is provided
+            if pool_address:
+                try:
+                    logger.debug(f"Collecting pool data for {pool_address}")
+                    response = await self.client.get_pool_by_network_address(
+                        self.network, 
+                        pool_address
+                    )
+                    
+                    # Handle DataFrame response from geckoterminal-py SDK
+                    if hasattr(response, 'empty') and not response.empty:
+                        # Convert DataFrame to dict format for parsing
+                        pool_data = response.iloc[0].to_dict() if len(response) > 0 else None
+                        if pool_data:
+                            pool = self._parse_pool_data_from_dataframe(pool_data)
+                            if pool:
+                                stored_count = await self.db_manager.store_pools([pool])
+                                # Count as successful operation regardless of new vs update
+                                records_collected += 1  # Always count as 1 successful operation
+                                logger.info(f"Stored pool data for {pool_address}")
+                            else:
+                                errors.append(f"Failed to parse pool data for {pool_address}")
+                        else:
+                            errors.append(f"Empty pool data returned for {pool_address}")
+                    else:
+                        errors.append(f"No pool data returned for {pool_address}")
+                        
+                except Exception as e:
+                    error_msg = f"Error collecting pool data for {pool_address}: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            # Collect token data if network address is provided
+            if network_address:
+                try:
+                    logger.debug(f"Collecting token data for {network_address}")
+                    response = await self.client.get_specific_token_on_network(
+                        self.network, 
+                        network_address
+                    )
+                    
+                    # Handle direct dict response from geckoterminal-py SDK
+                    if response and isinstance(response, dict):
+                        token = self._parse_token_response_direct(response)
+                        if token:
+                            stored_count = await self.db_manager.store_tokens([token])
+                            # Count as successful operation regardless of new vs update
+                            records_collected += 1  # Always count as 1 successful operation
+                            logger.info(f"Stored token data for {network_address}")
+                        else:
+                            errors.append(f"Failed to parse token data for {network_address}")
+                    else:
+                        errors.append(f"No token data returned for {network_address}")
+                        
+                except Exception as e:
+                    error_msg = f"Error collecting token data for {network_address}: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            # Create or update watchlist entry
+            if pool_address:
+                try:
+                    await self._create_or_update_watchlist_entry(watchlist_item, pool_address)
+                    logger.debug(f"Updated watchlist entry for {pool_address}")
+                except Exception as e:
+                    error_msg = f"Error updating watchlist entry: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            if records_collected > 0:
+                logger.info(f"Single item collection completed: {records_collected} records collected")
+                return self.create_success_result(records_collected, start_time)
+            else:
+                return self.create_failure_result(errors or ["No data collected"], records_collected, start_time)
+            
+        except Exception as e:
+            error_msg = f"Error collecting single watchlist item: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            errors.append(error_msg)
+            return self.create_failure_result(errors, records_collected, start_time)
+    
+    async def _create_or_update_watchlist_entry(self, watchlist_item: Dict[str, str], pool_id: str) -> None:
+        """
+        Create or update watchlist entry in database.
+        
+        Args:
+            watchlist_item: Watchlist item data
+            pool_id: Pool ID for the entry
+        """
+        try:
+            # Check if entry already exists
+            existing_entry = await self.db_manager.get_watchlist_entry_by_pool_id(pool_id)
+            
+            if existing_entry:
+                # Update existing entry
+                existing_entry.token_symbol = watchlist_item.get('tokenSymbol')
+                existing_entry.token_name = watchlist_item.get('tokenName')
+                existing_entry.network_address = watchlist_item.get('networkAddress')
+                existing_entry.is_active = True
+                
+                await self.db_manager.update_watchlist_entry(existing_entry)
+            else:
+                # Create new entry
+                new_entry = WatchlistEntry(
+                    pool_id=pool_id,
+                    token_symbol=watchlist_item.get('tokenSymbol'),
+                    token_name=watchlist_item.get('tokenName'),
+                    network_address=watchlist_item.get('networkAddress'),
+                    added_at=datetime.now(),
+                    is_active=True
+                )
+                
+                await self.db_manager.store_watchlist_entry(new_entry)
+                
+        except Exception as e:
+            logger.error(f"Error creating/updating watchlist entry: {e}")
+            raise
     
     async def _get_active_watchlist_entries(self) -> List[WatchlistEntry]:
         """
@@ -533,3 +672,117 @@ class WatchlistCollector(BaseDataCollector):
             return {
                 "error": str(e)
             }
+    
+    def _parse_pool_data_from_dataframe(self, pool_data: Dict[str, Any]) -> Optional[Pool]:
+        """
+        Parse pool data from DataFrame row (geckoterminal-py SDK format).
+        
+        Args:
+            pool_data: Pool data dictionary from DataFrame row
+            
+        Returns:
+            Pool object or None if parsing fails
+        """
+        try:
+            # Extract pool information from DataFrame format
+            pool_id = pool_data.get("id")
+            address = pool_data.get("address")
+            name = pool_data.get("name", "")
+            
+            # Extract DEX information
+            dex_id = pool_data.get("dex_id", "")
+            
+            # Extract token information
+            base_token_id = pool_data.get("base_token_id", "")
+            quote_token_id = pool_data.get("quote_token_id", "")
+            
+            # Extract financial data
+            reserve_usd_str = pool_data.get("reserve_in_usd", "0")
+            try:
+                reserve_usd = Decimal(str(reserve_usd_str))
+            except (ValueError, TypeError, InvalidOperation):
+                reserve_usd = Decimal("0")
+            
+            # Extract creation date
+            created_at_str = pool_data.get("pool_created_at")
+            created_at = None
+            if created_at_str:
+                try:
+                    created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                except ValueError:
+                    logger.warning(f"Invalid date format for pool {pool_id}: {created_at_str}")
+            
+            # Validate required fields
+            if not pool_id or not address:
+                logger.warning(f"Missing required fields for pool: id={pool_id}, address={address}")
+                return None
+            
+            return Pool(
+                id=pool_id,
+                address=address,
+                name=name,
+                dex_id=dex_id,
+                base_token_id=base_token_id,
+                quote_token_id=quote_token_id,
+                reserve_usd=reserve_usd,
+                created_at=created_at or datetime.now()
+            )
+            
+        except Exception as e:
+            logger.error(f"Error parsing pool data from DataFrame: {e}")
+            return None
+    
+    def _parse_token_response_direct(self, response: Dict[str, Any]) -> Optional[Token]:
+        """
+        Parse token API response in direct format (geckoterminal-py SDK format).
+        
+        Args:
+            response: Direct API response dictionary
+            
+        Returns:
+            Token object or None if parsing fails
+        """
+        try:
+            # Extract token information from direct response format
+            token_id = response.get("id")
+            attributes = response.get("attributes", {})
+            
+            address = attributes.get("address")
+            name = attributes.get("name", "")
+            symbol = attributes.get("symbol", "")
+            
+            # Extract decimals
+            decimals = attributes.get("decimals", 9)
+            if isinstance(decimals, str):
+                try:
+                    decimals = int(decimals)
+                except ValueError:
+                    decimals = 9
+            
+            # Extract price
+            price_usd_str = attributes.get("price_usd")
+            price_usd = None
+            if price_usd_str:
+                try:
+                    price_usd = Decimal(str(price_usd_str))
+                except (ValueError, TypeError):
+                    price_usd = None
+            
+            # Validate required fields
+            if not token_id or not address:
+                logger.warning(f"Missing required fields for token: id={token_id}, address={address}")
+                return None
+            
+            return Token(
+                id=token_id,
+                address=address,
+                name=name,
+                symbol=symbol,
+                decimals=decimals,
+                network=self.network,
+                price_usd=price_usd
+            )
+            
+        except Exception as e:
+            logger.error(f"Error parsing token response: {e}")
+            return None

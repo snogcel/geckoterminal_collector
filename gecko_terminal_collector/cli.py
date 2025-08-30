@@ -83,6 +83,10 @@ Examples:
     _add_backup_command(subparsers)
     _add_restore_command(subparsers)
     
+    # Workflow validation commands
+    _add_build_ohlcv_command(subparsers)
+    _add_validate_workflow_command(subparsers)
+    
     args = parser.parse_args()
     
     if args.command is None:
@@ -115,6 +119,8 @@ Examples:
         "logs": logs_command,
         "backup": backup_command,
         "restore": restore_command,
+        "build-ohlcv": build_ohlcv_command,
+        "validate-workflow": validate_workflow_command,
     }
     
     handler = command_handlers.get(args.command)
@@ -506,6 +512,123 @@ def _add_restore_command(subparsers):
     )
 
 
+def _add_build_ohlcv_command(subparsers):
+    """Add build-ohlcv command parser."""
+    build_parser = subparsers.add_parser(
+        "build-ohlcv",
+        help="Build OHLCV dataset for watchlist item",
+        description="Build complete historical + real-time OHLCV dataset for a single token from watchlist"
+    )
+    build_parser.add_argument(
+        "watchlist_item",
+        type=str,
+        help="Token symbol or pool address from watchlist"
+    )
+    build_parser.add_argument(
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for QLib-compatible dataset"
+    )
+    build_parser.add_argument(
+        "--timeframe",
+        default="1h",
+        choices=["1m", "5m", "15m", "1h", "4h", "12h", "1d"],
+        help="OHLCV timeframe (default: 1h)"
+    )
+    build_parser.add_argument(
+        "--days",
+        type=int,
+        default=30,
+        help="Number of days of historical data to collect (default: 30)"
+    )
+    build_parser.add_argument(
+        "--include-realtime",
+        action="store_true",
+        default=True,
+        help="Include real-time data collection (default: enabled)"
+    )
+    build_parser.add_argument(
+        "--no-realtime",
+        dest="include_realtime",
+        action="store_false",
+        help="Skip real-time data collection"
+    )
+    build_parser.add_argument(
+        "--validate-data",
+        action="store_true",
+        default=True,
+        help="Validate data quality and completeness (default: enabled)"
+    )
+    build_parser.add_argument(
+        "--no-validate",
+        dest="validate_data",
+        action="store_false",
+        help="Skip data validation"
+    )
+    build_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force rebuild even if data exists"
+    )
+
+
+def _add_validate_workflow_command(subparsers):
+    """Add validate-workflow command parser."""
+    validate_parser = subparsers.add_parser(
+        "validate-workflow",
+        help="Validate complete watchlist-to-QLib workflow",
+        description="Test end-to-end workflow: watchlist CSV → token collection → OHLCV collection → QLib export"
+    )
+    validate_parser.add_argument(
+        "--watchlist-file",
+        type=str,
+        default="specs/watchlist.csv",
+        help="Path to watchlist CSV file (default: specs/watchlist.csv)"
+    )
+    validate_parser.add_argument(
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for validation results and QLib export"
+    )
+    validate_parser.add_argument(
+        "--timeframe",
+        default="1h",
+        choices=["1m", "5m", "15m", "1h", "4h", "12h", "1d"],
+        help="OHLCV timeframe for testing (default: 1h)"
+    )
+    validate_parser.add_argument(
+        "--sample-size",
+        type=int,
+        default=1,
+        help="Number of watchlist items to test (default: 1)"
+    )
+    validate_parser.add_argument(
+        "--days",
+        type=int,
+        default=7,
+        help="Number of days of data to collect for testing (default: 7)"
+    )
+    validate_parser.add_argument(
+        "--use-real-api",
+        action="store_true",
+        default=True,
+        help="Use real GeckoTerminal API (default: enabled)"
+    )
+    validate_parser.add_argument(
+        "--use-mock-api",
+        dest="use_real_api",
+        action="store_false",
+        help="Use mock API responses for testing"
+    )
+    validate_parser.add_argument(
+        "--detailed-report",
+        action="store_true",
+        help="Generate detailed validation report"
+    )
+
+
 def init_command(args):
     """Initialize configuration and database."""
     config_path = Path(args.config)
@@ -526,7 +649,7 @@ def init_command(args):
         if args.db_url:
             config.database.url = args.db_url
         
-        print(f"✓ Configuration initialized at {config_path}")
+        print(f"[OK] Configuration initialized at {config_path}")
         print(f"  Database URL: {config.database.url}")
         print(f"  Target DEXes: {', '.join(config.dexes.targets)}")
         print(f"  Network: {config.dexes.network}")
@@ -1401,6 +1524,534 @@ async def restore_command(args):
     except Exception as e:
         print(f"Error restoring backup: {e}")
         return 1
+
+
+async def build_ohlcv_command(args):
+    """Build OHLCV dataset for a single watchlist item."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.qlib.exporter import QLibExporter
+        from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
+        from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
+        from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
+        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        print(f"Building OHLCV dataset for: {args.watchlist_item}")
+        print(f"Timeframe: {args.timeframe}")
+        print(f"Historical days: {args.days}")
+        print(f"Output directory: {args.output}")
+        print(f"Include real-time: {args.include_realtime}")
+        print("=" * 50)
+        
+        # Step 1: Find the watchlist item
+        print("Step 1: Locating watchlist item...")
+        watchlist_processor = WatchlistProcessor(config)
+        watchlist_items = await watchlist_processor.load_watchlist()
+        
+        target_item = None
+        for item in watchlist_items:
+            if (item.get('tokenSymbol', '').lower() == args.watchlist_item.lower() or
+                item.get('poolAddress', '') == args.watchlist_item or
+                item.get('networkAddress', '') == args.watchlist_item):
+                target_item = item
+                break
+        
+        if not target_item:
+            print(f"✗ Watchlist item '{args.watchlist_item}' not found")
+            return 1
+        
+        print(f"✓ Found: {target_item.get('tokenSymbol', 'Unknown')} ({target_item.get('tokenName', 'Unknown')})")
+        print(f"  Pool Address: {target_item.get('poolAddress', 'N/A')}")
+        print(f"  Network Address: {target_item.get('networkAddress', 'N/A')}")
+        
+        # Step 2: Collect token/pool information
+        print("\nStep 2: Collecting token and pool information...")
+        watchlist_collector = WatchlistCollector(config, db_manager)
+        
+        # Process this specific item
+        collection_result = await watchlist_collector.collect_single_item(target_item)
+        
+        if not collection_result.success:
+            print(f"✗ Failed to collect token information: {collection_result.errors}")
+            return 1
+        
+        print(f"✓ Token information collected successfully")
+        
+        # Get the pool ID for further operations
+        pool_id = target_item.get('poolAddress')
+        if not pool_id:
+            print("✗ No pool address available for OHLCV collection")
+            return 1
+        
+        # Step 3: Collect historical OHLCV data
+        print(f"\nStep 3: Collecting historical OHLCV data ({args.days} days)...")
+        historical_collector = HistoricalOHLCVCollector(config, db_manager)
+        
+        from datetime import datetime, timedelta
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=args.days)
+        
+        historical_result = await historical_collector.collect_for_pool(
+            pool_id=pool_id,
+            timeframe=args.timeframe,
+            start_date=start_date,
+            end_date=end_date,
+            force_refresh=args.force
+        )
+        
+        if historical_result.success:
+            print(f"✓ Historical data collected: {historical_result.records_collected} records")
+        else:
+            print(f"⚠ Historical collection had issues: {historical_result.errors}")
+        
+        # Step 4: Collect real-time OHLCV data (if enabled)
+        if args.include_realtime:
+            print(f"\nStep 4: Collecting real-time OHLCV data...")
+            ohlcv_collector = OHLCVCollector(config, db_manager)
+            
+            realtime_result = await ohlcv_collector.collect_for_pool(
+                pool_id=pool_id,
+                timeframe=args.timeframe
+            )
+            
+            if realtime_result.success:
+                print(f"✓ Real-time data collected: {realtime_result.records_collected} records")
+            else:
+                print(f"⚠ Real-time collection had issues: {realtime_result.errors}")
+        
+        # Step 5: Export to QLib format
+        print(f"\nStep 5: Exporting to QLib format...")
+        exporter = QLibExporter(db_manager)
+        
+        # Generate symbol name for this pool
+        pool = await db_manager.get_pool(pool_id)
+        if not pool:
+            print("✗ Could not retrieve pool information for export")
+            return 1
+        
+        symbol = exporter._generate_symbol_name(pool)
+        
+        export_result = await exporter.export_to_qlib_format(
+            output_dir=args.output,
+            symbols=[symbol],
+            start_date=start_date,
+            end_date=end_date,
+            timeframe=args.timeframe
+        )
+        
+        if export_result['success']:
+            print(f"✓ QLib export completed successfully")
+            print(f"  Files created: {export_result['files_created']}")
+            print(f"  Total records: {export_result['total_records']}")
+        else:
+            print(f"✗ QLib export failed: {export_result['message']}")
+            return 1
+        
+        # Step 6: Data validation (if enabled)
+        if args.validate_data:
+            print(f"\nStep 6: Validating data quality...")
+            
+            validation_result = await exporter.export_symbol_data_with_validation(
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                timeframe=args.timeframe,
+                validate_data=True
+            )
+            
+            if 'validation' in validation_result and validation_result['validation']:
+                validation = validation_result['validation']
+                print(f"✓ Data validation completed")
+                print(f"  Records validated: {validation.get('record_count', 0)}")
+                print(f"  Data quality score: {validation.get('quality_score', 0):.2f}")
+                
+                if validation.get('issues'):
+                    print(f"  Issues found: {len(validation['issues'])}")
+                    for issue in validation['issues'][:5]:  # Show first 5 issues
+                        print(f"    - {issue}")
+            else:
+                print("⚠ Data validation could not be performed")
+        
+        print(f"\n✓ OHLCV dataset build completed successfully!")
+        print(f"Output location: {args.output}")
+        
+        await db_manager.close()
+        return 0
+        
+    except Exception as e:
+        print(f"Error building OHLCV dataset: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+async def validate_workflow_command(args):
+    """Validate complete watchlist-to-QLib workflow."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.qlib.exporter import QLibExporter
+        from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
+        from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
+        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor
+        from gecko_terminal_collector.utils.workflow_validator import WorkflowValidator
+        import pandas as pd
+        import json
+        from pathlib import Path
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        print("GeckoTerminal Watchlist-to-QLib Workflow Validation")
+        print("=" * 60)
+        print(f"Watchlist file: {args.watchlist_file}")
+        print(f"Output directory: {args.output}")
+        print(f"Timeframe: {args.timeframe}")
+        print(f"Sample size: {args.sample_size}")
+        print(f"Historical days: {args.days}")
+        print(f"Using real API: {args.use_real_api}")
+        print("=" * 60)
+        
+        # Create output directory
+        output_path = Path(args.output)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize workflow validator
+        validator = WorkflowValidator(config, db_manager)
+        
+        # Step 1: Validate watchlist file
+        print("\nStep 1: Validating watchlist file...")
+        
+        if not Path(args.watchlist_file).exists():
+            print(f"✗ Watchlist file not found: {args.watchlist_file}")
+            return 1
+        
+        watchlist_processor = WatchlistProcessor(config)
+        watchlist_items = await watchlist_processor.load_watchlist(args.watchlist_file)
+        
+        if not watchlist_items:
+            print(f"✗ No items found in watchlist file")
+            return 1
+        
+        print(f"[OK] Watchlist loaded: {len(watchlist_items)} items found")
+        
+        # Select sample items for testing
+        sample_items = watchlist_items[:args.sample_size]
+        print(f"[OK] Selected {len(sample_items)} items for validation")
+        
+        # Step 2: Test token collection workflow
+        print(f"\nStep 2: Testing token collection workflow...")
+        
+        watchlist_collector = WatchlistCollector(config, db_manager)
+        token_collection_results = []
+        
+        for i, item in enumerate(sample_items, 1):
+            print(f"  Testing item {i}/{len(sample_items)}: {item.get('tokenSymbol', 'Unknown')}")
+            
+            try:
+                result = await watchlist_collector.collect_single_item(item)
+                token_collection_results.append({
+                    'item': item,
+                    'success': result.success,
+                    'records_collected': result.records_collected,
+                    'errors': result.errors
+                })
+                
+                if result.success:
+                    print(f"    [OK] Token collection successful")
+                else:
+                    print(f"    [FAIL] Token collection failed: {result.errors}")
+                    
+            except Exception as e:
+                print(f"    ✗ Token collection error: {e}")
+                token_collection_results.append({
+                    'item': item,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        successful_tokens = [r for r in token_collection_results if r['success']]
+        print(f"[OK] Token collection: {len(successful_tokens)}/{len(sample_items)} successful")
+        
+        # Step 3: Test OHLCV collection workflow
+        print(f"\nStep 3: Testing OHLCV collection workflow...")
+        
+        ohlcv_collector = OHLCVCollector(config, db_manager)
+        ohlcv_collection_results = []
+        
+        from datetime import datetime, timedelta
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=args.days)
+        
+        for result in successful_tokens:
+            item = result['item']
+            pool_id = item.get('poolAddress')
+            
+            if not pool_id:
+                print(f"    ⚠ No pool address for {item.get('tokenSymbol', 'Unknown')}")
+                continue
+            
+            print(f"  Testing OHLCV for: {item.get('tokenSymbol', 'Unknown')}")
+            
+            try:
+                ohlcv_result = await ohlcv_collector.collect_for_pool(
+                    pool_id=pool_id,
+                    timeframe=args.timeframe
+                )
+                
+                ohlcv_collection_results.append({
+                    'item': item,
+                    'pool_id': pool_id,
+                    'success': ohlcv_result.success,
+                    'records_collected': ohlcv_result.records_collected,
+                    'errors': ohlcv_result.errors
+                })
+                
+                if ohlcv_result.success:
+                    print(f"    [OK] OHLCV collection successful: {ohlcv_result.records_collected} records")
+                else:
+                    print(f"    [FAIL] OHLCV collection failed: {ohlcv_result.errors}")
+                    
+            except Exception as e:
+                print(f"    ✗ OHLCV collection error: {e}")
+                ohlcv_collection_results.append({
+                    'item': item,
+                    'pool_id': pool_id,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        successful_ohlcv = [r for r in ohlcv_collection_results if r['success']]
+        print(f"[OK] OHLCV collection: {len(successful_ohlcv)}/{len(successful_tokens)} successful")
+        
+        # Step 4: Test QLib export workflow
+        print(f"\nStep 4: Testing QLib export workflow...")
+        
+        exporter = QLibExporter(db_manager)
+        export_results = []
+        
+        for result in successful_ohlcv:
+            item = result['item']
+            pool_id = result['pool_id']
+            
+            print(f"  Testing QLib export for: {item.get('tokenSymbol', 'Unknown')}")
+            
+            try:
+                # Get pool and generate symbol
+                pool = await db_manager.get_pool(pool_id)
+                if not pool:
+                    print(f"    ✗ Pool not found: {pool_id}")
+                    continue
+                
+                symbol = exporter._generate_symbol_name(pool)
+                
+                # Export data
+                export_result = await exporter.export_symbol_data_with_validation(
+                    symbol=symbol,
+                    start_date=start_date,
+                    end_date=end_date,
+                    timeframe=args.timeframe,
+                    validate_data=True
+                )
+                
+                export_results.append({
+                    'item': item,
+                    'symbol': symbol,
+                    'success': 'error' not in export_result,
+                    'data_records': len(export_result.get('data', pd.DataFrame())),
+                    'validation': export_result.get('validation'),
+                    'metadata': export_result.get('metadata'),
+                    'error': export_result.get('error')
+                })
+                
+                if 'error' not in export_result:
+                    records = len(export_result.get('data', pd.DataFrame()))
+                    print(f"    ✓ QLib export successful: {records} records")
+                else:
+                    print(f"    ✗ QLib export failed: {export_result['error']}")
+                    
+            except Exception as e:
+                print(f"    ✗ QLib export error: {e}")
+                export_results.append({
+                    'item': item,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        successful_exports = [r for r in export_results if r['success']]
+        print(f"✓ QLib export: {len(successful_exports)}/{len(successful_ohlcv)} successful")
+        
+        # Step 5: Generate validation report
+        print(f"\nStep 5: Generating validation report...")
+        
+        validation_report = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'configuration': {
+                'watchlist_file': args.watchlist_file,
+                'timeframe': args.timeframe,
+                'sample_size': args.sample_size,
+                'historical_days': args.days,
+                'use_real_api': args.use_real_api
+            },
+            'results': {
+                'total_items_tested': len(sample_items),
+                'token_collection_success': len(successful_tokens),
+                'ohlcv_collection_success': len(successful_ohlcv),
+                'qlib_export_success': len(successful_exports),
+                'overall_success_rate': len(successful_exports) / len(sample_items) if sample_items else 0
+            },
+            'detailed_results': {
+                'token_collection': token_collection_results,
+                'ohlcv_collection': ohlcv_collection_results,
+                'qlib_export': export_results
+            }
+        }
+        
+        # Save validation report
+        report_path = output_path / "validation_report.json"
+        with open(report_path, 'w') as f:
+            json.dump(validation_report, f, indent=2, default=str)
+        
+        print(f"✓ Validation report saved: {report_path}")
+        
+        # Generate detailed report if requested
+        if args.detailed_report:
+            detailed_report_path = output_path / "detailed_validation_report.md"
+            await _generate_detailed_validation_report(validation_report, detailed_report_path)
+            print(f"✓ Detailed report saved: {detailed_report_path}")
+        
+        # Export successful data to QLib format
+        if successful_exports:
+            print(f"\nStep 6: Exporting validated data to QLib format...")
+            
+            symbols = [r['symbol'] for r in successful_exports]
+            final_export = await exporter.export_to_qlib_format(
+                output_dir=output_path / "qlib_data",
+                symbols=symbols,
+                start_date=start_date,
+                end_date=end_date,
+                timeframe=args.timeframe
+            )
+            
+            if final_export['success']:
+                print(f"✓ Final QLib export completed")
+                print(f"  Files created: {final_export['files_created']}")
+                print(f"  Total records: {final_export['total_records']}")
+            else:
+                print(f"✗ Final QLib export failed: {final_export['message']}")
+        
+        # Summary
+        print(f"\n" + "=" * 60)
+        print("WORKFLOW VALIDATION SUMMARY")
+        print("=" * 60)
+        print(f"Total items tested: {len(sample_items)}")
+        print(f"Token collection success: {len(successful_tokens)}/{len(sample_items)} ({len(successful_tokens)/len(sample_items)*100:.1f}%)")
+        print(f"OHLCV collection success: {len(successful_ohlcv)}/{len(successful_tokens)} ({len(successful_ohlcv)/len(successful_tokens)*100:.1f}% of successful tokens)")
+        print(f"QLib export success: {len(successful_exports)}/{len(successful_ohlcv)} ({len(successful_exports)/len(successful_ohlcv)*100:.1f}% of successful OHLCV)")
+        print(f"Overall success rate: {len(successful_exports)}/{len(sample_items)} ({len(successful_exports)/len(sample_items)*100:.1f}%)")
+        
+        success_threshold = 0.8  # 80% success rate threshold
+        overall_success = (len(successful_exports) / len(sample_items)) >= success_threshold
+        
+        if overall_success:
+            print(f"\n✓ WORKFLOW VALIDATION PASSED")
+            print(f"The watchlist-to-QLib workflow is functioning correctly.")
+        else:
+            print(f"\n✗ WORKFLOW VALIDATION FAILED")
+            print(f"Success rate below threshold ({success_threshold*100:.0f}%)")
+        
+        print(f"\nResults saved to: {args.output}")
+        
+        await db_manager.close()
+        return 0 if overall_success else 1
+        
+    except Exception as e:
+        print(f"Error validating workflow: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+async def _generate_detailed_validation_report(validation_report: Dict[str, Any], output_path: Path):
+    """Generate detailed markdown validation report."""
+    
+    with open(output_path, 'w') as f:
+        f.write("# Watchlist-to-QLib Workflow Validation Report\n\n")
+        
+        # Configuration
+        f.write("## Configuration\n\n")
+        config = validation_report['configuration']
+        for key, value in config.items():
+            f.write(f"- **{key.replace('_', ' ').title()}**: {value}\n")
+        
+        # Summary
+        f.write("\n## Summary\n\n")
+        results = validation_report['results']
+        f.write(f"- **Total Items Tested**: {results['total_items_tested']}\n")
+        f.write(f"- **Token Collection Success**: {results['token_collection_success']}\n")
+        f.write(f"- **OHLCV Collection Success**: {results['ohlcv_collection_success']}\n")
+        f.write(f"- **QLib Export Success**: {results['qlib_export_success']}\n")
+        f.write(f"- **Overall Success Rate**: {results['overall_success_rate']:.2%}\n")
+        
+        # Detailed Results
+        f.write("\n## Detailed Results\n\n")
+        
+        # Token Collection
+        f.write("### Token Collection Results\n\n")
+        for i, result in enumerate(validation_report['detailed_results']['token_collection'], 1):
+            item = result['item']
+            symbol = item.get('tokenSymbol', 'Unknown')
+            status = "✓" if result['success'] else "✗"
+            f.write(f"{i}. **{symbol}** {status}\n")
+            if not result['success']:
+                f.write(f"   - Error: {result.get('error', result.get('errors', 'Unknown error'))}\n")
+            f.write("\n")
+        
+        # OHLCV Collection
+        f.write("### OHLCV Collection Results\n\n")
+        for i, result in enumerate(validation_report['detailed_results']['ohlcv_collection'], 1):
+            item = result['item']
+            symbol = item.get('tokenSymbol', 'Unknown')
+            status = "✓" if result['success'] else "✗"
+            f.write(f"{i}. **{symbol}** {status}\n")
+            if result['success']:
+                f.write(f"   - Records collected: {result.get('records_collected', 0)}\n")
+            else:
+                f.write(f"   - Error: {result.get('error', result.get('errors', 'Unknown error'))}\n")
+            f.write("\n")
+        
+        # QLib Export
+        f.write("### QLib Export Results\n\n")
+        for i, result in enumerate(validation_report['detailed_results']['qlib_export'], 1):
+            item = result['item']
+            symbol = item.get('tokenSymbol', 'Unknown')
+            status = "✓" if result['success'] else "✗"
+            f.write(f"{i}. **{symbol}** {status}\n")
+            if result['success']:
+                f.write(f"   - QLib Symbol: {result.get('symbol', 'N/A')}\n")
+                f.write(f"   - Data Records: {result.get('data_records', 0)}\n")
+                if result.get('validation'):
+                    validation = result['validation']
+                    f.write(f"   - Data Quality Score: {validation.get('quality_score', 'N/A')}\n")
+            else:
+                f.write(f"   - Error: {result.get('error', 'Unknown error')}\n")
+            f.write("\n")
 
 
 if __name__ == "__main__":

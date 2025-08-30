@@ -126,7 +126,7 @@ class BaseGeckoClient(ABC):
         pass
     
     @abstractmethod
-    async def get_token_info(self, network: str, token_address: str) -> Any:
+    async def get_specific_token_on_network(self, network: str, token_address: str) -> Any:
         """Get token information."""
         pass
 
@@ -295,7 +295,7 @@ class GeckoTerminalClient(BaseGeckoClient):
         
         return await self._execute_with_retry(_get_trades)
     
-    async def get_token_info(self, network: str, token_address: str) -> Any:
+    async def get_specific_token_on_network(self, network: str, token_address: str) -> Any:
         """Get token information."""
         async def _get_token():
             return await self._sdk_client.get_specific_token_on_network(network, token_address)
@@ -646,7 +646,7 @@ class MockGeckoTerminalClient(BaseGeckoClient):
             "data": formatted_trades
         }
     
-    async def get_token_info(self, network: str, token_address: str) -> Dict[str, Any]:
+    async def get_specific_token_on_network(self, network: str, token_address: str) -> Dict[str, Any]:
         """Get token information (mock)."""
         # Return mock token data
         return {
