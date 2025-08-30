@@ -111,16 +111,20 @@ class QLibExporter:
                                start_date: Optional[Union[str, datetime]] = None,
                                end_date: Optional[Union[str, datetime]] = None,
                                timeframe: str = "1h",
-                               include_volume: bool = True) -> pd.DataFrame:
+                               include_volume: bool = True,
+                               normalize_timezone: bool = True,
+                               fill_missing: bool = False) -> pd.DataFrame:
         """
-        Export OHLCV data in QLib-compatible format.
+        Export OHLCV data in QLib-compatible format with enhanced filtering and normalization.
         
         Args:
             symbols: List of symbols to export (None for all available)
-            start_date: Start date for data export
-            end_date: End date for data export  
+            start_date: Start date for data export (inclusive)
+            end_date: End date for data export (inclusive)
             timeframe: Data timeframe (e.g., '1h', '1d')
             include_volume: Whether to include volume data
+            normalize_timezone: Whether to normalize timestamps to UTC
+            fill_missing: Whether to fill missing data points
             
         Returns:
             DataFrame with QLib-compatible OHLCV data format
@@ -183,6 +187,18 @@ class QLibExporter:
             
             # Combine all data
             combined_df = pd.concat(all_data, ignore_index=True)
+            
+            # Apply date range filtering if specified
+            if start_dt or end_dt:
+                combined_df = self._apply_date_range_filter(combined_df, start_dt, end_dt)
+            
+            # Normalize timezone if requested
+            if normalize_timezone:
+                combined_df = self._normalize_timezone(combined_df)
+            
+            # Fill missing data if requested
+            if fill_missing and not combined_df.empty:
+                combined_df = self._fill_missing_data_points(combined_df, timeframe)
             
             # Sort by datetime and symbol
             combined_df = combined_df.sort_values(['datetime', 'symbol']).reset_index(drop=True)
@@ -482,3 +498,238 @@ class QLibExporter:
                 raise ValueError(f"Invalid date format: {date_input}")
         
         raise ValueError(f"Unsupported date type: {type(date_input)}")
+    
+    def _apply_date_range_filter(self, 
+                                df: pd.DataFrame, 
+                                start_date: Optional[datetime], 
+                                end_date: Optional[datetime]) -> pd.DataFrame:
+        """
+        Apply date range filtering to DataFrame.
+        
+        Args:
+            df: Input DataFrame
+            start_date: Start date filter (inclusive)
+            end_date: End date filter (inclusive)
+            
+        Returns:
+            Filtered DataFrame
+        """
+        if df.empty:
+            return df
+        
+        filtered_df = df.copy()
+        
+        if start_date:
+            filtered_df = filtered_df[filtered_df['datetime'] >= start_date]
+        
+        if end_date:
+            filtered_df = filtered_df[filtered_df['datetime'] <= end_date]
+        
+        return filtered_df.reset_index(drop=True)
+    
+    def _normalize_timezone(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalize datetime column to UTC timezone for QLib compatibility.
+        
+        Args:
+            df: Input DataFrame with datetime column
+            
+        Returns:
+            DataFrame with normalized timezone
+        """
+        if df.empty or 'datetime' not in df.columns:
+            return df
+        
+        df_copy = df.copy()
+        
+        # Ensure datetime column is timezone-aware UTC
+        if not pd.api.types.is_datetime64_any_dtype(df_copy['datetime']):
+            df_copy['datetime'] = pd.to_datetime(df_copy['datetime'])
+        
+        # Convert to UTC if not already
+        if df_copy['datetime'].dt.tz is None:
+            # Assume UTC if no timezone info
+            df_copy['datetime'] = df_copy['datetime'].dt.tz_localize('UTC')
+        else:
+            # Convert to UTC
+            df_copy['datetime'] = df_copy['datetime'].dt.tz_convert('UTC')
+        
+        # Remove timezone info for QLib compatibility (keep as UTC but naive)
+        df_copy['datetime'] = df_copy['datetime'].dt.tz_localize(None)
+        
+        return df_copy
+    
+    def _fill_missing_data_points(self, df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+        """
+        Fill missing data points in time series for QLib compatibility.
+        
+        Args:
+            df: Input DataFrame
+            timeframe: Data timeframe for determining expected intervals
+            
+        Returns:
+            DataFrame with filled missing data points
+        """
+        if df.empty:
+            return df
+        
+        try:
+            from gecko_terminal_collector.qlib.utils import QLibDataProcessor
+            return QLibDataProcessor.fill_missing_data(df, method='forward')
+        except ImportError:
+            logger.warning("QLibDataProcessor not available, skipping missing data fill")
+            return df
+    
+    async def export_ohlcv_data_by_date_range(self,
+                                             symbols: Optional[List[str]] = None,
+                                             start_date: Union[str, datetime] = None,
+                                             end_date: Union[str, datetime] = None,
+                                             timeframe: str = "1h",
+                                             max_records_per_symbol: Optional[int] = None) -> pd.DataFrame:
+        """
+        Export OHLCV data with strict date range filtering and record limits.
+        
+        Args:
+            symbols: List of symbols to export
+            start_date: Start date (required)
+            end_date: End date (required)
+            timeframe: Data timeframe
+            max_records_per_symbol: Maximum records per symbol (for memory management)
+            
+        Returns:
+            DataFrame with filtered OHLCV data
+        """
+        if not start_date or not end_date:
+            raise ValueError("Both start_date and end_date are required")
+        
+        # Parse dates
+        start_dt = self._parse_date(start_date)
+        end_dt = self._parse_date(end_date)
+        
+        if start_dt >= end_dt:
+            raise ValueError("start_date must be before end_date")
+        
+        # Get symbols if not provided
+        if symbols is None:
+            symbols = await self.get_symbol_list()
+        
+        if not symbols:
+            logger.warning("No symbols available for export")
+            return pd.DataFrame()
+        
+        # Collect data with limits
+        all_data = []
+        
+        for symbol in symbols:
+            try:
+                pool = await self._get_pool_for_symbol(symbol)
+                if not pool:
+                    logger.warning(f"Pool not found for symbol: {symbol}")
+                    continue
+                
+                # Get OHLCV data for this pool with date range
+                ohlcv_records = await self.db_manager.get_ohlcv_data(
+                    pool_id=pool.id,
+                    timeframe=timeframe,
+                    start_time=start_dt,
+                    end_time=end_dt
+                )
+                
+                if not ohlcv_records:
+                    logger.debug(f"No OHLCV data found for symbol: {symbol}")
+                    continue
+                
+                # Apply record limit if specified
+                if max_records_per_symbol and len(ohlcv_records) > max_records_per_symbol:
+                    # Take the most recent records
+                    ohlcv_records = sorted(ohlcv_records, key=lambda x: x.datetime, reverse=True)
+                    ohlcv_records = ohlcv_records[:max_records_per_symbol]
+                    logger.info(f"Limited {symbol} to {max_records_per_symbol} most recent records")
+                
+                # Convert to DataFrame format
+                symbol_data = self._convert_ohlcv_to_qlib_format(
+                    ohlcv_records, symbol, include_volume=True
+                )
+                
+                if not symbol_data.empty:
+                    all_data.append(symbol_data)
+                    
+            except Exception as e:
+                logger.error(f"Error processing symbol {symbol}: {e}")
+                continue
+        
+        if not all_data:
+            logger.warning("No data collected for any symbols")
+            return pd.DataFrame()
+        
+        # Combine and normalize
+        combined_df = pd.concat(all_data, ignore_index=True)
+        combined_df = self._normalize_timezone(combined_df)
+        combined_df = combined_df.sort_values(['datetime', 'symbol']).reset_index(drop=True)
+        
+        logger.info(f"Exported {len(combined_df)} records for {len(symbols)} symbols "
+                   f"from {start_dt.date()} to {end_dt.date()}")
+        
+        return combined_df
+    
+    async def export_symbol_data_with_validation(self,
+                                               symbol: str,
+                                               start_date: Optional[Union[str, datetime]] = None,
+                                               end_date: Optional[Union[str, datetime]] = None,
+                                               timeframe: str = "1h",
+                                               validate_data: bool = True) -> Dict[str, Any]:
+        """
+        Export data for a single symbol with comprehensive validation.
+        
+        Args:
+            symbol: Symbol to export
+            start_date: Start date for export
+            end_date: End date for export
+            timeframe: Data timeframe
+            validate_data: Whether to perform data validation
+            
+        Returns:
+            Dictionary containing data and validation results
+        """
+        result = {
+            'symbol': symbol,
+            'data': pd.DataFrame(),
+            'validation': None,
+            'metadata': {}
+        }
+        
+        try:
+            # Export data for single symbol
+            df = await self.export_ohlcv_data(
+                symbols=[symbol],
+                start_date=start_date,
+                end_date=end_date,
+                timeframe=timeframe,
+                normalize_timezone=True
+            )
+            
+            result['data'] = df
+            
+            # Add metadata
+            if not df.empty:
+                result['metadata'] = {
+                    'record_count': len(df),
+                    'date_range': {
+                        'start': df['datetime'].min().isoformat(),
+                        'end': df['datetime'].max().isoformat()
+                    },
+                    'timeframe': timeframe,
+                    'has_volume': 'volume' in df.columns
+                }
+            
+            # Validate data if requested
+            if validate_data and not df.empty:
+                from gecko_terminal_collector.qlib.utils import QLibDataValidator
+                result['validation'] = QLibDataValidator.validate_dataframe(df, require_volume=True)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error exporting data for symbol {symbol}: {e}")
+            result['error'] = str(e)
+            return result

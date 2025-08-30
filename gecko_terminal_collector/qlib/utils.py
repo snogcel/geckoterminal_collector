@@ -84,12 +84,22 @@ class QLibDataValidator:
         result['stats'] = {
             'total_rows': len(df),
             'unique_symbols': df['symbol'].nunique() if 'symbol' in df.columns else 0,
-            'date_range': {
-                'start': df['datetime'].min().isoformat() if 'datetime' in df.columns else None,
-                'end': df['datetime'].max().isoformat() if 'datetime' in df.columns else None
-            } if 'datetime' in df.columns else None,
+            'date_range': None,
             'columns': list(df.columns)
         }
+        
+        # Handle date range statistics
+        if 'datetime' in df.columns:
+            try:
+                # Convert to datetime if it's not already
+                datetime_col = pd.to_datetime(df['datetime'])
+                result['stats']['date_range'] = {
+                    'start': datetime_col.min().isoformat(),
+                    'end': datetime_col.max().isoformat()
+                }
+            except Exception as e:
+                result['warnings'].append(f"Could not parse datetime for statistics: {e}")
+                result['stats']['date_range'] = None
         
         return result
 
