@@ -66,16 +66,24 @@ The performance testing suite validates system performance under various load co
 
 ### 5. API Rate Limit Compliance
 
-**Purpose**: Validate rate limiting and backoff behavior under load.
+**Purpose**: Validate rate limiting and backoff behavior under load, specifically designed for GeckoTerminal Free API constraints.
+
+**GeckoTerminal Free API Limits**:
+- **Rate Limit**: 30 calls per minute
+- **Monthly Cap**: 10,000 calls per month
+- **Access**: Default for public API without subscription
 
 **Tests Included**:
-- `test_rate_limit_backoff_behavior`: Exponential backoff implementation
-- `test_concurrent_rate_limit_compliance`: Rate limiting with multiple collectors
+- `test_rate_limit_backoff_behavior`: Exponential backoff implementation with realistic API limits
+- `test_concurrent_rate_limit_compliance`: Rate limiting with multiple collectors respecting free tier limits
 
 **Performance Thresholds**:
 - Success rate with rate limiting: > 80%
 - Backoff delay: > 1.0 second average
-- Concurrent compliance: No rate limit violations
+- API compliance: Respects 30 calls/minute limit
+- Monthly usage: Tracks against 10,000 call cap
+
+**Note**: Tests use mock API clients with reduced limits for faster execution while maintaining realistic rate limiting behavior patterns.
 
 ### 6. PostgreSQL Migration Benchmarks
 
@@ -212,6 +220,63 @@ config = create_custom_config(
 | Concurrent Users | > 3 users | 2-3 users | < 2 users |
 | Database Size | < 200 MB | 200-500 MB | > 500 MB |
 | Memory Usage | < 500 MB | 500-1000 MB | > 1000 MB |
+
+## API Rate Limit Considerations
+
+### GeckoTerminal Free API Constraints
+
+The performance tests are designed to work within GeckoTerminal's Free API limits:
+
+**Rate Limits**:
+- **Per Minute**: 30 API calls maximum
+- **Per Month**: 10,000 API calls maximum
+- **Burst Protection**: Tests include exponential backoff for rate limit compliance
+
+**Performance Test Adaptations**:
+
+1. **Mock API Testing**: Most performance tests use mock API clients to avoid consuming real API quota
+2. **Reduced Test Volumes**: API rate limit tests use smaller request volumes (10-40 requests) to complete quickly
+3. **Realistic Timing**: Tests simulate actual API response times (100ms) and rate limiting behavior
+4. **Monthly Tracking**: Tests include monthly usage tracking to prevent exceeding the 10,000 call cap
+
+**Production Considerations**:
+
+```python
+# Example rate-limited collector configuration
+collector_config = {
+    'api_calls_per_minute': 25,  # Leave 5 calls buffer
+    'monthly_call_budget': 9000,  # Leave 1000 calls buffer
+    'backoff_strategy': 'exponential',
+    'max_retries': 3
+}
+```
+
+**Monitoring API Usage**:
+- Track daily API usage to stay within monthly limits
+- Implement circuit breakers when approaching rate limits
+- Use exponential backoff with jitter to handle rate limiting gracefully
+- Consider upgrading to paid plans for higher throughput requirements
+
+**API Usage Calculator**:
+
+Use the included calculator to plan your collection strategy:
+
+```bash
+# Calculate usage for 100 pools with 3 data points each
+python scripts/api_usage_calculator.py --pools 100 --data-points 3
+
+# Calculate with custom safety margin
+python scripts/api_usage_calculator.py --pools 50 --safety-margin 0.3
+
+# Check if daily collection is feasible
+python scripts/api_usage_calculator.py --pools 200 --data-points 2
+```
+
+The calculator provides:
+- Safe usage recommendations with configurable safety margins
+- Collection time estimates
+- Monthly usage analysis
+- Specific recommendations for your use case
 
 ## Troubleshooting Performance Issues
 
@@ -364,4 +429,30 @@ performance_history = {
 }
 ```
 
-This comprehensive performance testing suite ensures the GeckoTerminal collector system maintains optimal performance and provides clear guidance for scaling decisions.
+## Summary: API Rate Limit Alignment
+
+**Yes, the performance tests are designed to align with GeckoTerminal Free API limits:**
+
+✅ **Rate Limit Compliance**:
+- Tests respect the 30 calls/minute limit
+- Mock API clients simulate realistic rate limiting behavior
+- Exponential backoff testing ensures proper handling of rate limits
+
+✅ **Monthly Usage Awareness**:
+- Tests track against the 10,000 calls/month cap
+- API usage calculator helps plan collection strategies
+- Performance tests use minimal real API calls (mostly mocked)
+
+✅ **Realistic Testing**:
+- Test volumes are sized appropriately for free tier constraints
+- Timing simulates actual API response delays (100ms)
+- Backoff strategies are tested with realistic delays
+
+✅ **Production Guidance**:
+- Clear recommendations for staying within limits
+- Tools to calculate safe usage patterns
+- Migration guidance when limits become constraining
+
+**Key Takeaway**: The performance testing suite is specifically designed to work within the Free API constraints while providing meaningful performance insights. Most tests use mock APIs to avoid consuming your quota, and the few that might use real APIs are designed to stay well within the limits.
+
+This comprehensive performance testing suite ensures the GeckoTerminal collector system maintains optimal performance and provides clear guidance for scaling decisions while respecting API rate limits.

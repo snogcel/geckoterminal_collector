@@ -908,27 +908,35 @@ class TestAPIRateLimitCompliance:
         """Test API rate limiting and exponential backoff behavior."""
         
         class MockAPIClient:
-            """Mock API client that simulates rate limiting."""
+            """Mock API client that simulates GeckoTerminal Free API rate limiting."""
             
-            def __init__(self, rate_limit_per_minute=60):
+            def __init__(self, rate_limit_per_minute=30):  # GeckoTerminal Free API limit
                 self.rate_limit = rate_limit_per_minute
                 self.requests = []
                 self.rate_limited_responses = 0
+                self.monthly_requests = 0
+                self.monthly_limit = 10000  # Monthly cap for free tier
                 
             async def make_request(self, endpoint: str) -> Dict:
-                """Simulate API request with rate limiting."""
+                """Simulate API request with GeckoTerminal Free API rate limiting."""
                 current_time = time.time()
                 self.requests.append(current_time)
+                self.monthly_requests += 1
                 
-                # Check rate limit (requests in last minute)
+                # Check monthly limit first
+                if self.monthly_requests > self.monthly_limit:
+                    self.rate_limited_responses += 1
+                    raise Exception("Monthly limit exceeded (10,000 calls)")
+                
+                # Check per-minute rate limit (30 calls per minute for free tier)
                 recent_requests = [r for r in self.requests if current_time - r < 60]
                 
                 if len(recent_requests) > self.rate_limit:
                     self.rate_limited_responses += 1
-                    raise Exception("Rate limit exceeded")
+                    raise Exception("Rate limit exceeded (30 calls/minute)")
                 
-                # Simulate API response delay (reduced for performance testing)
-                await asyncio.sleep(0.01)
+                # Simulate realistic API response delay
+                await asyncio.sleep(0.1)  # 100ms realistic API response time
                 return {"status": "success", "data": []}
         
         class RateLimitedCollector:
@@ -974,11 +982,12 @@ class TestAPIRateLimitCompliance:
                     'results': results
                 }
         
-        # Test rate limiting behavior with faster parameters for performance testing
-        api_client = MockAPIClient(rate_limit_per_minute=10)  # More reasonable rate limit
+        # Test rate limiting behavior with GeckoTerminal Free API limits
+        # Note: Using reduced limits for faster testing while maintaining realistic behavior
+        api_client = MockAPIClient(rate_limit_per_minute=10)  # Reduced from 30 for faster testing
         collector = RateLimitedCollector(api_client)
         
-        # Generate fewer endpoints to keep test fast
+        # Generate realistic number of endpoints (15 requests to trigger rate limiting)
         endpoints = [f"endpoint_{i}" for i in range(15)]
         
         start_time = time.time()

@@ -36,9 +36,11 @@ class PerformanceThresholds:
     max_lock_wait_time: float = 1.0
     max_contention_ratio: float = 0.1
     
-    # Rate limiting thresholds
+    # Rate limiting thresholds (based on GeckoTerminal Free API limits)
     min_success_rate: float = 0.8
     min_backoff_delay: float = 1.0
+    api_calls_per_minute: int = 30  # GeckoTerminal Free API limit
+    api_calls_per_month: int = 10000  # GeckoTerminal Free API monthly cap
 
 
 @dataclass
@@ -108,6 +110,18 @@ class PerformanceTestConfig:
         self.memory_sample_interval = 0.5  # seconds
         self.enable_detailed_logging = True
         self.cleanup_test_data = True
+        
+        # API rate limiting settings (GeckoTerminal Free API)
+        self.api_rate_limit_settings = {
+            'calls_per_minute': 30,
+            'monthly_call_limit': 10000,
+            'backoff_base_delay': 2.0,  # seconds
+            'backoff_max_delay': 60.0,  # seconds
+            'backoff_multiplier': 2.0,
+            'max_retries': 3,
+            'use_jitter': True,
+            'circuit_breaker_threshold': 0.8  # Stop at 80% of rate limit
+        }
         
         # Database settings for testing
         self.test_database_settings = {
@@ -225,3 +239,73 @@ def create_custom_config(**kwargs) -> PerformanceTestConfig:
             setattr(config.migration_thresholds, key, value)
     
     return config
+
+
+def calculate_safe_api_usage(
+    calls_per_minute: int = 30,
+    monthly_limit: int = 10000,
+    safety_margin: float = 0.2
+) -> Dict[str, int]:
+    """
+    Calculate safe API usage patterns for GeckoTerminal Free API.
+    
+    Args:
+        calls_per_minute: API rate limit per minute
+        monthly_limit: Monthly API call limit
+        safety_margin: Safety margin (0.2 = 20% buffer)
+    
+    Returns:
+        Dictionary with safe usage recommendations
+    """
+    safe_calls_per_minute = int(calls_per_minute * (1 - safety_margin))
+    safe_monthly_calls = int(monthly_limit * (1 - safety_margin))
+    
+    # Calculate daily budget
+    days_in_month = 30
+    safe_daily_calls = safe_monthly_calls // days_in_month
+    
+    # Calculate hourly budget
+    safe_hourly_calls = safe_calls_per_minute * 60
+    
+    return {
+        'safe_calls_per_minute': safe_calls_per_minute,
+        'safe_calls_per_hour': min(safe_hourly_calls, safe_daily_calls),
+        'safe_calls_per_day': safe_daily_calls,
+        'safe_calls_per_month': safe_monthly_calls,
+        'recommended_batch_size': min(safe_calls_per_minute // 2, 10),
+        'recommended_delay_between_batches': 60,  # seconds
+    }
+
+
+def estimate_collection_time(
+    pools_to_collect: int,
+    data_points_per_pool: int = 3,  # OHLCV + trades + metadata
+    calls_per_minute: int = 25  # Safe rate with buffer
+) -> Dict[str, float]:
+    """
+    Estimate time required for data collection within API limits.
+    
+    Args:
+        pools_to_collect: Number of pools to collect data for
+        data_points_per_pool: API calls needed per pool
+        calls_per_minute: Safe API calls per minute
+    
+    Returns:
+        Dictionary with time estimates
+    """
+    total_calls_needed = pools_to_collect * data_points_per_pool
+    
+    if total_calls_needed <= calls_per_minute:
+        # Can complete in one batch
+        estimated_minutes = 1
+    else:
+        # Need multiple batches
+        estimated_minutes = (total_calls_needed / calls_per_minute)
+    
+    return {
+        'total_api_calls_needed': total_calls_needed,
+        'estimated_minutes': estimated_minutes,
+        'estimated_hours': estimated_minutes / 60,
+        'batches_required': max(1, total_calls_needed // calls_per_minute),
+        'calls_per_batch': min(calls_per_minute, total_calls_needed)
+    }
