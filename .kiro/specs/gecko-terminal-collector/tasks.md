@@ -291,7 +291,9 @@
 
 
 
-  - [ ] 13.1 Create integration test suite
+  - [x] 13.1 Create integration test suite
+
+
 
 
 
@@ -303,10 +305,19 @@
     - Code database integration tests with schema validation and data integrity checks
     - _Requirements: All requirements validation_
 
-  - [ ] 13.2 Add performance and load testing
-    - Write performance tests for concurrent collection scenarios and database load
-    - Implement memory usage and resource consumption monitoring during testing
-    - Code API rate limit compliance testing and backoff behavior validation
+  - [x] 13.2 Add performance and load testing
+
+
+
+
+
+    - Write SQLite performance baseline tests for OHLCV and trade data write throughput
+    - Test concurrent collection scenarios with multiple collectors and measure database contention
+    - Implement database scalability testing to identify SQLite limits (data volume, query performance, file size growth)
+    - Code memory usage and resource consumption monitoring during high-volume data collection
+    - Test API rate limit compliance and backoff behavior validation under load
+    - Create performance benchmarks that define PostgreSQL migration decision points
+    - Validate SQLAlchemy abstraction layer for potential database migration scenarios
     - _Requirements: 1.4, 2.4, 9.2_
 
 - [ ] 14. Documentation and final integration
