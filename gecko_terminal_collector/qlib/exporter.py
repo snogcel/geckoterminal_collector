@@ -380,25 +380,19 @@ class QLibExporter:
         Returns:
             Symbol name string
         """
-        # Format: DEX_POOL_ID (simplified for QLib compatibility)
-        # Remove special characters and limit length
-        dex_part = pool.dex_id.upper()[:10]
-        
-        # Extract meaningful part from pool ID
-        if '_' in pool.id:
-            # Take the part after the last underscore, but keep more context
-            parts = pool.id.split('_')
-            if len(parts) >= 3:
-                pool_part = '_'.join(parts[1:])[:30].upper()  # Keep more of the ID and uppercase
-            else:
-                pool_part = parts[-1][:20].upper()
-        else:
-            pool_part = pool.id[:20].upper()
-        
-        symbol = f"{dex_part}_{pool_part}"
+        # Use the full pool ID as the symbol to ensure uniqueness and reversibility
+        # Keep original case to maintain exact mapping
+        symbol = pool.id
         
         # Ensure valid symbol format (alphanumeric + underscore)
-        symbol = ''.join(c if c.isalnum() or c == '_' else '' for c in symbol)
+        symbol = ''.join(c if c.isalnum() or c == '_' else '_' for c in symbol)
+        
+        # Remove duplicate underscores
+        while '__' in symbol:
+            symbol = symbol.replace('__', '_')
+        
+        # Remove leading/trailing underscores
+        symbol = symbol.strip('_')
         
         return symbol
     
@@ -462,13 +456,21 @@ class QLibExporter:
         if symbol in self._pool_cache:
             return self._pool_cache[symbol]
         
-        # If not in cache, we need to search by symbol pattern
-        # This is a simplified approach - in production you might want
-        # to maintain a symbol-to-pool mapping table
+        # Since our symbol is based on the pool ID, we can reverse-engineer the pool ID
+        # The symbol should match the pool ID exactly now
+        pool_id = symbol
+        
+        # Try to get the pool directly
+        pool = await self.db_manager.get_pool(pool_id)
+        if pool:
+            self._pool_cache[symbol] = pool
+            return pool
+        
+        # If direct lookup fails, search through watchlist pools
         watchlist_pools = await self.db_manager.get_watchlist_pools()
         
-        for pool_id in watchlist_pools:
-            pool = await self.db_manager.get_pool(pool_id)
+        for watchlist_pool_id in watchlist_pools:
+            pool = await self.db_manager.get_pool(watchlist_pool_id)
             if pool:
                 generated_symbol = self._generate_symbol_name(pool)
                 if generated_symbol == symbol:

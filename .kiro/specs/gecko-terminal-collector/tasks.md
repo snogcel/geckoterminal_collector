@@ -341,6 +341,11 @@
 
 
 
+
+
+
+
+
     - Test complete watchlist-to-QLib export workflow using real GeckoTerminal API data
     - Validate end-to-end flow: watchlist CSV → token collection → OHLCV collection → QLib export
     - Create CLI command for standalone OHLCV dataset building for a given watchlist item

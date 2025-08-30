@@ -1738,14 +1738,14 @@ async def validate_workflow_command(args):
         print("\nStep 1: Validating watchlist file...")
         
         if not Path(args.watchlist_file).exists():
-            print(f"✗ Watchlist file not found: {args.watchlist_file}")
+            print(f"[FAIL] Watchlist file not found: {args.watchlist_file}")
             return 1
         
         watchlist_processor = WatchlistProcessor(config)
         watchlist_items = await watchlist_processor.load_watchlist(args.watchlist_file)
         
         if not watchlist_items:
-            print(f"✗ No items found in watchlist file")
+            print(f"[FAIL] No items found in watchlist file")
             return 1
         
         print(f"[OK] Watchlist loaded: {len(watchlist_items)} items found")
@@ -1778,7 +1778,7 @@ async def validate_workflow_command(args):
                     print(f"    [FAIL] Token collection failed: {result.errors}")
                     
             except Exception as e:
-                print(f"    ✗ Token collection error: {e}")
+                print(f"    [FAIL] Token collection error: {e}")
                 token_collection_results.append({
                     'item': item,
                     'success': False,
@@ -1800,13 +1800,47 @@ async def validate_workflow_command(args):
         
         for result in successful_tokens:
             item = result['item']
-            pool_id = item.get('poolAddress')
+            pool_address = item.get('poolAddress')
             
-            if not pool_id:
-                print(f"    ⚠ No pool address for {item.get('tokenSymbol', 'Unknown')}")
+            if not pool_address:
+                print(f"    [WARN] No pool address for {item.get('tokenSymbol', 'Unknown')}")
                 continue
             
             print(f"  Testing OHLCV for: {item.get('tokenSymbol', 'Unknown')}")
+            
+            # Find the correct pool ID in the database (it may have network prefix)
+            pool = None
+            try:
+                # First try with just the address
+                pool = await db_manager.get_pool(pool_address)
+                if not pool:
+                    # Try with network prefix
+                    network_prefixed_id = f"{config.dexes.network}_{pool_address}"
+                    pool = await db_manager.get_pool(network_prefixed_id)
+                
+                if not pool:
+                    print(f"    [FAIL] Pool not found in database: {pool_address}")
+                    ohlcv_collection_results.append({
+                        'item': item,
+                        'pool_id': pool_address,
+                        'success': False,
+                        'records_collected': 0,
+                        'errors': ['Pool not found in database']
+                    })
+                    continue
+                
+                pool_id = pool.id
+                
+            except Exception as e:
+                print(f"    [FAIL] Error finding pool: {e}")
+                ohlcv_collection_results.append({
+                    'item': item,
+                    'pool_id': pool_address,
+                    'success': False,
+                    'records_collected': 0,
+                    'errors': [f'Error finding pool: {e}']
+                })
+                continue
             
             try:
                 ohlcv_result = await ohlcv_collector.collect_for_pool(
@@ -1828,7 +1862,7 @@ async def validate_workflow_command(args):
                     print(f"    [FAIL] OHLCV collection failed: {ohlcv_result.errors}")
                     
             except Exception as e:
-                print(f"    ✗ OHLCV collection error: {e}")
+                print(f"    [FAIL] OHLCV collection error: {e}")
                 ohlcv_collection_results.append({
                     'item': item,
                     'pool_id': pool_id,
@@ -1855,7 +1889,7 @@ async def validate_workflow_command(args):
                 # Get pool and generate symbol
                 pool = await db_manager.get_pool(pool_id)
                 if not pool:
-                    print(f"    ✗ Pool not found: {pool_id}")
+                    print(f"    [FAIL] Pool not found: {pool_id}")
                     continue
                 
                 symbol = exporter._generate_symbol_name(pool)
@@ -1881,12 +1915,12 @@ async def validate_workflow_command(args):
                 
                 if 'error' not in export_result:
                     records = len(export_result.get('data', pd.DataFrame()))
-                    print(f"    ✓ QLib export successful: {records} records")
+                    print(f"    [OK] QLib export successful: {records} records")
                 else:
-                    print(f"    ✗ QLib export failed: {export_result['error']}")
+                    print(f"    [FAIL] QLib export failed: {export_result['error']}")
                     
             except Exception as e:
-                print(f"    ✗ QLib export error: {e}")
+                print(f"    [FAIL] QLib export error: {e}")
                 export_results.append({
                     'item': item,
                     'success': False,
@@ -1894,7 +1928,7 @@ async def validate_workflow_command(args):
                 })
         
         successful_exports = [r for r in export_results if r['success']]
-        print(f"✓ QLib export: {len(successful_exports)}/{len(successful_ohlcv)} successful")
+        print(f"[OK] QLib export: {len(successful_exports)}/{len(successful_ohlcv)} successful")
         
         # Step 5: Generate validation report
         print(f"\nStep 5: Generating validation report...")
@@ -1924,16 +1958,16 @@ async def validate_workflow_command(args):
         
         # Save validation report
         report_path = output_path / "validation_report.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, 'w', encoding='utf-8') as f:
             json.dump(validation_report, f, indent=2, default=str)
         
-        print(f"✓ Validation report saved: {report_path}")
+        print(f"[OK] Validation report saved: {report_path}")
         
         # Generate detailed report if requested
         if args.detailed_report:
             detailed_report_path = output_path / "detailed_validation_report.md"
             await _generate_detailed_validation_report(validation_report, detailed_report_path)
-            print(f"✓ Detailed report saved: {detailed_report_path}")
+            print(f"[OK] Detailed report saved: {detailed_report_path}")
         
         # Export successful data to QLib format
         if successful_exports:
@@ -1949,11 +1983,11 @@ async def validate_workflow_command(args):
             )
             
             if final_export['success']:
-                print(f"✓ Final QLib export completed")
+                print(f"[OK] Final QLib export completed")
                 print(f"  Files created: {final_export['files_created']}")
                 print(f"  Total records: {final_export['total_records']}")
             else:
-                print(f"✗ Final QLib export failed: {final_export['message']}")
+                print(f"[FAIL] Final QLib export failed: {final_export['message']}")
         
         # Summary
         print(f"\n" + "=" * 60)
@@ -1961,18 +1995,23 @@ async def validate_workflow_command(args):
         print("=" * 60)
         print(f"Total items tested: {len(sample_items)}")
         print(f"Token collection success: {len(successful_tokens)}/{len(sample_items)} ({len(successful_tokens)/len(sample_items)*100:.1f}%)")
-        print(f"OHLCV collection success: {len(successful_ohlcv)}/{len(successful_tokens)} ({len(successful_ohlcv)/len(successful_tokens)*100:.1f}% of successful tokens)")
-        print(f"QLib export success: {len(successful_exports)}/{len(successful_ohlcv)} ({len(successful_exports)/len(successful_ohlcv)*100:.1f}% of successful OHLCV)")
+        
+        ohlcv_pct = (len(successful_ohlcv)/len(successful_tokens)*100) if successful_tokens else 0
+        print(f"OHLCV collection success: {len(successful_ohlcv)}/{len(successful_tokens)} ({ohlcv_pct:.1f}% of successful tokens)")
+        
+        export_pct = (len(successful_exports)/len(successful_ohlcv)*100) if successful_ohlcv else 0
+        print(f"QLib export success: {len(successful_exports)}/{len(successful_ohlcv)} ({export_pct:.1f}% of successful OHLCV)")
+        
         print(f"Overall success rate: {len(successful_exports)}/{len(sample_items)} ({len(successful_exports)/len(sample_items)*100:.1f}%)")
         
         success_threshold = 0.8  # 80% success rate threshold
         overall_success = (len(successful_exports) / len(sample_items)) >= success_threshold
         
         if overall_success:
-            print(f"\n✓ WORKFLOW VALIDATION PASSED")
+            print(f"\n[PASS] WORKFLOW VALIDATION PASSED")
             print(f"The watchlist-to-QLib workflow is functioning correctly.")
         else:
-            print(f"\n✗ WORKFLOW VALIDATION FAILED")
+            print(f"\n[FAIL] WORKFLOW VALIDATION FAILED")
             print(f"Success rate below threshold ({success_threshold*100:.0f}%)")
         
         print(f"\nResults saved to: {args.output}")
@@ -1991,7 +2030,7 @@ async def validate_workflow_command(args):
 async def _generate_detailed_validation_report(validation_report: Dict[str, Any], output_path: Path):
     """Generate detailed markdown validation report."""
     
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write("# Watchlist-to-QLib Workflow Validation Report\n\n")
         
         # Configuration
@@ -2017,7 +2056,7 @@ async def _generate_detailed_validation_report(validation_report: Dict[str, Any]
         for i, result in enumerate(validation_report['detailed_results']['token_collection'], 1):
             item = result['item']
             symbol = item.get('tokenSymbol', 'Unknown')
-            status = "✓" if result['success'] else "✗"
+            status = "[OK]" if result['success'] else "[FAIL]"
             f.write(f"{i}. **{symbol}** {status}\n")
             if not result['success']:
                 f.write(f"   - Error: {result.get('error', result.get('errors', 'Unknown error'))}\n")
@@ -2028,7 +2067,7 @@ async def _generate_detailed_validation_report(validation_report: Dict[str, Any]
         for i, result in enumerate(validation_report['detailed_results']['ohlcv_collection'], 1):
             item = result['item']
             symbol = item.get('tokenSymbol', 'Unknown')
-            status = "✓" if result['success'] else "✗"
+            status = "[OK]" if result['success'] else "[FAIL]"
             f.write(f"{i}. **{symbol}** {status}\n")
             if result['success']:
                 f.write(f"   - Records collected: {result.get('records_collected', 0)}\n")
@@ -2041,7 +2080,7 @@ async def _generate_detailed_validation_report(validation_report: Dict[str, Any]
         for i, result in enumerate(validation_report['detailed_results']['qlib_export'], 1):
             item = result['item']
             symbol = item.get('tokenSymbol', 'Unknown')
-            status = "✓" if result['success'] else "✗"
+            status = "[OK]" if result['success'] else "[FAIL]"
             f.write(f"{i}. **{symbol}** {status}\n")
             if result['success']:
                 f.write(f"   - QLib Symbol: {result.get('symbol', 'N/A')}\n")

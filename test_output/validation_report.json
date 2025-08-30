@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-30T17:24:30.269868",
+  "timestamp": "2025-08-30T18:08:02.052607",
   "configuration": {
     "watchlist_file": "specs/watchlist.csv",
     "timeframe": "1h",
@@ -9,10 +9,10 @@
   },
   "results": {
     "total_items_tested": 1,
-    "token_collection_success": 0,
-    "ohlcv_collection_success": 0,
-    "qlib_export_success": 0,
-    "overall_success_rate": 0.0
+    "token_collection_success": 1,
+    "ohlcv_collection_success": 1,
+    "qlib_export_success": 1,
+    "overall_success_rate": 1.0
   },
   "detailed_results": {
     "token_collection": [
@@ -25,14 +25,44 @@
           "poolAddress": "7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
           "networkAddress": "5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump"
         },
-        "success": false,
-        "records_collected": 0,
-        "errors": [
-          "No data collected"
-        ]
+        "success": true,
+        "records_collected": 2,
+        "errors": []
       }
     ],
-    "ohlcv_collection": [],
-    "qlib_export": []
+    "ohlcv_collection": [
+      {
+        "item": {
+          "tokenSymbol": "CBRL",
+          "tokenName": "Cracker Barrel Old Country Store",
+          "chain": "SOL",
+          "dex": "PumpSwap",
+          "poolAddress": "7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
+          "networkAddress": "5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump"
+        },
+        "pool_id": "solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
+        "success": true,
+        "records_collected": 1,
+        "errors": []
+      }
+    ],
+    "qlib_export": [
+      {
+        "item": {
+          "tokenSymbol": "CBRL",
+          "tokenName": "Cracker Barrel Old Country Store",
+          "chain": "SOL",
+          "dex": "PumpSwap",
+          "poolAddress": "7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
+          "networkAddress": "5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump"
+        },
+        "symbol": "SOLANA_7BQJG2ZDMKBEKGSMFUQNVBVQEVWAVGL8UEO33ZQDL3NP",
+        "success": true,
+        "data_records": 0,
+        "validation": null,
+        "metadata": {},
+        "error": null
+      }
+    ]
   }
 }

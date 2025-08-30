@@ -160,10 +160,15 @@ class OHLCVCollector(BaseDataCollector):
             logger.info(f"Collecting OHLCV data for pool {pool_id}, timeframe {target_timeframe}")
             
             try:
+                # Extract pool address from pool_id (remove network prefix if present)
+                pool_address = pool_id
+                if pool_id.startswith(f"{self.network}_"):
+                    pool_address = pool_id[len(f"{self.network}_"):]
+                
                 # Get OHLCV data from API
                 response = await self.client.get_ohlcv_data(
                     network=self.network,
-                    pool_address=pool_id,
+                    pool_address=pool_address,
                     timeframe=self._convert_timeframe_to_api_format(target_timeframe),
                     limit=self.limit,
                     currency=self.currency,
@@ -232,10 +237,15 @@ class OHLCVCollector(BaseDataCollector):
             try:
                 logger.debug(f"Collecting OHLCV data for pool {pool_id}, timeframe {timeframe}")
                 
+                # Extract pool address from pool_id (remove network prefix if present)
+                pool_address = pool_id
+                if pool_id.startswith(f"{self.network}_"):
+                    pool_address = pool_id[len(f"{self.network}_"):]
+                
                 # Get OHLCV data from API
                 response = await self.client.get_ohlcv_data(
                     network=self.network,
-                    pool_address=pool_id,
+                    pool_address=pool_address,
                     timeframe=self._convert_timeframe_to_api_format(timeframe),
                     limit=self.limit,
                     currency=self.currency,
@@ -276,7 +286,7 @@ class OHLCVCollector(BaseDataCollector):
     
     def _parse_ohlcv_response(
         self, 
-        response: Dict, 
+        response, 
         pool_id: str, 
         timeframe: str
     ) -> List[OHLCVRecord]:
@@ -284,7 +294,7 @@ class OHLCVCollector(BaseDataCollector):
         Parse OHLCV API response into OHLCVRecord objects.
         
         Args:
-            response: API response from get_ohlcv_data
+            response: API response from get_ohlcv_data (can be Dict or DataFrame)
             pool_id: Pool identifier
             timeframe: Data timeframe
             
@@ -294,22 +304,50 @@ class OHLCVCollector(BaseDataCollector):
         records = []
         
         try:
-            data = response.get("data", {})
-            attributes = data.get("attributes", {})
-            ohlcv_list = attributes.get("ohlcv_list", [])
-            
-            if not isinstance(ohlcv_list, list):
-                logger.warning(f"Expected list in OHLCV response for pool {pool_id}")
-                return records
-            
-            for ohlcv_data in ohlcv_list:
-                try:
-                    record = self._parse_ohlcv_entry(ohlcv_data, pool_id, timeframe)
-                    if record:
-                        records.append(record)
-                except Exception as e:
-                    logger.warning(f"Error parsing OHLCV entry for pool {pool_id}: {e}")
-                    continue
+            # Handle pandas DataFrame response (from geckoterminal-py SDK)
+            if hasattr(response, 'iterrows'):  # It's a DataFrame
+                import pandas as pd
+                df = response
+                
+                for _, row in df.iterrows():
+                    try:
+                        # Convert DataFrame row to OHLCV entry format
+                        ohlcv_data = [
+                            int(row['timestamp']),
+                            float(row['open']),
+                            float(row['high']),
+                            float(row['low']),
+                            float(row['close']),
+                            float(row['volume_usd'])
+                        ]
+                        
+                        record = self._parse_ohlcv_entry(ohlcv_data, pool_id, timeframe)
+                        if record:
+                            records.append(record)
+                    except Exception as e:
+                        logger.warning(f"Error parsing OHLCV DataFrame row for pool {pool_id}: {e}")
+                        continue
+                        
+            # Handle dictionary response (raw API format)
+            elif isinstance(response, dict):
+                data = response.get("data", {})
+                attributes = data.get("attributes", {})
+                ohlcv_list = attributes.get("ohlcv_list", [])
+                
+                if not isinstance(ohlcv_list, list):
+                    logger.warning(f"Expected list in OHLCV response for pool {pool_id}")
+                    return records
+                
+                for ohlcv_data in ohlcv_list:
+                    try:
+                        record = self._parse_ohlcv_entry(ohlcv_data, pool_id, timeframe)
+                        if record:
+                            records.append(record)
+                    except Exception as e:
+                        logger.warning(f"Error parsing OHLCV entry for pool {pool_id}: {e}")
+                        continue
+            else:
+                logger.warning(f"Unexpected response type for pool {pool_id}: {type(response)}")
             
         except Exception as e:
             logger.error(f"Error parsing OHLCV response for pool {pool_id}: {e}")
@@ -418,14 +456,26 @@ class OHLCVCollector(BaseDataCollector):
             timeframe: Internal timeframe (e.g., '1m', '1h', '1d')
             
         Returns:
-            API timeframe format - geckoterminal-py expects the same format
+            API timeframe format that the GeckoTerminal API expects
         """
-        # geckoterminal-py SDK expects timeframes as-is: ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
-        # No conversion needed, just validate it's supported
-        supported_timeframes = ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
+        # Map internal timeframes to API timeframes
+        timeframe_mapping = {
+            '1m': '1m',
+            '5m': '5m', 
+            '15m': '15m',
+            '1h': '1h',
+            '4h': '4h',
+            '12h': '12h',
+            '1d': '1d',
+            # Legacy mappings for backwards compatibility
+            'minute': '1m',
+            'hour': '1h',
+            'day': '1d'
+        }
         
-        if timeframe in supported_timeframes:
-            return timeframe
+        api_timeframe = timeframe_mapping.get(timeframe)
+        if api_timeframe:
+            return api_timeframe
         else:
             # Fallback to 1h if unsupported
             logger.warning(f"Unsupported timeframe {timeframe}, using 1h as fallback")
@@ -685,9 +735,14 @@ class OHLCVCollector(BaseDataCollector):
                 # Use before_timestamp to get historical data for the gap period
                 before_timestamp = int(gap.end_time.timestamp())
                 
+                # Extract pool address from pool_id (remove network prefix if present)
+                pool_address = pool_id
+                if pool_id.startswith(f"{self.network}_"):
+                    pool_address = pool_id[len(f"{self.network}_"):]
+                
                 response = await self.client.get_ohlcv_data(
                     network=self.network,
-                    pool_address=pool_id,
+                    pool_address=pool_address,
                     timeframe=self._convert_timeframe_to_api_format(timeframe),
                     before_timestamp=before_timestamp,
                     limit=self.limit,

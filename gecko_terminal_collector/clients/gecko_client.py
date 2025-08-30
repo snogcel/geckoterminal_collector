@@ -112,7 +112,7 @@ class BaseGeckoClient(ABC):
     
     @abstractmethod
     async def get_ohlcv_data(self, network: str, pool_address: str, 
-                           timeframe: str = "hour", 
+                           timeframe: str = "1h", 
                            before_timestamp: Optional[int] = None,
                            limit: int = 1000,
                            currency: str = "usd",
@@ -273,7 +273,7 @@ class GeckoTerminalClient(BaseGeckoClient):
         return await self._execute_with_retry(_get_pool)
     
     async def get_ohlcv_data(self, network: str, pool_address: str, 
-                           timeframe: str = "hour", 
+                           timeframe: str = "1h", 
                            before_timestamp: Optional[int] = None,
                            limit: int = 1000,
                            currency: str = "usd",
@@ -579,7 +579,7 @@ class MockGeckoTerminalClient(BaseGeckoClient):
         return {"data": None}
     
     async def get_ohlcv_data(self, network: str, pool_address: str, 
-                           timeframe: str = "hour", 
+                           timeframe: str = "1h", 
                            before_timestamp: Optional[int] = None,
                            limit: int = 1000,
                            currency: str = "usd",
