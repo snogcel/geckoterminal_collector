@@ -19,6 +19,10 @@ from gecko_terminal_collector.collectors.base import BaseDataCollector, Collecto
 from gecko_terminal_collector.models.core import CollectionResult
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.utils.metadata import MetadataTracker
+from gecko_terminal_collector.monitoring.collection_monitor import CollectionMonitor
+from gecko_terminal_collector.monitoring.execution_history import ExecutionHistoryTracker
+from gecko_terminal_collector.monitoring.performance_metrics import MetricsCollector
+from gecko_terminal_collector.monitoring.database_manager import MonitoringDatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +80,8 @@ class CollectionScheduler:
         self,
         config: CollectionConfig,
         scheduler_config: Optional[SchedulerConfig] = None,
-        metadata_tracker: Optional[MetadataTracker] = None
+        metadata_tracker: Optional[MetadataTracker] = None,
+        monitoring_db_manager: Optional[MonitoringDatabaseManager] = None
     ):
         """
         Initialize the collection scheduler.
@@ -85,10 +90,20 @@ class CollectionScheduler:
             config: Collection configuration
             scheduler_config: Scheduler-specific configuration
             metadata_tracker: Optional metadata tracker for statistics
+            monitoring_db_manager: Optional monitoring database manager
         """
         self.config = config
         self.scheduler_config = scheduler_config or SchedulerConfig()
         self.metadata_tracker = metadata_tracker or MetadataTracker()
+        
+        # Initialize monitoring components
+        self.execution_history = ExecutionHistoryTracker()
+        self.metrics_collector = MetricsCollector()
+        self.collection_monitor = CollectionMonitor(
+            self.execution_history,
+            self.metrics_collector
+        )
+        self.monitoring_db_manager = monitoring_db_manager
         
         # Initialize APScheduler
         self._scheduler = AsyncIOScheduler(
@@ -108,7 +123,7 @@ class CollectionScheduler:
         # Setup event listeners
         self._setup_event_listeners()
         
-        logger.info("Collection scheduler initialized")
+        logger.info("Collection scheduler initialized with monitoring")
     
     def _setup_event_listeners(self) -> None:
         """Setup APScheduler event listeners for monitoring and error handling."""
@@ -331,27 +346,126 @@ class CollectionScheduler:
         
         scheduled_collector = self._scheduled_collectors[job_id]
         collector = scheduled_collector.collector
+        collector_type = collector.get_collection_key()
+        
+        # Generate unique execution ID
+        execution_id = f"{collector_type}_{int(datetime.now().timestamp())}_{job_id}"
+        
+        # Start execution tracking
+        execution_record = self.execution_history.start_execution(
+            collector_type=collector_type,
+            execution_id=execution_id,
+            metadata={"job_id": job_id, "scheduled": True}
+        )
+        
+        start_time = datetime.now()
         
         try:
-            logger.info(f"Executing collector: {collector.get_collection_key()}")
+            logger.info(f"Executing collector: {collector_type} ({execution_id})")
             
             # Execute collection with error handling
             result = await collector.collect_with_error_handling()
             
+            # Calculate execution time
+            execution_time = (datetime.now() - start_time).total_seconds()
+            
+            # Complete execution tracking
+            warnings = []
+            if result.warnings:
+                warnings.extend(result.warnings)
+            
+            self.execution_history.complete_execution(
+                execution_id=execution_id,
+                result=result,
+                warnings=warnings
+            )
+            
+            # Record performance metrics
+            self.metrics_collector.record_execution(
+                collector_type=collector_type,
+                execution_time=execution_time,
+                records_collected=result.records_collected,
+                success=result.success,
+                labels={"job_id": job_id}
+            )
+            
+            # Update monitoring
+            self.collection_monitor.update_from_execution(
+                collector_type=collector_type,
+                result=result,
+                execution_time=execution_time
+            )
+            
+            # Store in database if available
+            if self.monitoring_db_manager:
+                self.monitoring_db_manager.store_execution_record(execution_record)
+                self.monitoring_db_manager.update_collection_metadata(
+                    collector_type=collector_type,
+                    execution_time=execution_time,
+                    records_collected=result.records_collected,
+                    success=result.success,
+                    error_message="; ".join(result.errors) if result.errors else None
+                )
+            
             # Log results
             if result.success:
                 logger.info(
-                    f"Collection completed for {collector.get_collection_key()}: "
-                    f"{result.records_collected} records"
+                    f"Collection completed for {collector_type}: "
+                    f"{result.records_collected} records in {execution_time:.2f}s"
                 )
             else:
                 logger.warning(
-                    f"Collection failed for {collector.get_collection_key()}: "
+                    f"Collection failed for {collector_type}: "
                     f"{'; '.join(result.errors)}"
                 )
                 raise Exception(f"Collection failed: {'; '.join(result.errors)}")
                 
         except Exception as e:
+            # Calculate execution time for failed execution
+            execution_time = (datetime.now() - start_time).total_seconds()
+            
+            # Create failed result for tracking
+            failed_result = CollectionResult(
+                success=False,
+                records_collected=0,
+                errors=[str(e)],
+                collection_time=datetime.now(),
+                collector_type=collector_type
+            )
+            
+            # Complete execution tracking with failure
+            self.execution_history.complete_execution(
+                execution_id=execution_id,
+                result=failed_result
+            )
+            
+            # Record failed metrics
+            self.metrics_collector.record_execution(
+                collector_type=collector_type,
+                execution_time=execution_time,
+                records_collected=0,
+                success=False,
+                labels={"job_id": job_id, "error": str(e)}
+            )
+            
+            # Update monitoring
+            self.collection_monitor.update_from_execution(
+                collector_type=collector_type,
+                result=failed_result,
+                execution_time=execution_time
+            )
+            
+            # Store in database if available
+            if self.monitoring_db_manager:
+                self.monitoring_db_manager.store_execution_record(execution_record)
+                self.monitoring_db_manager.update_collection_metadata(
+                    collector_type=collector_type,
+                    execution_time=execution_time,
+                    records_collected=0,
+                    success=False,
+                    error_message=str(e)
+                )
+            
             logger.error(f"Error executing collector {job_id}: {e}")
             raise  # Re-raise to trigger APScheduler error handling
     
@@ -596,3 +710,207 @@ class CollectionScheduler:
                 next_runs[job_id] = None
         
         return next_runs
+    
+    def get_monitoring_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive monitoring status for all collectors.
+        
+        Returns:
+            Dictionary with monitoring information
+        """
+        return {
+            "scheduler_status": self.get_status(),
+            "system_health": self.collection_monitor.get_system_health_summary(),
+            "collector_health": {
+                name: health.to_dict() 
+                for name, health in self.collection_monitor.get_collector_health().items()
+            },
+            "performance_metrics": self.metrics_collector.get_aggregated_metrics(),
+            "recent_alerts": [
+                alert.to_dict() for alert in self.collection_monitor.get_alerts(limit=10)
+            ],
+            "execution_statistics": {
+                collector_type: self.execution_history.get_execution_statistics(collector_type)
+                for collector_type in self._collector_registry.get_collector_keys()
+            }
+        }
+    
+    def get_performance_metrics(
+        self,
+        collector_type: Optional[str] = None,
+        time_window: Optional[timedelta] = None
+    ) -> Dict[str, Any]:
+        """
+        Get performance metrics for collectors.
+        
+        Args:
+            collector_type: Optional filter by collector type
+            time_window: Optional time window for metrics
+            
+        Returns:
+            Dictionary with performance metrics
+        """
+        return {
+            "metrics": self.metrics_collector.get_metrics(collector_type),
+            "aggregated": self.metrics_collector.get_aggregated_metrics(time_window),
+            "alerts": self.metrics_collector.get_performance_alerts(),
+            "custom_metrics": self.metrics_collector.get_custom_metrics(time_window=time_window)
+        }
+    
+    def get_execution_history(
+        self,
+        collector_type: Optional[str] = None,
+        limit: Optional[int] = None,
+        time_window: Optional[timedelta] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get execution history for collectors.
+        
+        Args:
+            collector_type: Optional filter by collector type
+            limit: Maximum number of records to return
+            time_window: Optional time window for history
+            
+        Returns:
+            List of execution record dictionaries
+        """
+        records = self.execution_history.get_execution_history(
+            collector_type=collector_type,
+            limit=limit
+        )
+        
+        if time_window:
+            cutoff_time = datetime.now() - time_window
+            records = [r for r in records if r.start_time >= cutoff_time]
+        
+        return [record.to_dict() for record in records]
+    
+    def get_alerts(
+        self,
+        level: Optional[str] = None,
+        collector_type: Optional[str] = None,
+        unresolved_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Get system alerts.
+        
+        Args:
+            level: Optional filter by alert level
+            collector_type: Optional filter by collector type
+            unresolved_only: Only return unresolved alerts
+            
+        Returns:
+            List of alert dictionaries
+        """
+        from gecko_terminal_collector.monitoring.collection_monitor import AlertLevel
+        
+        alert_level = None
+        if level:
+            try:
+                alert_level = AlertLevel(level.lower())
+            except ValueError:
+                logger.warning(f"Invalid alert level: {level}")
+        
+        alerts = self.collection_monitor.get_alerts(
+            level=alert_level,
+            collector_type=collector_type,
+            unresolved_only=unresolved_only
+        )
+        
+        return [alert.to_dict() for alert in alerts]
+    
+    def acknowledge_alert(self, alert_id: str) -> bool:
+        """
+        Acknowledge an alert.
+        
+        Args:
+            alert_id: ID of the alert to acknowledge
+            
+        Returns:
+            True if alert was acknowledged, False otherwise
+        """
+        success = self.collection_monitor.acknowledge_alert(alert_id)
+        
+        # Update in database if available
+        if success and self.monitoring_db_manager:
+            alerts = self.collection_monitor.get_alerts(unresolved_only=False)
+            for alert in alerts:
+                if alert.id == alert_id:
+                    self.monitoring_db_manager.store_alert(alert)
+                    break
+        
+        return success
+    
+    def resolve_alert(self, alert_id: str) -> bool:
+        """
+        Resolve an alert.
+        
+        Args:
+            alert_id: ID of the alert to resolve
+            
+        Returns:
+            True if alert was resolved, False otherwise
+        """
+        success = self.collection_monitor.resolve_alert(alert_id)
+        
+        # Update in database if available
+        if success and self.monitoring_db_manager:
+            alerts = self.collection_monitor.get_alerts(unresolved_only=False)
+            for alert in alerts:
+                if alert.id == alert_id:
+                    self.monitoring_db_manager.store_alert(alert)
+                    break
+        
+        return success
+    
+    def suppress_alerts(self, collector_type: str, duration_minutes: int = 60) -> None:
+        """
+        Suppress alerts for a collector type.
+        
+        Args:
+            collector_type: Collector type to suppress alerts for
+            duration_minutes: Duration to suppress alerts
+        """
+        self.collection_monitor.suppress_alerts(collector_type, duration_minutes)
+    
+    def cleanup_monitoring_data(self, days_to_keep: int = 30) -> Dict[str, int]:
+        """
+        Clean up old monitoring data.
+        
+        Args:
+            days_to_keep: Number of days of data to keep
+            
+        Returns:
+            Dictionary with counts of removed records
+        """
+        # Clean up in-memory data
+        execution_removed = self.execution_history.cleanup_old_records(days_to_keep)
+        alert_removed = self.collection_monitor.cleanup_old_alerts(days_to_keep)
+        
+        cleanup_counts = {
+            "execution_history_memory": execution_removed,
+            "alerts_memory": alert_removed
+        }
+        
+        # Clean up database data if available
+        if self.monitoring_db_manager:
+            db_counts = self.monitoring_db_manager.cleanup_old_data(days_to_keep)
+            cleanup_counts.update(db_counts)
+        
+        return cleanup_counts
+    
+    def export_monitoring_data(self) -> Dict[str, Any]:
+        """
+        Export comprehensive monitoring data for analysis.
+        
+        Returns:
+            Dictionary with all monitoring data
+        """
+        return {
+            "export_time": datetime.now().isoformat(),
+            "scheduler_info": self.get_status(),
+            "monitoring_status": self.get_monitoring_status(),
+            "execution_history": self.execution_history.export_history(),
+            "performance_metrics": self.metrics_collector.export_metrics(),
+            "collection_monitor": self.collection_monitor.export_monitoring_data()
+        }

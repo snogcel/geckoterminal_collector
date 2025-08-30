@@ -157,3 +157,65 @@ class CollectionMetadata(Base):
     run_count = Column(Integer, default=0)
     error_count = Column(Integer, default=0)
     last_error = Column(Text)
+    total_execution_time = Column(Numeric(10, 3), default=0.0)
+    total_records_collected = Column(BigInteger, default=0)
+    average_execution_time = Column(Numeric(10, 3), default=0.0)
+    success_rate = Column(Numeric(5, 2), default=100.0)
+    health_score = Column(Numeric(5, 2), default=100.0)
+    last_updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+
+class ExecutionHistory(Base):
+    """Execution history for detailed tracking of collection runs."""
+    
+    __tablename__ = "execution_history"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    collector_type = Column(String(50), nullable=False)
+    execution_id = Column(String(100), nullable=False, unique=True)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime)
+    status = Column(String(20), nullable=False)  # success, failure, partial, timeout, cancelled
+    records_collected = Column(Integer, default=0)
+    execution_time = Column(Numeric(10, 3))  # in seconds
+    error_message = Column(Text)
+    warnings = Column(Text)  # JSON array of warnings
+    execution_metadata = Column(Text)  # JSON metadata
+    created_at = Column(DateTime, default=func.current_timestamp())
+
+
+class PerformanceMetrics(Base):
+    """Performance metrics for operational visibility."""
+    
+    __tablename__ = "performance_metrics"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    collector_type = Column(String(50), nullable=False)
+    metric_name = Column(String(100), nullable=False)
+    metric_value = Column(Numeric(20, 8), nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    labels = Column(Text)  # JSON labels
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    # Index for efficient querying
+    __table_args__ = (
+        UniqueConstraint('collector_type', 'metric_name', 'timestamp', name='uq_metrics_collector_metric_timestamp'),
+    )
+
+
+class SystemAlerts(Base):
+    """System alerts for monitoring and failure notification."""
+    
+    __tablename__ = "system_alerts"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_id = Column(String(100), nullable=False, unique=True)
+    level = Column(String(20), nullable=False)  # info, warning, error, critical
+    collector_type = Column(String(50), nullable=False)
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    acknowledged = Column(Boolean, default=False)
+    resolved = Column(Boolean, default=False)
+    alert_metadata = Column(Text)  # JSON metadata
+    created_at = Column(DateTime, default=func.current_timestamp())
+    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
