@@ -74,6 +74,10 @@ class TestTradeCollector:
     @pytest.fixture
     def sample_trade_data(self):
         """Create sample trade data from CSV fixture."""
+
+        # Align mock data with system requirements (trade_data within last 24 hours)
+        block_timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+
         return {
             "data": [
                 {
@@ -87,7 +91,7 @@ class TestTradeCollector:
                         "to_token_amount": "10787911.48458",
                         "price_from_in_usd": "212.618160283895494927350632339277383984859223512",
                         "price_to_in_usd": "0.0000493804611736865774611869570754394294604142126779721093309794408",
-                        "block_timestamp": "2025-08-28T16:15:08Z",
+                        "block_timestamp": block_timestamp,
                         "kind": "buy",
                         "volume_usd": "532.712044209470242119280771152461839182058804794342390432"
                     }
@@ -103,7 +107,7 @@ class TestTradeCollector:
                         "to_token_amount": "4475412.982855",
                         "price_from_in_usd": "211.80211874193665632466872600261735212952237173",
                         "price_to_in_usd": "0.000047230827093375367972524251586378905519791491674955847469759436",
-                        "block_timestamp": "2025-08-28T16:06:03Z",
+                        "block_timestamp": block_timestamp,
                         "kind": "buy",
                         "volume_usd": "211.37745676467178578035770315499446035420679215181558038"
                     }
@@ -119,7 +123,7 @@ class TestTradeCollector:
                         "to_token_amount": "100",
                         "price_from_in_usd": "50.0",
                         "price_to_in_usd": "0.05",
-                        "block_timestamp": "2025-08-28T15:00:00Z",
+                        "block_timestamp": block_timestamp,
                         "kind": "sell",
                         "volume_usd": "5.0"  # Below 100 USD threshold
                     }
@@ -202,6 +206,10 @@ class TestTradeCollector:
     
     def test_parse_trade_entry_valid(self, trade_collector):
         """Test parsing a valid trade entry."""
+
+        # Align mock data with system requirements (trade_data within last 24 hours)
+        block_timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+
         trade_data = {
             "id": "test_trade_123",
             "type": "trade",
@@ -213,7 +221,7 @@ class TestTradeCollector:
                 "to_token_amount": "1500.0",
                 "price_from_in_usd": "100.0",
                 "price_to_in_usd": "0.1",
-                "block_timestamp": "2025-08-28T12:00:00Z",
+                "block_timestamp": block_timestamp,
                 "kind": "buy",
                 "volume_usd": "150.0"
             }
@@ -565,6 +573,9 @@ class TestTradeCollectorIntegration:
         csv_file = Path(__file__).parent.parent / "specs" / "get_trades.csv"
         if not csv_file.exists():
             pytest.skip("CSV fixture file not found")
+
+        # Align CSV Fixture with system requirements (trade_data within last 24 hours)
+        block_timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         
         # Read and parse CSV data (simplified for testing)
         trades = []
@@ -584,7 +595,7 @@ class TestTradeCollectorIntegration:
                             "to_token_amount": parts[6],
                             "price_from_in_usd": parts[9],
                             "price_to_in_usd": parts[10],
-                            "block_timestamp": parts[11],
+                            "block_timestamp": block_timestamp,
                             "kind": parts[12],
                             "volume_usd": parts[13]
                         }
