@@ -80,9 +80,22 @@ class TopPoolsCollector(BaseDataCollector):
                         errors.append(error_msg)
                         logger.warning(error_msg)
                         continue
-                    
+
+                    # Transform to dict 
+                    ## TODO -- it is expecting a list, adjust override function to check for list instead of dict
+
+                    print("-TopPoolsCollector (api response)--")
+                    print(pools_data)
+                    print("---")
+
+                    response_to_list = pools_data.to_dict('records')
+
+                    print("-TopPoolsCollector--")
+                    #print(response_to_list)
+                    print("---")
+
                     # Validate the data
-                    validation_result = await self.validate_data(pools_data)
+                    validation_result = await self.validate_data(response_to_list)
                     if not validation_result.is_valid:
                         errors.extend([f"DEX {dex_id}: {error}" for error in validation_result.errors])
                         logger.error(f"Pools data validation failed for {dex_id}: {validation_result.errors}")
@@ -94,7 +107,7 @@ class TopPoolsCollector(BaseDataCollector):
                             logger.warning(f"DEX {dex_id} pools data validation warning: {warning}")
                     
                     # Process and store pools data
-                    pool_records = self._process_pools_data(pools_data, dex_id)
+                    pool_records = self._process_pools_data(response_to_list, dex_id)
                     stored_count = await self._store_pools_data(pool_records)
                     total_records_collected += stored_count
                     
@@ -135,18 +148,27 @@ class TopPoolsCollector(BaseDataCollector):
         """
         errors = []
         warnings = []
+
+        print("-_validate_specific_data--")
+        print(data)
+        print("---")
         
-        if not isinstance(data, dict):
-            errors.append("Pools data must be a dictionary")
+        if not isinstance(data, list):
+            errors.append("Pools data must be a list")
             return ValidationResult(False, errors, warnings)
         
         # Check for data field
-        if "data" not in data:
-            # If no data field, treat as empty data (valid but with warning)
-            warnings.append("No pools found in response")
-            return ValidationResult(True, errors, warnings)
+        # if "data" not in data:
+        #     # If no data field, treat as empty data (valid but with warning)
+        #     warnings.append("No pools found in response")
+        #     return ValidationResult(True, errors, warnings)
         
-        pools_list = data.get("data", [])
+        # wrap back into list
+        print("-_validate_specific_data--")
+        print(data)
+        print("---")
+
+        pools_list = data
         if not isinstance(pools_list, list):
             errors.append("Pools data must contain a 'data' field with a list")
             return ValidationResult(False, errors, warnings)
@@ -170,31 +192,29 @@ class TopPoolsCollector(BaseDataCollector):
             elif pool["type"] != "pool":
                 warnings.append(f"Pool entry {i} has unexpected type: {pool['type']}")
             
-            # Check attributes
-            attributes = pool.get("attributes", {})
-            if not isinstance(attributes, dict):
+            # Check attributes            
+            if not isinstance(pool, dict):
                 errors.append(f"Pool entry {i} attributes must be a dictionary")
             else:
                 # Check required attributes
                 required_attrs = ["name", "address"]
                 for attr in required_attrs:
-                    if attr not in attributes:
+                    if attr not in pool:
                         errors.append(f"Pool entry {i} missing required attribute: {attr}")
             
-            # Check relationships
-            relationships = pool.get("relationships", {})
-            if not isinstance(relationships, dict):
+            # Check relationships            
+            if not isinstance(pool, dict):
                 warnings.append(f"Pool entry {i} missing relationships data")
             else:
                 # Check for DEX relationship
-                if "dex" not in relationships:
+                if "dex_id" not in pool:
                     warnings.append(f"Pool entry {i} missing DEX relationship")
                 
                 # Check for token relationships
-                if "base_token" not in relationships:
+                if "base_token_id" not in pool:
                     warnings.append(f"Pool entry {i} missing base_token relationship")
                 
-                if "quote_token" not in relationships:
+                if "quote_token_id" not in pool:
                     warnings.append(f"Pool entry {i} missing quote_token relationship")
         
         return ValidationResult(len(errors) == 0, errors, warnings)
@@ -210,10 +230,9 @@ class TopPoolsCollector(BaseDataCollector):
         Returns:
             List of Pool model objects
         """
-        pool_records = []
-        pools_list = pools_data.get("data", [])
+        pool_records = []        
         
-        for pool_data in pools_list:
+        for pool_data in pools_data:
             try:
                 # Skip None or invalid entries
                 if not pool_data or not isinstance(pool_data, dict):
