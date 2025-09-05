@@ -157,7 +157,12 @@ class DatabaseManager(ABC):
     async def update_watchlist_entry_status(self, pool_id: str, is_active: bool) -> None:
         """Update the active status of a watchlist entry."""
         pass
-    
+
+    @abstractmethod
+    async def update_watchlist_entry(self, entry: Any) -> None:
+        """Update an existing watchlist entry."""
+        pass
+
     @abstractmethod
     async def get_watchlist_pools(self) -> List[str]:
         """Get all active watchlist pool IDs."""
@@ -289,7 +294,17 @@ class DatabaseManager(ABC):
             Dictionary with cleanup statistics
         """
         pass
-    
+
+    @abstractmethod
+    async def get_table_names(self) -> List[Any]:
+        """Get list of existing table names in the database."""
+        pass
+
+    @abstractmethod
+    async def count_records(self, table_name: str) -> int:
+        """Count records in a specific table."""
+        pass
+
     def _calculate_expected_intervals(
         self, 
         start: datetime, 

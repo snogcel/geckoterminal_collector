@@ -17,6 +17,7 @@ import yaml
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.config.manager import ConfigManager
 from gecko_terminal_collector.scheduling.scheduler import CollectionScheduler, SchedulerConfig
+from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
 from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.utils.metadata import MetadataTracker
 
@@ -76,7 +77,18 @@ class SchedulerCLI:
         metadata_tracker = MetadataTracker()
         
         # Create database manager
-        self.db_manager = DatabaseManager(config.database)
+        print("---")
+        print(config.database)
+        print("---")
+
+        # raise SystemExit()
+
+        #self.db_manager = DatabaseManager(config.database)
+        # self.db_manager = DatabaseManager()
+        
+        # raise SystemExit()
+        
+        self.db_manager = SQLAlchemyDatabaseManager(config.database)
         await self.db_manager.initialize()
         
         # Create scheduler
@@ -302,9 +314,23 @@ def run_once(config, collector, mock):
         # Find the collector job ID
         collectors = scheduler_cli.scheduler.list_collectors()
         target_job_id = None
+
+        print("-run_collector--")
+        print(collectors)
+        print("---")
         
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+            collector = job_id.removeprefix("collector_")
+
+            print("-collector_status--")
+            print("job_id: ", job_id)
+            print("collector: ", collector)
+            print("collector_key: ", collector_status['collector_key'])
+            print("---")
+
+            print(collector_status['collector_key'])
+
             if collector_status and collector in collector_status['collector_key']:
                 target_job_id = job_id
                 break
