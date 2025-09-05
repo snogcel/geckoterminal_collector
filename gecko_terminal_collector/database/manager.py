@@ -69,8 +69,8 @@ class DatabaseManager(ABC):
         pass
     
     @abstractmethod
-    async def get_token(self, token_id: str) -> Optional[Token]:
-        """Get a token by ID."""
+    async def get_token(self, pool_id: str, token_id: str) -> Optional[Token]:
+        """Get a token by ID."""        
         pass
     
     # OHLCV operations
@@ -150,7 +150,7 @@ class DatabaseManager(ABC):
     
     @abstractmethod
     async def get_watchlist_entry_by_pool_id(self, pool_id: str) -> Optional[Any]:
-        """Get a watchlist entry by pool ID."""
+        """Get a watchlist entry by pool ID."""        
         pass
     
     @abstractmethod

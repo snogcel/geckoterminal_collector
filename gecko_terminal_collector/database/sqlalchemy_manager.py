@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
 from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -171,8 +172,23 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             try:
+                
+                # apply token_id fix?
+                print("-store_tokens--")
+                print(datetime.utcnow())
+                print("---")
+                
                 for token in tokens:
+                    print("-token_id--")
+                    print(token.id)
+                    print("---")
+
                     existing_token = session.query(TokenModel).filter_by(id=token.id).first()
+
+                    print("---")
+                    print("existing_token: ", vars(existing_token))
+                    print("---")
+
                     if existing_token:
                         # Update existing token
                         existing_token.address = token.address
@@ -181,6 +197,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         existing_token.decimals = token.decimals
                         existing_token.network = token.network
                         existing_token.last_updated = datetime.utcnow()
+
+                        print("---")
+                        print("updated_token: ", vars(existing_token))
+                        print("---")
+                        # actually perform query?
+
                     else:
                         # Create new token
                         new_token = TokenModel(
@@ -204,10 +226,21 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return stored_count
     
-    async def get_token(self, token_id: str) -> Optional[Token]:
+    async def get_token(self, pool_id: str, token_id: str) -> Optional[Token]:
         """Get a token by ID."""
+
+        #print("-retreiving token by token_id: ", token_id) # missing network identifier
+        #print("-pool_id: ", pool_id)
+
+        prefix, _, _ = pool_id.partition('_')
+        lookup_id = prefix + '_' + token_id
+
         with self.connection.get_session() as session:
-            token_model = session.query(TokenModel).filter_by(id=token_id).first()
+            token_model = session.query(TokenModel).filter_by(id=lookup_id).first()
+            
+            #print("--retrieved token_model: ")
+            #print(vars(token_model))
+
             if token_model:
                 return Token(
                     id=token_model.id,
@@ -564,19 +597,95 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         stored_count = 0
         duplicate_count = 0
-        
+
+        print("-store_trade_data--")
+
         with self.connection.get_session() as session:
             try:
                 # Validate and deduplicate input data
                 validated_data = []
                 seen_ids = set()
+
+                # optimized method
+                
+                
+                ids_to_check = []                
+
+                #existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
+                #existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
                 
                 for record in data:
+                    ids_to_check.append(record.id)
+                
+                existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
+                existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
+                non_existent_ids = [id_val for id_val in ids_to_check if id_val not in existing_ids_set]
+
+                unique_records = []
+                for record in data:
+                    if record.id in non_existent_ids:
+                        unique_records.append(record)
+                
+                print("-unique_records:")
+                for record in unique_records:
+                    print(record.id)
+                    
+                    # Validate trade data
+                    validation_errors = self._validate_trade_record(record)
+                    if validation_errors:
+                        logger.warning(f"Skipping invalid trade record {record.id}: {validation_errors}")
+                        continue
+                    
+                    # append network prefix to record.pool_id -- this fun pattern is everywhere!
+                    prefix, _, _ = record.id.partition('_')                    
+                    pool_id_with_prefix = prefix + '_' + record.pool_id
+
+                    #print("---")
+                    #print(pool_id_with_prefix)
+                    #print("---")
+
+                    new_trade = TradeModel(
+                                id=record.id,
+                                pool_id=pool_id_with_prefix,
+                                block_number=record.block_number,
+                                tx_hash=record.tx_hash,
+                                tx_from_address=record.tx_from_address,
+                                from_token_amount=record.from_token_amount,
+                                to_token_amount=record.to_token_amount,
+                                price_usd=record.price_usd,
+                                volume_usd=record.volume_usd,
+                                side=record.side,
+                                block_timestamp=record.block_timestamp,
+                            )
+
+                    validated_data.append(new_trade)
+
+                stored_count = len(validated_data) #non_existent_ids
+                duplicate_count = len(existing_ids) #existing_ids
+
+                session.bulk_save_objects(validated_data)
+
+                """ try:                    
+                    session.bulk_save_objects(validated_data)
+                
+                except IntegrityError as e:
+                    # Handle race condition where record was inserted between check and insert
+                    print("Integrity Error: ")
+                    print(e)
+                    session.rollback() # this is causing none of the records to be written """                    
+
+                # records_to_insert.append(new_trade)
+                # session.bulk_save_objects(unique_records)
+
+                # seen_ids.add(record.id) # this is being called when a race condition is met, causing the record to not insert at all
+
+                """ 
+                for record in data:                    
                     # Skip duplicates within the batch
                     if record.id in seen_ids:
                         duplicate_count += 1
                         continue
-                    seen_ids.add(record.id)
+                    seen_ids.add(record.id) # this is being called when a race condition is met, causing the record to not insert at all
                     
                     # Validate trade data
                     validation_errors = self._validate_trade_record(record)
@@ -587,10 +696,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     validated_data.append(record)
                 
                 # Batch insert with duplicate handling
+                records_to_insert = []
                 for record in validated_data:
                     try:
                         # Check if trade already exists
+                        
+                        # causing issues by overloading SQLite
                         existing_trade = session.query(TradeModel).filter_by(id=record.id).first()
+                        
                         if not existing_trade:
                             new_trade = TradeModel(
                                 id=record.id,
@@ -605,17 +718,21 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                                 side=record.side,
                                 block_timestamp=record.block_timestamp,
                             )
-                            session.add(new_trade)
+                            records_to_insert.append(new_trade)
+                            #session.add(new_trade)
                             stored_count += 1
                         else:
                             duplicate_count += 1
                     
                     except IntegrityError:
                         # Handle race condition where record was inserted between check and insert
+                        print("--- race condition ---")
                         duplicate_count += 1
-                        session.rollback()
+                        session.rollback() # this is causing none of the records to be written
                         continue
                 
+                session.bulk_save_objects(records_to_insert) """
+
                 session.commit()
                 logger.info(f"Stored {stored_count} new trade records, skipped {duplicate_count} duplicates")
                 
@@ -689,6 +806,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     pool_id=record_model.pool_id,
                     block_number=record_model.block_number,
                     tx_hash=record_model.tx_hash,
+                    tx_from_address=record_model.tx_from_address,
                     from_token_amount=record_model.from_token_amount,
                     to_token_amount=record_model.to_token_amount,
                     price_usd=record_model.price_usd,

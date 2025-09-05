@@ -107,8 +107,16 @@ class TradeCollector(BaseDataCollector):
             rotated_pools = await self.implement_fair_rotation(watchlist_pools)
             logger.info(f"Fair rotation selected {len(rotated_pools)} pools for collection")
             
+            # handle prefix scenario with pool_addresses
+            processed_pool_addresses = []
+
+            for pool in rotated_pools:
+                prefix, _, _ = pool.partition('_')
+                lookup_prefix = prefix + '_'
+                processed_pool_addresses.append(pool.removeprefix(lookup_prefix))  
+            
             # Collect trade data for each pool
-            for pool_id in rotated_pools:
+            for pool_id in processed_pool_addresses:
                 try:
                     pool_records = await self._collect_pool_trade_data(pool_id)
                     records_collected += pool_records
@@ -192,9 +200,16 @@ class TradeCollector(BaseDataCollector):
                 pool_address=pool_id,
                 trade_volume_filter=self.min_trade_volume_usd
             )
-            
+
+            print("-_collect_pool_trade_data_--")
+            #print(response)
+            #print("---")
+
+            response_to_dict = {"data": response.to_dict(orient='records')}
+            print(vars(response))
+
             # Parse and validate trade data
-            trade_records = self._parse_trade_response(response, pool_id)
+            trade_records = self._parse_trade_response(response_to_dict, pool_id)
             
             if trade_records:
                 # Filter trades by volume threshold
@@ -242,6 +257,8 @@ class TradeCollector(BaseDataCollector):
         """
         records = []
         
+        print("-_parse_trade_response--")
+        
         try:
             data = response.get("data", [])
             
@@ -279,19 +296,16 @@ class TradeCollector(BaseDataCollector):
             trade_id = trade_data.get("id")
             if not trade_id:
                 logger.warning(f"Trade missing ID for pool {pool_id}")
-                return None
-            
-            # Extract attributes
-            attributes = trade_data.get("attributes", {})
-            
+                return None            
+
             # Extract required fields
-            block_number = attributes.get("block_number")
-            tx_hash = attributes.get("tx_hash")
-            tx_from_address = attributes.get("tx_from_address")
-            from_token_amount = attributes.get("from_token_amount")
-            to_token_amount = attributes.get("to_token_amount")
-            block_timestamp = attributes.get("block_timestamp")
-            side = attributes.get("kind", attributes.get("side", "buy"))
+            block_number = trade_data.get("block_number")
+            tx_hash = trade_data.get("tx_hash")
+            tx_from_address = trade_data.get("tx_from_address")
+            from_token_amount = trade_data.get("from_token_amount")
+            to_token_amount = trade_data.get("to_token_amount")
+            block_timestamp = trade_data.get("block_timestamp")
+            side = trade_data.get("kind", trade_data.get("side", "buy"))
             
             # Parse numeric values
             try:
@@ -299,8 +313,8 @@ class TradeCollector(BaseDataCollector):
                 to_token_amount = Decimal(str(to_token_amount)) if to_token_amount else Decimal('0')
                 
                 # Calculate price and volume from available data
-                price_usd = self._extract_price_usd(attributes)
-                volume_usd = self._calculate_volume_usd(attributes, from_token_amount, to_token_amount, price_usd)
+                price_usd = self._extract_price_usd(trade_data)
+                volume_usd = self._calculate_volume_usd(trade_data, from_token_amount, to_token_amount, price_usd)
                 
             except (ValueError, TypeError, InvalidOperation) as e:
                 logger.warning(f"Error parsing numeric values for trade {trade_id}: {e}")
@@ -342,6 +356,7 @@ class TradeCollector(BaseDataCollector):
                 pool_id=pool_id,
                 block_number=int(block_number),
                 tx_hash=tx_hash,
+                tx_from_address=tx_from_address,
                 from_token_amount=from_token_amount,
                 to_token_amount=to_token_amount,
                 price_usd=price_usd,

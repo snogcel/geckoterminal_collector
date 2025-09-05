@@ -48,6 +48,10 @@ class WatchlistCollector(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
+        print("---")
+        print("- init collector - ")
+        print("---")
+
         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
         self.batch_size = getattr(config.watchlist, 'batch_size', 20)  # Max addresses per API call
         
@@ -70,6 +74,10 @@ class WatchlistCollector(BaseDataCollector):
             # Get active watchlist entries
             logger.info("Retrieving active watchlist entries")
             watchlist_entries = await self._get_active_watchlist_entries()
+
+            print("---")
+            print("watchlist_entries: ", watchlist_entries)
+            print("---")
             
             if not watchlist_entries:
                 logger.info("No active watchlist entries found")
@@ -249,12 +257,26 @@ class WatchlistCollector(BaseDataCollector):
         """
         try:
             # Get active watchlist pool IDs
+            
+            print("---")
+            print("- stub out first record? -")
+            print("---")
+
             pool_ids = await self.db_manager.get_watchlist_pools()
+
+            print("---")
+            print(pool_ids)
+            print("---")
             
             # Get full watchlist entries
             watchlist_entries = []
             for pool_id in pool_ids:
                 entry = await self.db_manager.get_watchlist_entry_by_pool_id(pool_id)
+                
+                print("-db_manager entry--")
+                print(entry)
+                print("---")
+                
                 if entry and entry.is_active:
                     watchlist_entries.append(entry)
             
@@ -279,10 +301,22 @@ class WatchlistCollector(BaseDataCollector):
         try:
             # Extract pool addresses for batch collection
             pool_addresses = [entry.pool_id for entry in watchlist_entries]
+
+            print("-_collect_pool_data_batch--")
+            print(pool_addresses)
+            print("---")            
+            
+            # handle prefix scenario with pool_addresses
+            processed_pool_addresses = []
+
+            for pool in pool_addresses:
+                prefix, _, _ = pool.partition('_')
+                lookup_prefix = prefix + '_'
+                processed_pool_addresses.append(pool.removeprefix(lookup_prefix))            
             
             # Process in batches to respect API limits
-            for i in range(0, len(pool_addresses), self.batch_size):
-                batch_addresses = pool_addresses[i:i + self.batch_size]
+            for i in range(0, len(processed_pool_addresses), self.batch_size):
+                batch_addresses = processed_pool_addresses[i:i + self.batch_size]
                 
                 logger.info(f"Collecting pool data for batch {i//self.batch_size + 1}: {len(batch_addresses)} pools")
                 
@@ -365,18 +399,34 @@ class WatchlistCollector(BaseDataCollector):
             if entry.network_address:
                 network_addresses.add(entry.network_address)
         
+        print("-_collect_token_data_individual--")
+        print(network_addresses)
+        print("---")
+
         for network_address in network_addresses:
             try:
                 logger.debug(f"Collecting token data for network address {network_address}")
                 
-                response = await self.client.get_token_info(
+                # get_specific_token_on_network
+                response = await self.client.get_specific_token_on_network(
                     self.network, 
                     network_address
                 )
+
+                wrapped_response = {"data": response}
+
+                print("--response--")
+                print(wrapped_response)
+                print("---")
                 
                 # Process token response
-                if response.get("data"):
-                    token = self._parse_token_response(response)
+                if wrapped_response.get("data"):
+                    token = self._parse_token_response(wrapped_response)
+
+                    print("-_parse_token_response--")
+                    print(token)
+                    print("---")
+
                     if token:
                         stored_count = await self.db_manager.store_tokens([token])
                         records_collected += stored_count
@@ -403,9 +453,13 @@ class WatchlistCollector(BaseDataCollector):
                     logger.warning(f"Pool {entry.pool_id} not found in database for watchlist entry")
                     continue
                 
+                print("---")
+                print(vars(entry))
+                print("---")
+
                 # Verify token exists if network address is provided
                 if entry.network_address:
-                    token = await self.db_manager.get_token(entry.network_address)
+                    token = await self.db_manager.get_token(entry.pool_id, entry.network_address)
                     if not token:
                         logger.warning(f"Token {entry.network_address} not found in database for watchlist entry")
                 

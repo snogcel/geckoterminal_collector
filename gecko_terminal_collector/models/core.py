@@ -54,6 +54,7 @@ class TradeRecord:
     pool_id: str
     block_number: int
     tx_hash: str
+    tx_from_address: str
     from_token_amount: Decimal
     to_token_amount: Decimal
     price_usd: Decimal

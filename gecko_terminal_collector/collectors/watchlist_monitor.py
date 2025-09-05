@@ -81,6 +81,10 @@ class WatchlistMonitor(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
+        print("---")
+        print("- init watchlist monitor-")
+        print("---")
+
         self.watchlist_file_path = Path(config.watchlist.file_path)
         self.auto_add_new_tokens = config.watchlist.auto_add_new_tokens
         
@@ -242,6 +246,8 @@ class WatchlistMonitor(BaseDataCollector):
             Number of records successfully processed
         """
         processed_count = 0
+
+        print("called _process_new_records")
         
         if not self.auto_add_new_tokens:
             logger.info("Auto-add new tokens is disabled. New records will not be added automatically.")

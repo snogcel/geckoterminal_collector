@@ -115,6 +115,8 @@ class TestEndToEndDataCollectionWorkflows:
                 metadata_tracker=metadata_tracker,
                 use_mock=True
             )
+
+            print(integration_config)
             
             # Replace the mock client with our fixture-based one
             set_collector_client(collector, mock_client_with_fixtures)

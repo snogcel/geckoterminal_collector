@@ -197,10 +197,16 @@ class TestWatchlistMonitor:
             temp_file.close()  # Close file handle to avoid Windows permission issues
             
             # Update config to point to temp file
-            watchlist_monitor.watchlist_file_path = Path(temp_file.name)
+            #watchlist_monitor.watchlist_file_path = Path(temp_file.name)
+            watchlist_monitor.watchlist_file_path = Path("/Projects/geckoterminal_collector/specs/watchlist_test.csv")
+
+            print("temp_file name: ", watchlist_monitor.watchlist_file_path)
+            #print(watchlist_monitor.watchlist_file_path)
             
             try:
                 records = await watchlist_monitor._parse_watchlist_csv()
+
+                print("watchlist_records: ", records)
                 
                 assert len(records) == 2
                 
@@ -414,11 +420,13 @@ class TestWatchlistMonitor:
             
             # Mock database responses
             mock_db_manager.get_watchlist_entry_by_pool_id.return_value = None
-            mock_db_manager.add_watchlist_entry = AsyncMock()
+            mock_db_manager.add_watchlist_entry = AsyncMock()            
             
             try:
                 # Execute collection
                 result = await watchlist_monitor.collect()
+                print("-result-")
+                print(result)
                 
                 # Verify results
                 assert result.success
