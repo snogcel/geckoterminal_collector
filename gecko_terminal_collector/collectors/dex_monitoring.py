@@ -74,8 +74,11 @@ class DEXMonitoringCollector(BaseDataCollector):
                 logger.warning(error_msg)
                 return self.create_failure_result(errors, records_collected, start_time)
             
+            # Transform to dict
+            response_to_dict = dex_data.to_dict(orient='records')
+
             # Validate the data
-            validation_result = await self.validate_data(dex_data)
+            validation_result = await self.validate_data(response_to_dict)
             if not validation_result.is_valid:
                 errors.extend(validation_result.errors)
                 logger.error(f"DEX data validation failed: {validation_result.errors}")
@@ -87,7 +90,7 @@ class DEXMonitoringCollector(BaseDataCollector):
                     logger.warning(f"DEX data validation warning: {warning}")
             
             # Process and store DEX data
-            dex_records = self._process_dex_data(dex_data)
+            dex_records = self._process_dex_data(response_to_dict)
             stored_count = await self._store_dex_data(dex_records)
             records_collected = stored_count
             
@@ -152,11 +155,10 @@ class DEXMonitoringCollector(BaseDataCollector):
             elif dex["type"] != "dex":
                 warnings.append(f"DEX entry {i} has unexpected type: {dex['type']}")
             
-            # Check attributes
-            attributes = dex.get("attributes", {})
-            if not isinstance(attributes, dict):
+            # Check attributes            
+            if not isinstance(dex, dict):
                 errors.append(f"DEX entry {i} attributes must be a dictionary")
-            elif "name" not in attributes:
+            elif "name" not in dex:
                 errors.append(f"DEX entry {i} missing required 'name' in attributes")
         
         return ValidationResult(len(errors) == 0, errors, warnings)
