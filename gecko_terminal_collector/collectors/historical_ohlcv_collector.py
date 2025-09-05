@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Tuple, Any
 
+import re
+
 import aiohttp
 
 from gecko_terminal_collector.collectors.base import BaseDataCollector
@@ -110,9 +112,17 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     return self.create_success_result(0, start_time)
                 
                 logger.info(f"Found {len(watchlist_pools)} watchlist pools for historical OHLCV collection")
+
+                # remove prefix prior to making API calls
+                processed_pool_addresses = []
+                for pool in watchlist_pools:
+                    prefix, _, _ = pool.partition('_')
+                    lookup_prefix = prefix + '_'
+                    pool_dict = {"watchlist_pool_id": pool, "pool_id": pool.removeprefix(lookup_prefix)}
+                    processed_pool_addresses.append(pool_dict)
                 
                 # Collect historical OHLCV data for each pool
-                for pool_id in watchlist_pools:
+                for pool_id in processed_pool_addresses:
                     try:
                         pool_records = await self._collect_pool_historical_data(pool_id)
                         records_collected += pool_records
@@ -245,7 +255,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             errors.append(error_msg)
             return self.create_failure_result(errors, records_collected, start_time)
     
-    async def _collect_pool_historical_data(self, pool_id: str) -> int:
+    async def _collect_pool_historical_data(self, pool_dict: dict) -> int:
         """
         Collect historical OHLCV data for a specific pool across all configured timeframes.
         
@@ -256,6 +266,9 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             Number of OHLCV records collected for this pool
         """
         total_records = 0
+
+        pool_id = pool_dict.get("pool_id")
+        watchlist_pool_id = pool_dict.get("watchlist_pool_id")
         
         for timeframe in self.supported_timeframes:
             try:
@@ -283,7 +296,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 
                 # Collect historical data with pagination
                 records = await self._collect_historical_data_with_pagination(
-                    pool_id, timeframe, start_time, end_time
+                    pool_id, watchlist_pool_id, timeframe, start_time, end_time
                 )
                 
                 if records:
@@ -292,7 +305,21 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     
                     if validation_result.is_valid:
                         # Store historical OHLCV data with duplicate prevention
+
+                        # Refactor to consolidate into single call
+                        
+
+                        # push list of: records, watchlist_pool_id and perform single call
+                        # example: session.bulk_save_objects(validated_data)
+                                                
+                        # The unique constraint on (pool_id, timeframe, timestamp) prevents duplicates.
+                        # watchlist_pool_id is passed to this function to preserve duplicate prevention                        
+                        
+
+                        # overloading SQLite Database, also known as a Race Condition
                         stored_count = await self.db_manager.store_ohlcv_data(records)
+
+
                         total_records += stored_count
                         self._collection_stats['total_records'] += stored_count
                         
@@ -352,6 +379,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
     async def _collect_historical_data_with_pagination(
         self,
         pool_id: str,
+        watchlist_pool_id: str,
         timeframe: str,
         start_time: datetime,
         end_time: datetime
@@ -383,13 +411,25 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 response_data = await self._make_direct_ohlcv_request(
                     pool_id, timeframe, current_before_timestamp
                 )
+
+                print("-_collect_historical_data_with_pagination--")
+                print(pool_id)
+                print(watchlist_pool_id)
+                print("---")
                 
                 if not response_data:
                     logger.debug(f"No more data available for pool {pool_id}, timeframe {timeframe}")
                     break
                 
                 # Parse OHLCV data from response
-                records = self._parse_direct_ohlcv_response(response_data, pool_id, timeframe)
+                records = self._parse_direct_ohlcv_response(response_data, watchlist_pool_id, timeframe)
+
+                # maybe swap out pool_id with watchlist_pool_id here?
+                print("-_collect_historical_data_with_pagination--")
+                #print(records)
+                print("---")
+
+                # raise SystemExit()
                 
                 if not records:
                     logger.debug(f"No records parsed from response for pool {pool_id}, timeframe {timeframe}")
@@ -464,6 +504,14 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             endpoint = f"networks/{self.network}/pools/{pool_id}/ohlcv/{api_timeframe}"
             url = f"{self.api_base_url}/{endpoint}"
             
+            print("-_make_direct_ohlcv_request--")
+            print(url)
+            print("---")
+
+            # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/1h
+
+            # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/hour?aggregate=1
+
             # Build query parameters
             params = {
                 'before_timestamp': before_timestamp,
@@ -694,10 +742,60 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         """
         # geckoterminal-py SDK expects timeframes as-is: ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
         # No conversion needed, just validate it's supported
-        supported_timeframes = ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
         
+        
+
+
+        # check if timeframe contains m --> minute, h --> hour, d --> day
+        # extract number before identifier and set as aggregate value
+        
+        
+
+        # Map internal timeframes to API timeframes
+        """ timeframe_mapping = {
+            '1m': '1m',
+            '5m': '5m', 
+            '15m': '15m',
+            '1h': '1h',
+            '4h': '4h',
+            '12h': '12h',
+            '1d': '1d',
+            # Legacy mappings for backwards compatibility
+            'minute': '1m',
+            'hour': '1h',
+            'day': '1d'
+        }
+        
+        api_timeframe = timeframe_mapping.get(timeframe)
+        if api_timeframe:
+            return api_timeframe
+        else:
+            # Fallback to 1h if unsupported
+            logger.warning(f"Unsupported timeframe {timeframe}, using 1h as fallback")
+            return '1h' """
+        
+        supported_timeframes = ['1m', '5m', '15m', '1h', '4h', '12h', '1d']
+
+        # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/1h
+            
+        # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/hour?aggregate=1
+
         if timeframe in supported_timeframes:
-            return timeframe
+            timeframe_val = "".join(re.findall(r'[a-zA-Z]+', timeframe))
+            aggregate_val = "".join(re.findall(r'[0-9]+', timeframe))
+            
+            # map abbreviation to full timeframe keyword
+            timeframe_mapping = {
+                'm': 'minute',                
+                'h': 'hour',
+                'd': 'day'
+            }
+            api_timeframe = timeframe_mapping.get(timeframe_val)
+
+            # build complete query string
+            queryString = str(api_timeframe)+"?aggregate="+str(aggregate_val)
+
+            return queryString
         else:
             # Fallback to 1h if unsupported
             logger.warning(f"Unsupported timeframe {timeframe}, using 1h as fallback")
