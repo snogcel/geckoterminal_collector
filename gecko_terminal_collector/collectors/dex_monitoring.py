@@ -74,11 +74,24 @@ class DEXMonitoringCollector(BaseDataCollector):
                 logger.warning(error_msg)
                 return self.create_failure_result(errors, records_collected, start_time)
             
+            print("-_DEXMonitoringCollector--")
+            print(type(dex_data))
+            print("---")
+
+
+
+            
+            
+            #raise SystemExit()
+
             # Transform to dict
-            response_to_dict = dex_data.to_dict(orient='records')
+
+
+            # response_to_dict = dex_data.to_dict(orient='records')
+            # response_to_dict = dex_data.fromkeys()
 
             # Validate the data
-            validation_result = await self.validate_data(response_to_dict)
+            validation_result = await self.validate_data(dex_data)
             if not validation_result.is_valid:
                 errors.extend(validation_result.errors)
                 logger.error(f"DEX data validation failed: {validation_result.errors}")
@@ -90,7 +103,7 @@ class DEXMonitoringCollector(BaseDataCollector):
                     logger.warning(f"DEX data validation warning: {warning}")
             
             # Process and store DEX data
-            dex_records = self._process_dex_data(response_to_dict)
+            dex_records = self._process_dex_data(dex_data)
             stored_count = await self._store_dex_data(dex_records)
             records_collected = stored_count
             
@@ -155,10 +168,14 @@ class DEXMonitoringCollector(BaseDataCollector):
             elif dex["type"] != "dex":
                 warnings.append(f"DEX entry {i} has unexpected type: {dex['type']}")
             
+            print("-_validate_specific_data--")
+            print(dex["attributes"])
+            print("---")
+
             # Check attributes            
             if not isinstance(dex, dict):
                 errors.append(f"DEX entry {i} attributes must be a dictionary")
-            elif "name" not in dex:
+            elif "name" not in dex["attributes"]:
                 errors.append(f"DEX entry {i} missing required 'name' in attributes")
         
         return ValidationResult(len(errors) == 0, errors, warnings)

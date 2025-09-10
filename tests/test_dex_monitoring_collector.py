@@ -119,6 +119,12 @@ class TestDEXMonitoringCollector:
         
         result = await dex_collector.collect()
         
+        #result_to_dict = result.to_dict(orient='records')
+
+        print("-_test_collect_success--")
+        print(result)
+        print("---")
+
         assert result.success is True
         assert result.records_collected == 2  # Mock db_manager returns 2
         assert len(result.errors) == 0

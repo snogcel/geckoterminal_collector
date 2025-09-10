@@ -349,9 +349,15 @@ class MockGeckoTerminalClient(BaseGeckoClient):
         
         # Load DEX data
         dex_file = self.fixtures_path / "get_dexes_by_network.csv"
+
         if dex_file.exists():
             self.fixtures["dexes"] = self._load_csv(dex_file)
-        
+
+        print("-MockGeckoTerminalClient--")
+        print(self.fixtures["dexes"])
+        print("---")
+
+
         # Load pool data
         heaven_pools = self.fixtures_path / "get_top_pools_by_network_dex_heaven.csv"
         if heaven_pools.exists():
