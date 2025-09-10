@@ -1,0 +1,925 @@
+From f9caa837bbe7b8d11ab79beda0599decd7670b3c Mon Sep 17 00:00:00 2001
+From: Jon Kindel <ledniknoj@gmail.com>
+Date: Thu, 4 Sep 2025 18:01:03 -0600
+Subject: [PATCH] WIP - Watchlist & Trade Collector Debugging
+
+When testing OHLCV processes, a bunch of entries were created in "tokens" -- it added the wrong ID (using network_address instead of pool_address)
+
+# search for (pool_id) to find related parsing issue with pool_id prefix
+            # TODO - fix historical_hlcv_collector.py
+            # TODO - fix ohlcv_collector.py
+            # TODO - fix exporter.py
+---
+ gecko_terminal_collector/cli.py               | 334 ++++++++++++++++++
+ .../collectors/trade_collector.py             |  49 ++-
+ .../collectors/watchlist_collector.py         |  66 +++-
+ .../collectors/watchlist_monitor.py           |   6 +
+ gecko_terminal_collector/database/manager.py  |   6 +-
+ .../database/sqlalchemy_manager.py            | 130 ++++++-
+ gecko_terminal_collector/models/core.py       |   1 +
+ tests/test_integration_suite.py               |   2 +
+ tests/test_watchlist_monitor.py               |  12 +-
+ 9 files changed, 572 insertions(+), 34 deletions(-)
+
+diff --git a/gecko_terminal_collector/cli.py b/gecko_terminal_collector/cli.py
+index 918bf81..97dfa88 100644
+--- a/gecko_terminal_collector/cli.py
++++ b/gecko_terminal_collector/cli.py
+@@ -2027,6 +2027,340 @@ async def validate_workflow_command(args):
+         return 1
+ 
+ 
++
++async def validate_workflow_command_backup(args):
++    """Validate complete watchlist-to-QLib workflow."""
++    try:
++        from gecko_terminal_collector.config.manager import ConfigManager
++        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
++        from gecko_terminal_collector.qlib.exporter import QLibExporter
++        from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
++        from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
++        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor
++        from gecko_terminal_collector.utils.workflow_validator import WorkflowValidator
++        import pandas as pd
++        import json
++        from pathlib import Path
++        
++        # Load configuration
++        manager = ConfigManager(args.config)
++        config = manager.load_config()
++        
++        # Initialize database
++        db_manager = SQLAlchemyDatabaseManager(config.database)
++        await db_manager.initialize()
++        
++        print("GeckoTerminal Watchlist-to-QLib Workflow Validation")
++        print("=" * 60)
++        print(f"Watchlist file: {args.watchlist_file}")
++        print(f"Output directory: {args.output}")
++        print(f"Timeframe: {args.timeframe}")
++        print(f"Sample size: {args.sample_size}")
++        print(f"Historical days: {args.days}")
++        print(f"Using real API: {args.use_real_api}")
++        print("=" * 60)
++        
++        # Create output directory
++        output_path = Path(args.output)
++        output_path.mkdir(parents=True, exist_ok=True)
++        
++        # Initialize workflow validator
++        validator = WorkflowValidator(config, db_manager)
++        
++        # Step 1: Validate watchlist file
++        print("\nStep 1: Validating watchlist file...")
++        
++        if not Path(args.watchlist_file).exists():
++            print(f"[FAIL] Watchlist file not found: {args.watchlist_file}")
++            return 1
++        
++        watchlist_processor = WatchlistProcessor(config)
++        watchlist_items = await watchlist_processor.load_watchlist(args.watchlist_file)
++        
++        if not watchlist_items:
++            print(f"[FAIL] No items found in watchlist file")
++            return 1
++        
++        print(f"[OK] Watchlist loaded: {len(watchlist_items)} items found")
++        
++        # Select sample items for testing
++        sample_items = watchlist_items[:args.sample_size]
++        print(f"[OK] Selected {len(sample_items)} items for validation")
++        
++        # Step 2: Test token collection workflow
++        print(f"\nStep 2: Testing token collection workflow...")
++        
++        watchlist_collector = WatchlistCollector(config, db_manager)
++        token_collection_results = []
++        
++        for i, item in enumerate(sample_items, 1):
++            print(f"  Testing item {i}/{len(sample_items)}: {item.get('tokenSymbol', 'Unknown')}")
++            
++            try:
++                result = await watchlist_collector.collect_single_item(item)
++                token_collection_results.append({
++                    'item': item,
++                    'success': result.success,
++                    'records_collected': result.records_collected,
++                    'errors': result.errors
++                })
++                
++                if result.success:
++                    print(f"    [OK] Token collection successful")
++                else:
++                    print(f"    [FAIL] Token collection failed: {result.errors}")
++                    
++            except Exception as e:
++                print(f"    [FAIL] Token collection error: {e}")
++                token_collection_results.append({
++                    'item': item,
++                    'success': False,
++                    'error': str(e)
++                })
++        
++        successful_tokens = [r for r in token_collection_results if r['success']]
++        print(f"[OK] Token collection: {len(successful_tokens)}/{len(sample_items)} successful")
++        
++        # Step 3: Test OHLCV collection workflow
++        print(f"\nStep 3: Testing OHLCV collection workflow...")
++        
++        ohlcv_collector = OHLCVCollector(config, db_manager)
++        ohlcv_collection_results = []
++        
++        from datetime import datetime, timedelta
++        end_date = datetime.utcnow()
++        start_date = end_date - timedelta(days=args.days)
++        
++        for result in successful_tokens:
++            item = result['item']
++            pool_address = item.get('poolAddress')
++            
++            if not pool_address:
++                print(f"    [WARN] No pool address for {item.get('tokenSymbol', 'Unknown')}")
++                continue
++            
++            print(f"  Testing OHLCV for: {item.get('tokenSymbol', 'Unknown')}")
++            
++            # Find the correct pool ID in the database (it may have network prefix)
++            pool = None
++            try:
++                # First try with just the address
++                pool = await db_manager.get_pool(pool_address)
++                if not pool:
++                    # Try with network prefix
++                    network_prefixed_id = f"{config.dexes.network}_{pool_address}"
++                    pool = await db_manager.get_pool(network_prefixed_id)
++                
++                if not pool:
++                    print(f"    [FAIL] Pool not found in database: {pool_address}")
++                    ohlcv_collection_results.append({
++                        'item': item,
++                        'pool_id': pool_address,
++                        'success': False,
++                        'records_collected': 0,
++                        'errors': ['Pool not found in database']
++                    })
++                    continue
++                
++                pool_id = pool.id
++                
++            except Exception as e:
++                print(f"    [FAIL] Error finding pool: {e}")
++                ohlcv_collection_results.append({
++                    'item': item,
++                    'pool_id': pool_address,
++                    'success': False,
++                    'records_collected': 0,
++                    'errors': [f'Error finding pool: {e}']
++                })
++                continue
++            
++            try:
++                ohlcv_result = await ohlcv_collector.collect_for_pool(
++                    pool_id=pool_id,
++                    timeframe=args.timeframe
++                )
++                
++                ohlcv_collection_results.append({
++                    'item': item,
++                    'pool_id': pool_id,
++                    'success': ohlcv_result.success,
++                    'records_collected': ohlcv_result.records_collected,
++                    'errors': ohlcv_result.errors
++                })
++                
++                if ohlcv_result.success:
++                    print(f"    [OK] OHLCV collection successful: {ohlcv_result.records_collected} records")
++                else:
++                    print(f"    [FAIL] OHLCV collection failed: {ohlcv_result.errors}")
++                    
++            except Exception as e:
++                print(f"    [FAIL] OHLCV collection error: {e}")
++                ohlcv_collection_results.append({
++                    'item': item,
++                    'pool_id': pool_id,
++                    'success': False,
++                    'error': str(e)
++                })
++        
++        successful_ohlcv = [r for r in ohlcv_collection_results if r['success']]
++        print(f"[OK] OHLCV collection: {len(successful_ohlcv)}/{len(successful_tokens)} successful")
++        
++        # Step 4: Test QLib export workflow
++        print(f"\nStep 4: Testing QLib export workflow...")
++        
++        exporter = QLibExporter(db_manager)
++        export_results = []
++        
++        for result in successful_ohlcv:
++            item = result['item']
++            pool_id = result['pool_id']
++            
++            print(f"  Testing QLib export for: {item.get('tokenSymbol', 'Unknown')}")
++            
++            try:
++                # Get pool and generate symbol
++                pool = await db_manager.get_pool(pool_id)
++                if not pool:
++                    print(f"    [FAIL] Pool not found: {pool_id}")
++                    continue
++                
++                symbol = exporter._generate_symbol_name(pool)
++                
++                # Export data
++                export_result = await exporter.export_symbol_data_with_validation(
++                    symbol=symbol,
++                    start_date=start_date,
++                    end_date=end_date,
++                    timeframe=args.timeframe,
++                    validate_data=True
++                )
++                
++                export_results.append({
++                    'item': item,
++                    'symbol': symbol,
++                    'success': 'error' not in export_result,
++                    'data_records': len(export_result.get('data', pd.DataFrame())),
++                    'validation': export_result.get('validation'),
++                    'metadata': export_result.get('metadata'),
++                    'error': export_result.get('error')
++                })
++                
++                if 'error' not in export_result:
++                    records = len(export_result.get('data', pd.DataFrame()))
++                    print(f"    [OK] QLib export successful: {records} records")
++                else:
++                    print(f"    [FAIL] QLib export failed: {export_result['error']}")
++                    
++            except Exception as e:
++                print(f"    [FAIL] QLib export error: {e}")
++                export_results.append({
++                    'item': item,
++                    'success': False,
++                    'error': str(e)
++                })
++        
++        successful_exports = [r for r in export_results if r['success']]
++        print(f"[OK] QLib export: {len(successful_exports)}/{len(successful_ohlcv)} successful")
++        
++        # Step 5: Generate validation report
++        print(f"\nStep 5: Generating validation report...")
++        
++        validation_report = {
++            'timestamp': datetime.utcnow().isoformat(),
++            'configuration': {
++                'watchlist_file': args.watchlist_file,
++                'timeframe': args.timeframe,
++                'sample_size': args.sample_size,
++                'historical_days': args.days,
++                'use_real_api': args.use_real_api
++            },
++            'results': {
++                'total_items_tested': len(sample_items),
++                'token_collection_success': len(successful_tokens),
++                'ohlcv_collection_success': len(successful_ohlcv),
++                'qlib_export_success': len(successful_exports),
++                'overall_success_rate': len(successful_exports) / len(sample_items) if sample_items else 0
++            },
++            'detailed_results': {
++                'token_collection': token_collection_results,
++                'ohlcv_collection': ohlcv_collection_results,
++                'qlib_export': export_results
++            }
++        }
++        
++        # Save validation report
++        report_path = output_path / "validation_report.json"
++        with open(report_path, 'w', encoding='utf-8') as f:
++            json.dump(validation_report, f, indent=2, default=str)
++        
++        print(f"[OK] Validation report saved: {report_path}")
++        
++        # Generate detailed report if requested
++        if args.detailed_report:
++            detailed_report_path = output_path / "detailed_validation_report.md"
++            await _generate_detailed_validation_report(validation_report, detailed_report_path)
++            print(f"[OK] Detailed report saved: {detailed_report_path}")
++        
++        # Export successful data to QLib format
++        if successful_exports:
++            print(f"\nStep 6: Exporting validated data to QLib format...")
++            
++            symbols = [r['symbol'] for r in successful_exports]
++            final_export = await exporter.export_to_qlib_format(
++                output_dir=output_path / "qlib_data",
++                symbols=symbols,
++                start_date=start_date,
++                end_date=end_date,
++                timeframe=args.timeframe
++            )
++            
++            if final_export['success']:
++                print(f"[OK] Final QLib export completed")
++                print(f"  Files created: {final_export['files_created']}")
++                print(f"  Total records: {final_export['total_records']}")
++            else:
++                print(f"[FAIL] Final QLib export failed: {final_export['message']}")
++        
++        # Summary
++        print(f"\n" + "=" * 60)
++        print("WORKFLOW VALIDATION SUMMARY")
++        print("=" * 60)
++        print(f"Total items tested: {len(sample_items)}")
++        print(f"Token collection success: {len(successful_tokens)}/{len(sample_items)} ({len(successful_tokens)/len(sample_items)*100:.1f}%)")
++        
++        ohlcv_pct = (len(successful_ohlcv)/len(successful_tokens)*100) if successful_tokens else 0
++        print(f"OHLCV collection success: {len(successful_ohlcv)}/{len(successful_tokens)} ({ohlcv_pct:.1f}% of successful tokens)")
++        
++        export_pct = (len(successful_exports)/len(successful_ohlcv)*100) if successful_ohlcv else 0
++        print(f"QLib export success: {len(successful_exports)}/{len(successful_ohlcv)} ({export_pct:.1f}% of successful OHLCV)")
++        
++        print(f"Overall success rate: {len(successful_exports)}/{len(sample_items)} ({len(successful_exports)/len(sample_items)*100:.1f}%)")
++        
++        success_threshold = 0.8  # 80% success rate threshold
++        overall_success = (len(successful_exports) / len(sample_items)) >= success_threshold
++        
++        if overall_success:
++            print(f"\n[PASS] WORKFLOW VALIDATION PASSED")
++            print(f"The watchlist-to-QLib workflow is functioning correctly.")
++        else:
++            print(f"\n[FAIL] WORKFLOW VALIDATION FAILED")
++            print(f"Success rate below threshold ({success_threshold*100:.0f}%)")
++        
++        print(f"\nResults saved to: {args.output}")
++        
++        await db_manager.close()
++        return 0 if overall_success else 1
++        
++    except Exception as e:
++        print(f"Error validating workflow: {e}")
++        if args.verbose:
++            import traceback
++            traceback.print_exc()
++        return 1
++
++
++
+ async def _generate_detailed_validation_report(validation_report: Dict[str, Any], output_path: Path):
+     """Generate detailed markdown validation report."""
+     
+diff --git a/gecko_terminal_collector/collectors/trade_collector.py b/gecko_terminal_collector/collectors/trade_collector.py
+index f4fc3bb..8365bd2 100644
+--- a/gecko_terminal_collector/collectors/trade_collector.py
++++ b/gecko_terminal_collector/collectors/trade_collector.py
+@@ -107,8 +107,16 @@ async def collect(self) -> CollectionResult:
+             rotated_pools = await self.implement_fair_rotation(watchlist_pools)
+             logger.info(f"Fair rotation selected {len(rotated_pools)} pools for collection")
+             
++            # handle prefix scenario with pool_addresses
++            processed_pool_addresses = []
++
++            for pool in rotated_pools:
++                prefix, _, _ = pool.partition('_')
++                lookup_prefix = prefix + '_'
++                processed_pool_addresses.append(pool.removeprefix(lookup_prefix))  
++            
+             # Collect trade data for each pool
+-            for pool_id in rotated_pools:
++            for pool_id in processed_pool_addresses:
+                 try:
+                     pool_records = await self._collect_pool_trade_data(pool_id)
+                     records_collected += pool_records
+@@ -192,9 +200,16 @@ async def _collect_pool_trade_data(self, pool_id: str) -> int:
+                 pool_address=pool_id,
+                 trade_volume_filter=self.min_trade_volume_usd
+             )
+-            
++
++            print("-_collect_pool_trade_data_--")
++            #print(response)
++            #print("---")
++
++            response_to_dict = {"data": response.to_dict(orient='records')}
++            print(vars(response))
++
+             # Parse and validate trade data
+-            trade_records = self._parse_trade_response(response, pool_id)
++            trade_records = self._parse_trade_response(response_to_dict, pool_id)
+             
+             if trade_records:
+                 # Filter trades by volume threshold
+@@ -242,6 +257,8 @@ def _parse_trade_response(self, response: Dict, pool_id: str) -> List[TradeRecor
+         """
+         records = []
+         
++        print("-_parse_trade_response--")
++        
+         try:
+             data = response.get("data", [])
+             
+@@ -279,19 +296,16 @@ def _parse_trade_entry(self, trade_data: Dict, pool_id: str) -> Optional[TradeRe
+             trade_id = trade_data.get("id")
+             if not trade_id:
+                 logger.warning(f"Trade missing ID for pool {pool_id}")
+-                return None
+-            
+-            # Extract attributes
+-            attributes = trade_data.get("attributes", {})
+-            
++                return None            
++
+             # Extract required fields
+-            block_number = attributes.get("block_number")
+-            tx_hash = attributes.get("tx_hash")
+-            tx_from_address = attributes.get("tx_from_address")
+-            from_token_amount = attributes.get("from_token_amount")
+-            to_token_amount = attributes.get("to_token_amount")
+-            block_timestamp = attributes.get("block_timestamp")
+-            side = attributes.get("kind", attributes.get("side", "buy"))
++            block_number = trade_data.get("block_number")
++            tx_hash = trade_data.get("tx_hash")
++            tx_from_address = trade_data.get("tx_from_address")
++            from_token_amount = trade_data.get("from_token_amount")
++            to_token_amount = trade_data.get("to_token_amount")
++            block_timestamp = trade_data.get("block_timestamp")
++            side = trade_data.get("kind", trade_data.get("side", "buy"))
+             
+             # Parse numeric values
+             try:
+@@ -299,8 +313,8 @@ def _parse_trade_entry(self, trade_data: Dict, pool_id: str) -> Optional[TradeRe
+                 to_token_amount = Decimal(str(to_token_amount)) if to_token_amount else Decimal('0')
+                 
+                 # Calculate price and volume from available data
+-                price_usd = self._extract_price_usd(attributes)
+-                volume_usd = self._calculate_volume_usd(attributes, from_token_amount, to_token_amount, price_usd)
++                price_usd = self._extract_price_usd(trade_data)
++                volume_usd = self._calculate_volume_usd(trade_data, from_token_amount, to_token_amount, price_usd)
+                 
+             except (ValueError, TypeError, InvalidOperation) as e:
+                 logger.warning(f"Error parsing numeric values for trade {trade_id}: {e}")
+@@ -342,6 +356,7 @@ def _parse_trade_entry(self, trade_data: Dict, pool_id: str) -> Optional[TradeRe
+                 pool_id=pool_id,
+                 block_number=int(block_number),
+                 tx_hash=tx_hash,
++                tx_from_address=tx_from_address,
+                 from_token_amount=from_token_amount,
+                 to_token_amount=to_token_amount,
+                 price_usd=price_usd,
+diff --git a/gecko_terminal_collector/collectors/watchlist_collector.py b/gecko_terminal_collector/collectors/watchlist_collector.py
+index 5036a32..31cb310 100644
+--- a/gecko_terminal_collector/collectors/watchlist_collector.py
++++ b/gecko_terminal_collector/collectors/watchlist_collector.py
+@@ -48,6 +48,10 @@ def __init__(
+         """
+         super().__init__(config, db_manager, metadata_tracker, use_mock)
+         
++        print("---")
++        print("- init collector - ")
++        print("---")
++
+         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
+         self.batch_size = getattr(config.watchlist, 'batch_size', 20)  # Max addresses per API call
+         
+@@ -70,6 +74,10 @@ async def collect(self) -> CollectionResult:
+             # Get active watchlist entries
+             logger.info("Retrieving active watchlist entries")
+             watchlist_entries = await self._get_active_watchlist_entries()
++
++            print("---")
++            print("watchlist_entries: ", watchlist_entries)
++            print("---")
+             
+             if not watchlist_entries:
+                 logger.info("No active watchlist entries found")
+@@ -249,12 +257,26 @@ async def _get_active_watchlist_entries(self) -> List[WatchlistEntry]:
+         """
+         try:
+             # Get active watchlist pool IDs
++            
++            print("---")
++            print("- stub out first record? -")
++            print("---")
++
+             pool_ids = await self.db_manager.get_watchlist_pools()
++
++            print("---")
++            print(pool_ids)
++            print("---")
+             
+             # Get full watchlist entries
+             watchlist_entries = []
+             for pool_id in pool_ids:
+                 entry = await self.db_manager.get_watchlist_entry_by_pool_id(pool_id)
++                
++                print("-db_manager entry--")
++                print(entry)
++                print("---")
++                
+                 if entry and entry.is_active:
+                     watchlist_entries.append(entry)
+             
+@@ -279,10 +301,22 @@ async def _collect_pool_data_batch(self, watchlist_entries: List[WatchlistEntry]
+         try:
+             # Extract pool addresses for batch collection
+             pool_addresses = [entry.pool_id for entry in watchlist_entries]
++
++            print("-_collect_pool_data_batch--")
++            print(pool_addresses)
++            print("---")            
++            
++            # handle prefix scenario with pool_addresses
++            processed_pool_addresses = []
++
++            for pool in pool_addresses:
++                prefix, _, _ = pool.partition('_')
++                lookup_prefix = prefix + '_'
++                processed_pool_addresses.append(pool.removeprefix(lookup_prefix))            
+             
+             # Process in batches to respect API limits
+-            for i in range(0, len(pool_addresses), self.batch_size):
+-                batch_addresses = pool_addresses[i:i + self.batch_size]
++            for i in range(0, len(processed_pool_addresses), self.batch_size):
++                batch_addresses = processed_pool_addresses[i:i + self.batch_size]
+                 
+                 logger.info(f"Collecting pool data for batch {i//self.batch_size + 1}: {len(batch_addresses)} pools")
+                 
+@@ -365,18 +399,34 @@ async def _collect_token_data_individual(self, watchlist_entries: List[Watchlist
+             if entry.network_address:
+                 network_addresses.add(entry.network_address)
+         
++        print("-_collect_token_data_individual--")
++        print(network_addresses)
++        print("---")
++
+         for network_address in network_addresses:
+             try:
+                 logger.debug(f"Collecting token data for network address {network_address}")
+                 
+-                response = await self.client.get_token_info(
++                # get_specific_token_on_network
++                response = await self.client.get_specific_token_on_network(
+                     self.network, 
+                     network_address
+                 )
++
++                wrapped_response = {"data": response}
++
++                print("--response--")
++                print(wrapped_response)
++                print("---")
+                 
+                 # Process token response
+-                if response.get("data"):
+-                    token = self._parse_token_response(response)
++                if wrapped_response.get("data"):
++                    token = self._parse_token_response(wrapped_response)
++
++                    print("-_parse_token_response--")
++                    print(token)
++                    print("---")
++
+                     if token:
+                         stored_count = await self.db_manager.store_tokens([token])
+                         records_collected += stored_count
+@@ -403,9 +453,13 @@ async def _update_watchlist_relationships(self, watchlist_entries: List[Watchlis
+                     logger.warning(f"Pool {entry.pool_id} not found in database for watchlist entry")
+                     continue
+                 
++                print("---")
++                print(vars(entry))
++                print("---")
++
+                 # Verify token exists if network address is provided
+                 if entry.network_address:
+-                    token = await self.db_manager.get_token(entry.network_address)
++                    token = await self.db_manager.get_token(entry.pool_id, entry.network_address)
+                     if not token:
+                         logger.warning(f"Token {entry.network_address} not found in database for watchlist entry")
+                 
+diff --git a/gecko_terminal_collector/collectors/watchlist_monitor.py b/gecko_terminal_collector/collectors/watchlist_monitor.py
+index f559786..f5ac63f 100644
+--- a/gecko_terminal_collector/collectors/watchlist_monitor.py
++++ b/gecko_terminal_collector/collectors/watchlist_monitor.py
+@@ -81,6 +81,10 @@ def __init__(
+         """
+         super().__init__(config, db_manager, metadata_tracker, use_mock)
+         
++        print("---")
++        print("- init watchlist monitor-")
++        print("---")
++
+         self.watchlist_file_path = Path(config.watchlist.file_path)
+         self.auto_add_new_tokens = config.watchlist.auto_add_new_tokens
+         
+@@ -242,6 +246,8 @@ async def _process_new_records(self, new_records: List[WatchlistRecord]) -> int:
+             Number of records successfully processed
+         """
+         processed_count = 0
++
++        print("called _process_new_records")
+         
+         if not self.auto_add_new_tokens:
+             logger.info("Auto-add new tokens is disabled. New records will not be added automatically.")
+diff --git a/gecko_terminal_collector/database/manager.py b/gecko_terminal_collector/database/manager.py
+index a73817e..7e4a53f 100644
+--- a/gecko_terminal_collector/database/manager.py
++++ b/gecko_terminal_collector/database/manager.py
+@@ -69,8 +69,8 @@ async def store_tokens(self, tokens: List[Token]) -> int:
+         pass
+     
+     @abstractmethod
+-    async def get_token(self, token_id: str) -> Optional[Token]:
+-        """Get a token by ID."""
++    async def get_token(self, pool_id: str, token_id: str) -> Optional[Token]:
++        """Get a token by ID."""        
+         pass
+     
+     # OHLCV operations
+@@ -150,7 +150,7 @@ async def add_watchlist_entry(self, entry: Any) -> None:
+     
+     @abstractmethod
+     async def get_watchlist_entry_by_pool_id(self, pool_id: str) -> Optional[Any]:
+-        """Get a watchlist entry by pool ID."""
++        """Get a watchlist entry by pool ID."""        
+         pass
+     
+     @abstractmethod
+diff --git a/gecko_terminal_collector/database/sqlalchemy_manager.py b/gecko_terminal_collector/database/sqlalchemy_manager.py
+index 8e8fe40..3ff92be 100644
+--- a/gecko_terminal_collector/database/sqlalchemy_manager.py
++++ b/gecko_terminal_collector/database/sqlalchemy_manager.py
+@@ -7,6 +7,7 @@
+ from typing import Dict, List, Optional, Any
+ 
+ from sqlalchemy import and_, desc, func, or_, select
++from sqlalchemy import Column, DateTime, func
+ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+ from sqlalchemy.exc import IntegrityError
+ from sqlalchemy.orm import Session
+@@ -171,8 +172,23 @@ async def store_tokens(self, tokens: List[Token]) -> int:
+         
+         with self.connection.get_session() as session:
+             try:
++                
++                # apply token_id fix?
++                print("-store_tokens--")
++                print(datetime.utcnow())
++                print("---")
++                
+                 for token in tokens:
++                    print("-token_id--")
++                    print(token.id)
++                    print("---")
++
+                     existing_token = session.query(TokenModel).filter_by(id=token.id).first()
++
++                    print("---")
++                    print("existing_token: ", vars(existing_token))
++                    print("---")
++
+                     if existing_token:
+                         # Update existing token
+                         existing_token.address = token.address
+@@ -181,6 +197,12 @@ async def store_tokens(self, tokens: List[Token]) -> int:
+                         existing_token.decimals = token.decimals
+                         existing_token.network = token.network
+                         existing_token.last_updated = datetime.utcnow()
++
++                        print("---")
++                        print("updated_token: ", vars(existing_token))
++                        print("---")
++                        # actually perform query?
++
+                     else:
+                         # Create new token
+                         new_token = TokenModel(
+@@ -204,10 +226,21 @@ async def store_tokens(self, tokens: List[Token]) -> int:
+         
+         return stored_count
+     
+-    async def get_token(self, token_id: str) -> Optional[Token]:
++    async def get_token(self, pool_id: str, token_id: str) -> Optional[Token]:
+         """Get a token by ID."""
++
++        #print("-retreiving token by token_id: ", token_id) # missing network identifier
++        #print("-pool_id: ", pool_id)
++
++        prefix, _, _ = pool_id.partition('_')
++        lookup_id = prefix + '_' + token_id
++
+         with self.connection.get_session() as session:
+-            token_model = session.query(TokenModel).filter_by(id=token_id).first()
++            token_model = session.query(TokenModel).filter_by(id=lookup_id).first()
++            
++            #print("--retrieved token_model: ")
++            #print(vars(token_model))
++
+             if token_model:
+                 return Token(
+                     id=token_model.id,
+@@ -564,19 +597,95 @@ async def store_trade_data(self, data: List[TradeRecord]) -> int:
+         
+         stored_count = 0
+         duplicate_count = 0
+-        
++
++        print("-store_trade_data--")
++
+         with self.connection.get_session() as session:
+             try:
+                 # Validate and deduplicate input data
+                 validated_data = []
+                 seen_ids = set()
++
++                # optimized method
++                
++                
++                ids_to_check = []                
++
++                #existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
++                #existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
+                 
+                 for record in data:
++                    ids_to_check.append(record.id)
++                
++                existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
++                existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
++                non_existent_ids = [id_val for id_val in ids_to_check if id_val not in existing_ids_set]
++
++                unique_records = []
++                for record in data:
++                    if record.id in non_existent_ids:
++                        unique_records.append(record)
++                
++                print("-unique_records:")
++                for record in unique_records:
++                    print(record.id)
++                    
++                    # Validate trade data
++                    validation_errors = self._validate_trade_record(record)
++                    if validation_errors:
++                        logger.warning(f"Skipping invalid trade record {record.id}: {validation_errors}")
++                        continue
++                    
++                    # append network prefix to record.pool_id -- this fun pattern is everywhere!
++                    prefix, _, _ = record.id.partition('_')                    
++                    pool_id_with_prefix = prefix + '_' + record.pool_id
++
++                    #print("---")
++                    #print(pool_id_with_prefix)
++                    #print("---")
++
++                    new_trade = TradeModel(
++                                id=record.id,
++                                pool_id=pool_id_with_prefix,
++                                block_number=record.block_number,
++                                tx_hash=record.tx_hash,
++                                tx_from_address=record.tx_from_address,
++                                from_token_amount=record.from_token_amount,
++                                to_token_amount=record.to_token_amount,
++                                price_usd=record.price_usd,
++                                volume_usd=record.volume_usd,
++                                side=record.side,
++                                block_timestamp=record.block_timestamp,
++                            )
++
++                    validated_data.append(new_trade)
++
++                stored_count = len(validated_data) #non_existent_ids
++                duplicate_count = len(existing_ids) #existing_ids
++
++                session.bulk_save_objects(validated_data)
++
++                """ try:                    
++                    session.bulk_save_objects(validated_data)
++                
++                except IntegrityError as e:
++                    # Handle race condition where record was inserted between check and insert
++                    print("Integrity Error: ")
++                    print(e)
++                    session.rollback() # this is causing none of the records to be written """                    
++
++                # records_to_insert.append(new_trade)
++                # session.bulk_save_objects(unique_records)
++
++                # seen_ids.add(record.id) # this is being called when a race condition is met, causing the record to not insert at all
++
++                """ 
++                for record in data:                    
+                     # Skip duplicates within the batch
+                     if record.id in seen_ids:
+                         duplicate_count += 1
+                         continue
+-                    seen_ids.add(record.id)
++                    seen_ids.add(record.id) # this is being called when a race condition is met, causing the record to not insert at all
+                     
+                     # Validate trade data
+                     validation_errors = self._validate_trade_record(record)
+@@ -587,10 +696,14 @@ async def store_trade_data(self, data: List[TradeRecord]) -> int:
+                     validated_data.append(record)
+                 
+                 # Batch insert with duplicate handling
++                records_to_insert = []
+                 for record in validated_data:
+                     try:
+                         # Check if trade already exists
++                        
++                        # causing issues by overloading SQLite
+                         existing_trade = session.query(TradeModel).filter_by(id=record.id).first()
++                        
+                         if not existing_trade:
+                             new_trade = TradeModel(
+                                 id=record.id,
+@@ -605,17 +718,21 @@ async def store_trade_data(self, data: List[TradeRecord]) -> int:
+                                 side=record.side,
+                                 block_timestamp=record.block_timestamp,
+                             )
+-                            session.add(new_trade)
++                            records_to_insert.append(new_trade)
++                            #session.add(new_trade)
+                             stored_count += 1
+                         else:
+                             duplicate_count += 1
+                     
+                     except IntegrityError:
+                         # Handle race condition where record was inserted between check and insert
++                        print("--- race condition ---")
+                         duplicate_count += 1
+-                        session.rollback()
++                        session.rollback() # this is causing none of the records to be written
+                         continue
+                 
++                session.bulk_save_objects(records_to_insert) """
++
+                 session.commit()
+                 logger.info(f"Stored {stored_count} new trade records, skipped {duplicate_count} duplicates")
+                 
+@@ -689,6 +806,7 @@ async def get_trade_data(
+                     pool_id=record_model.pool_id,
+                     block_number=record_model.block_number,
+                     tx_hash=record_model.tx_hash,
++                    tx_from_address=record_model.tx_from_address,
+                     from_token_amount=record_model.from_token_amount,
+                     to_token_amount=record_model.to_token_amount,
+                     price_usd=record_model.price_usd,
+diff --git a/gecko_terminal_collector/models/core.py b/gecko_terminal_collector/models/core.py
+index 8bd19b2..34e5b9e 100644
+--- a/gecko_terminal_collector/models/core.py
++++ b/gecko_terminal_collector/models/core.py
+@@ -54,6 +54,7 @@ class TradeRecord:
+     pool_id: str
+     block_number: int
+     tx_hash: str
++    tx_from_address: str
+     from_token_amount: Decimal
+     to_token_amount: Decimal
+     price_usd: Decimal
+diff --git a/tests/test_integration_suite.py b/tests/test_integration_suite.py
+index e675036..0b110af 100644
+--- a/tests/test_integration_suite.py
++++ b/tests/test_integration_suite.py
+@@ -115,6 +115,8 @@ async def test_complete_dex_monitoring_workflow(self, integration_config, integr
+                 metadata_tracker=metadata_tracker,
+                 use_mock=True
+             )
++
++            print(integration_config)
+             
+             # Replace the mock client with our fixture-based one
+             set_collector_client(collector, mock_client_with_fixtures)
+diff --git a/tests/test_watchlist_monitor.py b/tests/test_watchlist_monitor.py
+index de9b6ca..0f827db 100644
+--- a/tests/test_watchlist_monitor.py
++++ b/tests/test_watchlist_monitor.py
+@@ -197,10 +197,16 @@ async def test_parse_watchlist_csv(self, watchlist_monitor, sample_csv_content):
+             temp_file.close()  # Close file handle to avoid Windows permission issues
+             
+             # Update config to point to temp file
+-            watchlist_monitor.watchlist_file_path = Path(temp_file.name)
++            #watchlist_monitor.watchlist_file_path = Path(temp_file.name)
++            watchlist_monitor.watchlist_file_path = Path("/Projects/geckoterminal_collector/specs/watchlist_test.csv")
++
++            print("temp_file name: ", watchlist_monitor.watchlist_file_path)
++            #print(watchlist_monitor.watchlist_file_path)
+             
+             try:
+                 records = await watchlist_monitor._parse_watchlist_csv()
++
++                print("watchlist_records: ", records)
+                 
+                 assert len(records) == 2
+                 
+@@ -414,11 +420,13 @@ async def test_full_collection_workflow(self, watchlist_monitor, mock_db_manager
+             
+             # Mock database responses
+             mock_db_manager.get_watchlist_entry_by_pool_id.return_value = None
+-            mock_db_manager.add_watchlist_entry = AsyncMock()
++            mock_db_manager.add_watchlist_entry = AsyncMock()            
+             
+             try:
+                 # Execute collection
+                 result = await watchlist_monitor.collect()
++                print("-result-")
++                print(result)
+                 
+                 # Verify results
+                 assert result.success

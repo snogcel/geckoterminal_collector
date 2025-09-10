@@ -1,0 +1,105 @@
+From 68725ca73e666d6d03ff1045d4f69d621fe7988d Mon Sep 17 00:00:00 2001
+From: Jon Kindel <ledniknoj@gmail.com>
+Date: Tue, 9 Sep 2025 19:15:45 -0600
+Subject: [PATCH] Fix test_dex_monitoring_collector.py
+
+---
+ .../clients/gecko_client.py                   |  8 +++++-
+ .../collectors/dex_monitoring.py              | 25 ++++++++++++++++---
+ tests/test_dex_monitoring_collector.py        |  6 +++++
+ 3 files changed, 34 insertions(+), 5 deletions(-)
+
+diff --git a/gecko_terminal_collector/clients/gecko_client.py b/gecko_terminal_collector/clients/gecko_client.py
+index acab9dd..cf0e590 100644
+--- a/gecko_terminal_collector/clients/gecko_client.py
++++ b/gecko_terminal_collector/clients/gecko_client.py
+@@ -349,9 +349,15 @@ def _load_fixtures(self):
+         
+         # Load DEX data
+         dex_file = self.fixtures_path / "get_dexes_by_network.csv"
++
+         if dex_file.exists():
+             self.fixtures["dexes"] = self._load_csv(dex_file)
+-        
++
++        print("-MockGeckoTerminalClient--")
++        print(self.fixtures["dexes"])
++        print("---")
++
++
+         # Load pool data
+         heaven_pools = self.fixtures_path / "get_top_pools_by_network_dex_heaven.csv"
+         if heaven_pools.exists():
+diff --git a/gecko_terminal_collector/collectors/dex_monitoring.py b/gecko_terminal_collector/collectors/dex_monitoring.py
+index 5a2be7a..8c9d3ec 100644
+--- a/gecko_terminal_collector/collectors/dex_monitoring.py
++++ b/gecko_terminal_collector/collectors/dex_monitoring.py
+@@ -74,11 +74,24 @@ async def collect(self) -> CollectionResult:
+                 logger.warning(error_msg)
+                 return self.create_failure_result(errors, records_collected, start_time)
+             
++            print("-_DEXMonitoringCollector--")
++            print(type(dex_data))
++            print("---")
++
++
++
++            
++            
++            #raise SystemExit()
++
+             # Transform to dict
+-            response_to_dict = dex_data.to_dict(orient='records')
++
++
++            # response_to_dict = dex_data.to_dict(orient='records')
++            # response_to_dict = dex_data.fromkeys()
+ 
+             # Validate the data
+-            validation_result = await self.validate_data(response_to_dict)
++            validation_result = await self.validate_data(dex_data)
+             if not validation_result.is_valid:
+                 errors.extend(validation_result.errors)
+                 logger.error(f"DEX data validation failed: {validation_result.errors}")
+@@ -90,7 +103,7 @@ async def collect(self) -> CollectionResult:
+                     logger.warning(f"DEX data validation warning: {warning}")
+             
+             # Process and store DEX data
+-            dex_records = self._process_dex_data(response_to_dict)
++            dex_records = self._process_dex_data(dex_data)
+             stored_count = await self._store_dex_data(dex_records)
+             records_collected = stored_count
+             
+@@ -155,10 +168,14 @@ async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]
+             elif dex["type"] != "dex":
+                 warnings.append(f"DEX entry {i} has unexpected type: {dex['type']}")
+             
++            print("-_validate_specific_data--")
++            print(dex["attributes"])
++            print("---")
++
+             # Check attributes            
+             if not isinstance(dex, dict):
+                 errors.append(f"DEX entry {i} attributes must be a dictionary")
+-            elif "name" not in dex:
++            elif "name" not in dex["attributes"]:
+                 errors.append(f"DEX entry {i} missing required 'name' in attributes")
+         
+         return ValidationResult(len(errors) == 0, errors, warnings)
+diff --git a/tests/test_dex_monitoring_collector.py b/tests/test_dex_monitoring_collector.py
+index b6a79c3..ff7dc1b 100644
+--- a/tests/test_dex_monitoring_collector.py
++++ b/tests/test_dex_monitoring_collector.py
+@@ -119,6 +119,12 @@ async def test_collect_success(self, dex_collector, sample_dex_data):
+         
+         result = await dex_collector.collect()
+         
++        #result_to_dict = result.to_dict(orient='records')
++
++        print("-_test_collect_success--")
++        print(result)
++        print("---")
++
+         assert result.success is True
+         assert result.records_collected == 2  # Mock db_manager returns 2
+         assert len(result.errors) == 0

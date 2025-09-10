@@ -1,0 +1,22 @@
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for DNeC4WPqdjcptsx39nfM4bkpQ1zeccAD4XLpPBP1pump: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/tokens/DNeC4WPqdjcptsx39nfM4bkpQ1zeccAD4XLpPBP1pump'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for B8RHrVBxSjBGKqAbn1tXo6CWjvt5jFkkqjbCZtuDpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for CB9dDufT3ZuQXqqSfa1c5kY935TEreyBw9XJXxHKpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for AQPmF5Jneiu98bvVFtwXC5rP76oBMk4LZM3ThMELpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for WYHYGzvnz5xWs3DzjasXucDppQmA8W5QVnpk38sd8pp: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,288 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for 59hC1boN4Sk5WxKpqtspLoG12RMt4AGddVZxZ8Papump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for 9tbJGeXNHsLEkncTRSUF7Cn2k6Meji5wvz4jpagmpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for G4Z2UAJMZ3L3drtKLcGRG5LzyF7MySzn8NTW94nSTART: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for 61GdmiWzAAmj35kaxQjtzZTvxVtmbTFTxAACDyHth8a6: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for Dz9mQ9NzkBcCsuGPFJ3r1bS4wgqKMHBPiVuniW8Mbonk: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for FyrBf5xKg5EwKZ9pHvSpJeLLuCWBicTpm3VvZcsibonk: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for 2LsescRjhcxoUwEQLpcsd3Gh6AHUyqEHANDakkoSpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,289 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for GNHW5JetZmW85vAU35KyoDcYoSd3sNWtx5RPMTDJpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,290 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for GBUxQFRXQjSPjkxymAUKPfbUbSpRY8Ui7az1HCxtpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,290 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for FBz2tNoqQ9xenq3qeCByDVoMh1BsZcY1itLf5vobpump: Circuit breaker is open - too many recent failures
+2025-09-10 06:10:59,290 - gecko_terminal_collector.collectors.watchlist_collector - WARNING - Token collection failed for Cph1zxsCUz18v6aa2hiUYwfVkSV7BSFHmCaJLqQspump: Circuit breaker is open - too many recent failures
+---
+{'_sa_instance_state': <sqlalchemy.orm.state.InstanceState object at 0x000001BA65980770>, 'id': 1, 'token_name': 'Cracker Barrel', 'added_at': datetime.datetime(2025, 9, 4, 7, 0, tzinfo=datetime.timezone.utc), 'pool_id': 'solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', 'token_symbol': 'CBRL', 'network_address': '5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump', 'is_active': True}
+---
+---
+{'_sa_instance_state': <sqlalchemy.orm.state.InstanceState object at 0x000001BA659813D0>, 'id': 2, 'token_name': 'OVERTHINKING', 'added_at': datetime.datetime(2025, 9, 5, 11, 0, tzinfo=datetime.timezone.utc), 'pool_id': 'solana_H59JH47VjoYMsBpgWhXodpEw5iJbjjT6i3hANLkHfUTn', 'token_symbol': 'OVERTHINK', 'network_address': 'BZJwxWB1YMsY5whCnGsVVyfvv3mkvqUrDckz3cGtR9MB', 'is_active': True}

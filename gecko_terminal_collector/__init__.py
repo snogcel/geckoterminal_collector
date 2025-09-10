@@ -10,7 +10,10 @@ __author__ = "GeckoTerminal Collector Team"
 
 # Import main components
 from .qlib import QLibExporter
+from .utils.enhanced_rate_limiter import EnhancedRateLimiter, GlobalRateLimitCoordinator
 
 __all__ = [
-    'QLibExporter'
+    'QLibExporter',
+    'EnhancedRateLimiter',
+    'GlobalRateLimitCoordinator'
 ]
