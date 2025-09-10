@@ -186,7 +186,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     existing_token = session.query(TokenModel).filter_by(id=token.id).first()
 
                     print("---")
-                    print("existing_token: ", vars(existing_token))
+                    print("existing_token: ", vars(existing_token) if existing_token else None)
                     print("---")
 
                     if existing_token:
