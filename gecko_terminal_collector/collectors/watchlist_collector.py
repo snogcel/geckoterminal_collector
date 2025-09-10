@@ -17,6 +17,7 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.database.models import WatchlistEntry
 from gecko_terminal_collector.models.core import CollectionResult, Pool, Token, ValidationResult
 from gecko_terminal_collector.utils.metadata import MetadataTracker
+from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
 
 logger = logging.getLogger(__name__)
 
@@ -141,8 +142,14 @@ class WatchlistCollector(BaseDataCollector):
                     
                     # Handle DataFrame response from geckoterminal-py SDK
                     if hasattr(response, 'empty') and not response.empty:
-                        # Convert DataFrame to dict format for parsing
-                        pool_data = response.iloc[0].to_dict() if len(response) > 0 else None
+                        # Normalize DataFrame to consistent format
+                        try:
+                            normalized_data = DataTypeNormalizer.normalize_response_data(response)
+                            pool_data = normalized_data[0] if len(normalized_data) > 0 else None
+                        except ValueError as e:
+                            logger.error(f"Failed to normalize pool data for {pool_address}: {e}")
+                            pool_data = None
+                        
                         if pool_data:
                             pool = self._parse_pool_data_from_dataframe(pool_data)
                             if pool:

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from ..models.core import CollectionResult, ValidationResult, Pool
 from ..config.models import CollectionConfig
 from ..database.manager import DatabaseManager
+from ..utils.data_normalizer import DataTypeNormalizer
 from .base import BaseDataCollector
 
 logger = logging.getLogger(__name__)
@@ -81,21 +82,20 @@ class TopPoolsCollector(BaseDataCollector):
                         logger.warning(error_msg)
                         continue
 
-                    # Transform to dict 
-                    ## TODO -- it is expecting a list, adjust override function to check for list instead of dict
+                    logger.debug(f"Received pools data of type: {type(pools_data)} for DEX: {dex_id}")
+                    
+                    # Normalize data to consistent List[Dict] format
+                    try:
+                        normalized_data = DataTypeNormalizer.normalize_response_data(pools_data)
+                        logger.debug(f"Normalized pools data to list with {len(normalized_data)} items for DEX: {dex_id}")
+                    except ValueError as e:
+                        error_msg = f"Failed to normalize pools data for DEX {dex_id}: {str(e)}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
+                        continue
 
-                    print("-TopPoolsCollector (api response)--")
-                    print(pools_data)
-                    print("---")
-
-                    response_to_list = pools_data.to_dict('records')
-
-                    print("-TopPoolsCollector--")
-                    #print(response_to_list)
-                    print("---")
-
-                    # Validate the data
-                    validation_result = await self.validate_data(response_to_list)
+                    # Validate the normalized data
+                    validation_result = await self.validate_data(normalized_data)
                     if not validation_result.is_valid:
                         errors.extend([f"DEX {dex_id}: {error}" for error in validation_result.errors])
                         logger.error(f"Pools data validation failed for {dex_id}: {validation_result.errors}")
@@ -107,7 +107,7 @@ class TopPoolsCollector(BaseDataCollector):
                             logger.warning(f"DEX {dex_id} pools data validation warning: {warning}")
                     
                     # Process and store pools data
-                    pool_records = self._process_pools_data(response_to_list, dex_id)
+                    pool_records = self._process_pools_data(normalized_data, dex_id)
                     stored_count = await self._store_pools_data(pool_records)
                     total_records_collected += stored_count
                     
@@ -138,7 +138,7 @@ class TopPoolsCollector(BaseDataCollector):
     
     async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]:
         """
-        Validate top pools specific data structure.
+        Validate top pools specific data structure using DataTypeNormalizer.
         
         Args:
             data: Pools data to validate
@@ -146,80 +146,10 @@ class TopPoolsCollector(BaseDataCollector):
         Returns:
             ValidationResult with validation status and any errors/warnings
         """
-        errors = []
-        warnings = []
-
-        print("-_validate_specific_data--")
-        print(data)
-        print("---")
-        
-        if not isinstance(data, list):
-            errors.append("Pools data must be a list")
-            return ValidationResult(False, errors, warnings)
-        
-        # Check for data field
-        # if "data" not in data:
-        #     # If no data field, treat as empty data (valid but with warning)
-        #     warnings.append("No pools found in response")
-        #     return ValidationResult(True, errors, warnings)
-        
-        # wrap back into list
-        print("-_validate_specific_data--")
-        print(data)
-        print("---")
-
-        pools_list = data
-        if not isinstance(pools_list, list):
-            errors.append("Pools data must contain a 'data' field with a list")
-            return ValidationResult(False, errors, warnings)
-        
-        if len(pools_list) == 0:
-            warnings.append("No pools found in response")
-            return ValidationResult(True, errors, warnings)
-        
-        # Validate each pool entry
-        for i, pool in enumerate(pools_list):
-            if not isinstance(pool, dict):
-                errors.append(f"Pool entry {i} must be a dictionary")
-                continue
-            
-            # Check required fields
-            if "id" not in pool:
-                errors.append(f"Pool entry {i} missing required 'id' field")
-            
-            if "type" not in pool:
-                errors.append(f"Pool entry {i} missing required 'type' field")
-            elif pool["type"] != "pool":
-                warnings.append(f"Pool entry {i} has unexpected type: {pool['type']}")
-            
-            # Check attributes            
-            if not isinstance(pool, dict):
-                errors.append(f"Pool entry {i} attributes must be a dictionary")
-            else:
-                # Check required attributes
-                required_attrs = ["name", "address"]
-                for attr in required_attrs:
-                    if attr not in pool:
-                        errors.append(f"Pool entry {i} missing required attribute: {attr}")
-            
-            # Check relationships            
-            if not isinstance(pool, dict):
-                warnings.append(f"Pool entry {i} missing relationships data")
-            else:
-                # Check for DEX relationship
-                if "dex_id" not in pool:
-                    warnings.append(f"Pool entry {i} missing DEX relationship")
-                
-                # Check for token relationships
-                if "base_token_id" not in pool:
-                    warnings.append(f"Pool entry {i} missing base_token relationship")
-                
-                if "quote_token_id" not in pool:
-                    warnings.append(f"Pool entry {i} missing quote_token relationship")
-        
-        return ValidationResult(len(errors) == 0, errors, warnings)
+        # Use DataTypeNormalizer for consistent validation
+        return DataTypeNormalizer.validate_expected_structure(data, "top_pools")
     
-    def _process_pools_data(self, pools_data: Dict[str, Any], dex_id: str) -> List[Pool]:
+    def _process_pools_data(self, pools_data: List[Dict[str, Any]], dex_id: str) -> List[Pool]:
         """
         Process raw pools data into database model objects.
         

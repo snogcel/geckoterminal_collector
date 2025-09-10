@@ -16,7 +16,11 @@
   - Write comprehensive unit tests for rate limiting scenarios
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2. Fix data type normalization issues in collectors
+- [x] 2. Fix data type normalization issues in collectors
+
+
+
+
   - Create DataTypeNormalizer class to handle DataFrame/List conversions
   - Update DEXMonitoringCollector to use normalized data types
   - Fix response_to_dict method consistency across all collectors

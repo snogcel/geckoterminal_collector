@@ -10,6 +10,7 @@ from ..models.core import CollectionResult, ValidationResult
 from ..config.models import CollectionConfig
 from ..database.manager import DatabaseManager
 from ..database.models import DEX
+from ..utils.data_normalizer import DataTypeNormalizer
 from .base import BaseDataCollector
 
 logger = logging.getLogger(__name__)
@@ -74,29 +75,20 @@ class DEXMonitoringCollector(BaseDataCollector):
                 logger.warning(error_msg)
                 return self.create_failure_result(errors, records_collected, start_time)
             
-            print("-_DEXMonitoringCollector--")
-            print(type(dex_data))
-            print("---")
-
-
-
+            logger.debug(f"Received DEX data of type: {type(dex_data)}")
             
+            # Normalize data to consistent List[Dict] format
+            try:
+                normalized_data = DataTypeNormalizer.normalize_response_data(dex_data)
+                logger.debug(f"Normalized DEX data to list with {len(normalized_data)} items")
+            except ValueError as e:
+                error_msg = f"Failed to normalize DEX data: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+                return self.create_failure_result(errors, records_collected, start_time)
             
-            #raise SystemExit()
-
-            # Transform to dict
-
-
-            response_to_dict = dex_data.to_dict(orient='records')
-            # response_to_dict = dex_data.fromkeys()
-
-            # Validate the data
-            
-            # For Test Coverage
-            # validation_result = await self.validate_data(dex_data)
-
-
-            validation_result = await self.validate_data(response_to_dict)
+            # Validate the normalized data
+            validation_result = await self.validate_data(normalized_data)
             if not validation_result.is_valid:
                 errors.extend(validation_result.errors)
                 logger.error(f"DEX data validation failed: {validation_result.errors}")
@@ -108,8 +100,7 @@ class DEXMonitoringCollector(BaseDataCollector):
                     logger.warning(f"DEX data validation warning: {warning}")
             
             # Process and store DEX data
-            #dex_records = self._process_dex_data(dex_data)
-            dex_records = self._process_dex_data(response_to_dict)
+            dex_records = self._process_dex_data(normalized_data)
             stored_count = await self._store_dex_data(dex_records)
             records_collected = stored_count
             
@@ -140,7 +131,7 @@ class DEXMonitoringCollector(BaseDataCollector):
     
     async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]:
         """
-        Validate DEX-specific data structure.
+        Validate DEX-specific data structure using DataTypeNormalizer.
         
         Args:
             data: DEX data to validate
@@ -148,43 +139,8 @@ class DEXMonitoringCollector(BaseDataCollector):
         Returns:
             ValidationResult with validation status and any errors/warnings
         """
-        errors = []
-        warnings = []
-        
-        if not isinstance(data, list):
-            errors.append("DEX data must be a list")
-            return ValidationResult(False, errors, warnings)
-        
-        if len(data) == 0:
-            warnings.append("No DEXes found in response")
-            return ValidationResult(True, errors, warnings)
-        
-        # Validate each DEX entry
-        for i, dex in enumerate(data):
-            if not isinstance(dex, dict):
-                errors.append(f"DEX entry {i} must be a dictionary")
-                continue
-            
-            # Check required fields
-            if "id" not in dex:
-                errors.append(f"DEX entry {i} missing required 'id' field")
-            
-            if "type" not in dex:
-                errors.append(f"DEX entry {i} missing required 'type' field")
-            elif dex["type"] != "dex":
-                warnings.append(f"DEX entry {i} has unexpected type: {dex['type']}")
-            
-            print("-_validate_specific_data--")
-            #print(dex["attributes"])
-            print("---")
-
-            # Check attributes            
-            if not isinstance(dex, dict):
-                errors.append(f"DEX entry {i} attributes must be a dictionary")
-            elif "name" not in dex:
-                errors.append(f"DEX entry {i} missing required 'name' in attributes")
-        
-        return ValidationResult(len(errors) == 0, errors, warnings)
+        # Use DataTypeNormalizer for consistent validation
+        return DataTypeNormalizer.validate_expected_structure(data, "dex_monitoring")
     
     def _process_dex_data(self, dex_data: List[Dict[str, Any]]) -> List[DEX]:
         """

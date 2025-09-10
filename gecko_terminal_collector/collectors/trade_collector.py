@@ -18,6 +18,7 @@ from gecko_terminal_collector.models.core import (
     CollectionResult, TradeRecord, ValidationResult, Gap
 )
 from gecko_terminal_collector.utils.metadata import MetadataTracker
+from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
 
 logger = logging.getLogger(__name__)
 
@@ -201,15 +202,21 @@ class TradeCollector(BaseDataCollector):
                 trade_volume_filter=self.min_trade_volume_usd
             )
 
-            print("-_collect_pool_trade_data_--")
-            #print(response)
-            #print("---")
-
-            response_to_dict = {"data": response.to_dict(orient='records')}
-            print(vars(response))
+            logger.debug(f"Received trade data of type: {type(response)} for pool: {pool_id}")
+            
+            # Normalize data to consistent List[Dict] format
+            try:
+                normalized_data = DataTypeNormalizer.normalize_response_data(response)
+                # Wrap in expected API response format
+                response_dict = {"data": normalized_data}
+                logger.debug(f"Normalized trade data to list with {len(normalized_data)} items for pool: {pool_id}")
+            except ValueError as e:
+                error_msg = f"Failed to normalize trade data for pool {pool_id}: {str(e)}"
+                logger.error(error_msg)
+                return 0
 
             # Parse and validate trade data
-            trade_records = self._parse_trade_response(response_to_dict, pool_id)
+            trade_records = self._parse_trade_response(response_dict, pool_id)
             
             if trade_records:
                 # Filter trades by volume threshold

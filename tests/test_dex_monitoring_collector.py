@@ -218,7 +218,7 @@ class TestDEXMonitoringCollector:
         validation_result = await dex_collector._validate_specific_data(invalid_data)
         
         assert validation_result.is_valid is False
-        assert "DEX data must be a list" in validation_result.errors
+        assert "Data normalization failed" in str(validation_result.errors)
     
     @pytest.mark.asyncio
     async def test_validate_specific_data_missing_fields(self, dex_collector):

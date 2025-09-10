@@ -294,7 +294,7 @@ class TestTopPoolsCollector:
         # Test with non-dict data
         validation_result = await collector._validate_specific_data("invalid")
         assert validation_result.is_valid is False
-        assert "must be a dictionary" in validation_result.errors[0]
+        assert "Data normalization failed" in str(validation_result.errors)
         
         # Test with missing data field
         validation_result = await collector._validate_specific_data({"meta": {}})
@@ -330,12 +330,16 @@ class TestTopPoolsCollector:
     
     def test_process_pools_data(self, mock_config, mock_db_manager, sample_pools_api_response):
         """Test processing of pools data."""
+        from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
+        
         collector = TopPoolsCollector(
             config=mock_config,
             db_manager=mock_db_manager
         )
         
-        pool_records = collector._process_pools_data(sample_pools_api_response, "heaven")
+        # Normalize the API response first
+        normalized_data = DataTypeNormalizer.normalize_response_data(sample_pools_api_response)
+        pool_records = collector._process_pools_data(normalized_data, "heaven")
         
         assert len(pool_records) == 2
         
@@ -358,6 +362,8 @@ class TestTopPoolsCollector:
     
     def test_process_pools_data_invalid_entries(self, mock_config, mock_db_manager):
         """Test processing with invalid pool entries."""
+        from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
+        
         collector = TopPoolsCollector(
             config=mock_config,
             db_manager=mock_db_manager
@@ -371,7 +377,9 @@ class TestTopPoolsCollector:
             ]
         }
         
-        pool_records = collector._process_pools_data(invalid_data, "heaven")
+        # Normalize the API response first
+        normalized_data = DataTypeNormalizer.normalize_response_data(invalid_data)
+        pool_records = collector._process_pools_data(normalized_data, "heaven")
         
         # Should only process the valid entry
         assert len(pool_records) == 1
