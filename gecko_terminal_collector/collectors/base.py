@@ -67,9 +67,23 @@ class BaseDataCollector(ABC):
         # Initialize data normalizer
         self.data_normalizer = DataTypeNormalizer()
         
+        # Initialize error handler with configuration
+        retry_config = RetryConfig(
+            max_retries=config.error_handling.max_retries,
+            base_delay=1.0,
+            backoff_factor=config.error_handling.backoff_factor,
+            jitter=True
+        )
+        self.error_handler = ErrorHandler(retry_config)
+        
         # Initialize symbol mapper if enhanced database manager is available
         self.symbol_mapper = None
         self._initialize_symbol_mapper()
+        
+        self._client: Optional[BaseGeckoClient] = None
+        
+        # Initialize structured logger (done after other initialization)
+        self._initialize_logger()
     
     def _initialize_symbol_mapper(self) -> None:
         """Initialize symbol mapper if enhanced database manager is available."""
@@ -84,6 +98,19 @@ class BaseDataCollector(ABC):
                 self.symbol_mapper = None
         else:
             logger.debug(f"Symbol mapper not available for {self.__class__.__name__}")
+    
+    def _initialize_logger(self) -> None:
+        """Initialize structured logger with context."""
+        try:
+            log_context = LogContext(
+                collector_type=self.get_collection_key(),
+                additional_fields={"use_mock": self.use_mock}
+            )
+            self.logger = get_logger(f"{__name__}.{self.__class__.__name__}", log_context)
+        except Exception as e:
+            # Fallback to basic logger if structured logging fails
+            self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+            self.logger.warning(f"Failed to initialize structured logger: {e}")
     
     def generate_symbol(self, pool) -> str:
         """

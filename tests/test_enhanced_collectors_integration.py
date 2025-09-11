@@ -36,6 +36,8 @@ def mock_config():
     config.error_handling = MagicMock()
     config.error_handling.max_retries = 3
     config.error_handling.backoff_factor = 2.0
+    config.thresholds = MagicMock()
+    config.thresholds.min_trade_volume_usd = 100.0
     return config
 
 
@@ -331,6 +333,44 @@ class TestTopPoolsCollectorEnhanced:
         
         # Verify rate limiter was used
         mock_rate_limiter.acquire.assert_called()
+
+
+class TestTradeCollectorEnhanced:
+    """Test trade collector with enhanced infrastructure."""
+    
+    @pytest.mark.asyncio
+    async def test_trade_collector_strips_network_prefix_from_pool_id(
+        self, mock_config, mock_enhanced_db_manager, mock_rate_limiter
+    ):
+        """Test that trade collector properly strips network prefix from pool IDs."""
+        
+        from gecko_terminal_collector.collectors.trade_collector import TradeCollector
+        
+        collector = TradeCollector(
+            config=mock_config,
+            db_manager=mock_enhanced_db_manager,
+            rate_limiter=mock_rate_limiter
+        )
+        
+        # Mock client
+        mock_client = AsyncMock()
+        mock_client.get_trades = AsyncMock(return_value=[])
+        collector._client = mock_client
+        
+        # Test with prefixed pool ID
+        pool_id_with_prefix = "solana_A3i3o286qRtG2XgC4qdnou5xCXNHqZyk1FT15Z3RmrZr"
+        expected_clean_address = "A3i3o286qRtG2XgC4qdnou5xCXNHqZyk1FT15Z3RmrZr"
+        
+        # Call the method that should strip the prefix
+        await collector._collect_pool_trade_data(pool_id_with_prefix)
+        
+        # Verify the API was called with the clean address
+        mock_client.get_trades.assert_called_once()
+        call_kwargs = mock_client.get_trades.call_args.kwargs
+        
+        assert call_kwargs['network'] == 'solana'
+        assert call_kwargs['pool_address'] == expected_clean_address
+        assert call_kwargs['trade_volume_filter'] == 100.0
 
 
 if __name__ == "__main__":

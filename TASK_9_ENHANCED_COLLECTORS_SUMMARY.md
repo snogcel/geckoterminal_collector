@@ -122,6 +122,30 @@ This provides a solid foundation for completing the remaining tasks:
 6. `gecko_terminal_collector/collectors/watchlist_collector.py` - Rate limiting for all API calls
 7. `tests/test_enhanced_collectors_integration.py` - Comprehensive test coverage
 
+## Bug Fixes Applied
+
+### Fix 1: Missing Error Handler
+**Issue Identified:** After initial implementation, the system showed an error: `'TradeCollector' object has no attribute 'error_handler'`
+
+**Root Cause:** The error handler initialization was missing from the base collector's `__init__` method after the autofix formatting.
+
+**Fix Applied:**
+- Added proper error handler initialization in base collector `__init__` method
+- Added structured logger initialization with proper error handling
+- Ensured all enhanced infrastructure components are properly initialized
+
+### Fix 2: Pool ID Network Prefix Issue
+**Issue Identified:** Trade collector was making API calls with malformed URLs containing network prefix: `solana_A3i3o286qRtG2XgC4qdnou5xCXNHqZyk1FT15Z3RmrZr` causing 404 errors.
+
+**Root Cause:** Trade collector was passing pool IDs directly to API calls without stripping the network prefix, unlike OHLCV collector which properly handles this.
+
+**Fix Applied:**
+- Added network prefix stripping logic to trade collector's `_collect_pool_trade_data` method
+- Now properly extracts clean pool address before making API calls
+- Follows the same pattern as OHLCV collector for consistency
+
+**Verification:** All integration tests pass and collectors now properly initialize with all required attributes. Added specific test to verify pool ID prefix stripping works correctly.
+
 ## Impact
 
 This task successfully integrates all the enhanced infrastructure components (Tasks 1-6) into the actual collectors, providing immediate benefits:
@@ -130,4 +154,4 @@ This task successfully integrates all the enhanced infrastructure components (Ta
 - Comprehensive system monitoring and alerting
 - Better error recovery and debugging capabilities
 
-The system is now ready for production use with robust rate limiting, data validation, and monitoring capabilities.
+The system is now ready for production use with robust rate limiting, data validation, and monitoring capabilities. The error that was occurring in the scheduler should now be resolved.

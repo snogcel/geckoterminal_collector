@@ -37,7 +37,8 @@ class TradeCollector(BaseDataCollector):
         config: CollectionConfig,
         db_manager: DatabaseManager,
         metadata_tracker: Optional[MetadataTracker] = None,
-        use_mock: bool = False
+        use_mock: bool = False,
+        **kwargs
     ):
         """
         Initialize the trade collector.
@@ -48,7 +49,7 @@ class TradeCollector(BaseDataCollector):
             metadata_tracker: Optional metadata tracker for collection statistics
             use_mock: Whether to use mock client for testing
         """
-        super().__init__(config, db_manager, metadata_tracker, use_mock)
+        super().__init__(config, db_manager, metadata_tracker, use_mock, **kwargs)
         
         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
         
@@ -195,11 +196,16 @@ class TradeCollector(BaseDataCollector):
         try:
             logger.debug(f"Collecting trade data for pool {pool_id}")
             
+            # Extract pool address from pool_id (remove network prefix if present)
+            pool_address = pool_id
+            if pool_id.startswith(f"{self.network}_"):
+                pool_address = pool_id[len(f"{self.network}_"):]
+            
             # Get trade data from API with rate limiting
             response = await self.make_api_request(
                 self.client.get_trades,
                 network=self.network,
-                pool_address=pool_id,
+                pool_address=pool_address,
                 trade_volume_filter=self.min_trade_volume_usd
             )
 
