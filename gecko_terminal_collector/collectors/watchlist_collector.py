@@ -135,7 +135,8 @@ class WatchlistCollector(BaseDataCollector):
             if pool_address:
                 try:
                     logger.debug(f"Collecting pool data for {pool_address}")
-                    response = await self.client.get_pool_by_network_address(
+                    response = await self.make_api_request(
+                        self.client.get_pool_by_network_address,
                         self.network, 
                         pool_address
                     )
@@ -173,7 +174,8 @@ class WatchlistCollector(BaseDataCollector):
             if network_address:
                 try:
                     logger.debug(f"Collecting token data for {network_address}")
-                    response = await self.client.get_specific_token_on_network(
+                    response = await self.make_api_request(
+                        self.client.get_specific_token_on_network,
                         self.network, 
                         network_address
                     )
@@ -329,7 +331,8 @@ class WatchlistCollector(BaseDataCollector):
                 
                 try:
                     # Use multiple pools API for efficiency
-                    response = await self.client.get_multiple_pools_by_network(
+                    response = await self.make_api_request(
+                        self.client.get_multiple_pools_by_network,
                         self.network, 
                         batch_addresses
                     )
@@ -369,7 +372,8 @@ class WatchlistCollector(BaseDataCollector):
             try:
                 logger.debug(f"Collecting individual pool data for {pool_address}")
                 
-                response = await self.client.get_pool_by_network_address(
+                response = await self.make_api_request(
+                    self.client.get_pool_by_network_address,
                     self.network, 
                     pool_address
                 )
@@ -415,7 +419,8 @@ class WatchlistCollector(BaseDataCollector):
                 logger.debug(f"Collecting token data for network address {network_address}")
                 
                 # get_specific_token_on_network
-                response = await self.client.get_specific_token_on_network(
+                response = await self.make_api_request(
+                    self.client.get_specific_token_on_network,
                     self.network, 
                     network_address
                 )

@@ -66,8 +66,11 @@ class DEXMonitoringCollector(BaseDataCollector):
         try:
             logger.info(f"Starting DEX monitoring collection for network: {self.network}")
             
-            # Fetch DEX data from API
-            dex_data = await self.client.get_dexes_by_network(self.network)
+            # Fetch DEX data from API with rate limiting
+            dex_data = await self.make_api_request(
+                self.client.get_dexes_by_network, 
+                self.network
+            )
             
             if dex_data is None:
                 error_msg = f"No DEX data returned for network: {self.network}"
@@ -79,7 +82,7 @@ class DEXMonitoringCollector(BaseDataCollector):
             
             # Normalize data to consistent List[Dict] format
             try:
-                normalized_data = DataTypeNormalizer.normalize_response_data(dex_data)
+                normalized_data = self.normalize_response_data(dex_data)
                 logger.debug(f"Normalized DEX data to list with {len(normalized_data)} items")
             except ValueError as e:
                 error_msg = f"Failed to normalize DEX data: {str(e)}"

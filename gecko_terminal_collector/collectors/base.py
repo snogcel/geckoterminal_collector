@@ -5,7 +5,7 @@ Base collector interface and common functionality.
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from gecko_terminal_collector.models.core import CollectionResult, ValidationResult
 from gecko_terminal_collector.config.models import CollectionConfig
@@ -15,6 +15,8 @@ from gecko_terminal_collector.utils.error_handling import ErrorHandler, RetryCon
 from gecko_terminal_collector.utils.metadata import MetadataTracker
 from gecko_terminal_collector.utils.structured_logging import get_logger, LogContext
 from gecko_terminal_collector.utils.resilience import HealthChecker, HealthStatus
+from gecko_terminal_collector.utils.enhanced_rate_limiter import EnhancedRateLimiter
+from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,8 @@ class BaseDataCollector(ABC):
         config: CollectionConfig,
         db_manager: DatabaseManager,
         metadata_tracker: Optional[MetadataTracker] = None,
-        use_mock: bool = False
+        use_mock: bool = False,
+        rate_limiter: Optional[EnhancedRateLimiter] = None
     ):
         """
         Initialize the collector with configuration and database manager.
@@ -51,11 +54,18 @@ class BaseDataCollector(ABC):
             db_manager: Database manager for data storage
             metadata_tracker: Optional metadata tracker for collection statistics
             use_mock: Whether to use mock client for testing
+            rate_limiter: Optional enhanced rate limiter instance
         """
         self.config = config
         self.db_manager = db_manager
         self.use_mock = use_mock
         self.metadata_tracker = metadata_tracker or MetadataTracker()
+        
+        # Initialize enhanced rate limiter
+        self.rate_limiter = rate_limiter or EnhancedRateLimiter()
+        
+        # Initialize data normalizer
+        self.data_normalizer = DataTypeNormalizer()
         
         # Initialize symbol mapper if enhanced database manager is available
         self.symbol_mapper = None
@@ -195,6 +205,16 @@ class BaseDataCollector(ABC):
                 collector_type=self.get_collection_key()
             )
             
+            # Store collection metadata if using enhanced database manager
+            if hasattr(self.db_manager, 'store_collection_run'):
+                try:
+                    await self.db_manager.store_collection_run(
+                        self.get_collection_key(), 
+                        result
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to store collection metadata: {e}")
+            
             # Update metadata tracker
             if self.metadata_tracker:
                 self.metadata_tracker.update_metadata(result)
@@ -283,6 +303,86 @@ class BaseDataCollector(ABC):
         self.error_handler.handle_error(
             error=error,
             context=context,
+            collector_type=self.get_collection_key()
+        )
+    
+    async def make_api_request(self, request_func, *args, **kwargs) -> Any:
+        """
+        Make an API request with rate limiting and error handling.
+        
+        Args:
+            request_func: The API request function to call
+            *args: Arguments to pass to the request function
+            **kwargs: Keyword arguments to pass to the request function
+            
+        Returns:
+            API response data
+        """
+        # Acquire rate limit permission
+        await self.rate_limiter.acquire()
+        
+        try:
+            # Make the API request
+            response = await request_func(*args, **kwargs)
+            return response
+        except Exception as e:
+            # Handle rate limit responses
+            if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
+                if e.response.status_code == 429:
+                    # Extract retry-after header if available
+                    retry_after = e.response.headers.get('Retry-After', '60')
+                    self.rate_limiter.handle_rate_limit_response({'Retry-After': retry_after})
+            raise
+    
+    def normalize_response_data(self, data: Any) -> List[Dict]:
+        """
+        Normalize API response data to consistent format.
+        
+        Args:
+            data: Raw API response data
+            
+        Returns:
+            Normalized data as List[Dict]
+        """
+        return self.data_normalizer.normalize_response_data(data)
+    
+    def validate_data_structure(self, data: Any) -> ValidationResult:
+        """
+        Validate data structure for this collector type.
+        
+        Args:
+            data: Data to validate
+            
+        Returns:
+            ValidationResult with validation status
+        """
+        return self.data_normalizer.validate_expected_structure(
+            data, 
+            self.get_collection_key()
+        )
+    
+    def create_failure_result(
+        self, 
+        errors: List[str], 
+        records_collected: int, 
+        start_time: datetime
+    ) -> CollectionResult:
+        """
+        Create a failure result with consistent format.
+        
+        Args:
+            errors: List of error messages
+            records_collected: Number of records collected before failure
+            start_time: Collection start time
+            
+        Returns:
+            CollectionResult indicating failure
+        """
+        return CollectionResult(
+            success=False,
+            records_collected=records_collected,
+            errors=errors,
+            collection_time=start_time,
             collector_type=self.get_collection_key()
         )
     

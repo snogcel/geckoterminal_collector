@@ -195,8 +195,9 @@ class TradeCollector(BaseDataCollector):
         try:
             logger.debug(f"Collecting trade data for pool {pool_id}")
             
-            # Get trade data from API
-            response = await self.client.get_trades(
+            # Get trade data from API with rate limiting
+            response = await self.make_api_request(
+                self.client.get_trades,
                 network=self.network,
                 pool_address=pool_id,
                 trade_volume_filter=self.min_trade_volume_usd

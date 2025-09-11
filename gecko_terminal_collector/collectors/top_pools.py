@@ -71,8 +71,9 @@ class TopPoolsCollector(BaseDataCollector):
                 try:
                     logger.info(f"Collecting top pools for DEX: {dex_id}")
                     
-                    # Fetch top pools data from API
-                    pools_data = await self.client.get_top_pools_by_network_dex(
+                    # Fetch top pools data from API with rate limiting
+                    pools_data = await self.make_api_request(
+                        self.client.get_top_pools_by_network_dex,
                         self.network, dex_id
                     )
                     
@@ -86,7 +87,7 @@ class TopPoolsCollector(BaseDataCollector):
                     
                     # Normalize data to consistent List[Dict] format
                     try:
-                        normalized_data = DataTypeNormalizer.normalize_response_data(pools_data)
+                        normalized_data = self.normalize_response_data(pools_data)
                         logger.debug(f"Normalized pools data to list with {len(normalized_data)} items for DEX: {dex_id}")
                     except ValueError as e:
                         error_msg = f"Failed to normalize pools data for DEX {dex_id}: {str(e)}"

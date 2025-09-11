@@ -36,7 +36,8 @@ class OHLCVCollector(BaseDataCollector):
         config: CollectionConfig,
         db_manager: DatabaseManager,
         metadata_tracker: Optional[MetadataTracker] = None,
-        use_mock: bool = False
+        use_mock: bool = False,
+        **kwargs
     ):
         """
         Initialize the OHLCV collector.
@@ -47,7 +48,7 @@ class OHLCVCollector(BaseDataCollector):
             metadata_tracker: Optional metadata tracker for collection statistics
             use_mock: Whether to use mock client for testing
         """
-        super().__init__(config, db_manager, metadata_tracker, use_mock)
+        super().__init__(config, db_manager, metadata_tracker, use_mock, **kwargs)
         
         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
         self.supported_timeframes = config.timeframes['supported'] if isinstance(config.timeframes, dict) else config.timeframes.supported
@@ -165,8 +166,9 @@ class OHLCVCollector(BaseDataCollector):
                 if pool_id.startswith(f"{self.network}_"):
                     pool_address = pool_id[len(f"{self.network}_"):]
                 
-                # Get OHLCV data from API
-                response = await self.client.get_ohlcv_data(
+                # Get OHLCV data from API with rate limiting
+                response = await self.make_api_request(
+                    self.client.get_ohlcv_data,
                     network=self.network,
                     pool_address=pool_address,
                     timeframe=self._convert_timeframe_to_api_format(target_timeframe),
@@ -255,9 +257,10 @@ class OHLCVCollector(BaseDataCollector):
                 if pool_id.startswith(f"{self.network}_"):
                     pool_address = pool_id[len(f"{self.network}_"):]
                 
-                # Get OHLCV data from API with enhanced error handling
+                # Get OHLCV data from API with enhanced error handling and rate limiting
                 try:
-                    response = await self.client.get_ohlcv_data(
+                    response = await self.make_api_request(
+                        self.client.get_ohlcv_data,
                         network=self.network,
                         pool_address=pool_address,
                         timeframe=self._convert_timeframe_to_api_format(timeframe),
@@ -1219,7 +1222,8 @@ class OHLCVCollector(BaseDataCollector):
                 if pool_id.startswith(f"{self.network}_"):
                     pool_address = pool_id[len(f"{self.network}_"):]
                 
-                response = await self.client.get_ohlcv_data(
+                response = await self.make_api_request(
+                    self.client.get_ohlcv_data,
                     network=self.network,
                     pool_address=pool_address,
                     timeframe=self._convert_timeframe_to_api_format(timeframe),
