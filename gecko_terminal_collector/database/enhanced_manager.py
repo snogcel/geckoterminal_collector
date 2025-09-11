@@ -474,6 +474,34 @@ class EnhancedDatabaseManager(SQLAlchemyDatabaseManager):
                 for metric in metrics
             ]
     
+    async def create_system_alert(self, alert_data: Dict[str, Any]) -> None:
+        """
+        Create a system alert from external error handler.
+        
+        Args:
+            alert_data: Dictionary containing alert information
+        """
+        with self.connection.get_session() as session:
+            try:
+                alert = SystemAlertsModel(
+                    alert_id=alert_data["alert_id"],
+                    level=alert_data["level"],
+                    collector_type=alert_data["collector_type"],
+                    message=alert_data["message"],
+                    timestamp=alert_data["timestamp"],
+                    acknowledged=alert_data.get("acknowledged", False),
+                    resolved=alert_data.get("resolved", False),
+                    alert_metadata=alert_data.get("alert_metadata"),
+                )
+                session.add(alert)
+                session.commit()
+                logger.info(f"Created system alert: {alert_data['alert_id']}")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error creating system alert: {e}")
+                raise
+    
     async def resolve_system_alert(self, alert_id: str, resolved_by: Optional[str] = None) -> bool:
         """
         Resolve a system alert.
