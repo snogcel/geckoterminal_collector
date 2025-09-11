@@ -58,6 +58,21 @@ class DatabaseManager(ABC):
         pass
     
     @abstractmethod
+    async def get_pool_by_id(self, pool_id: str) -> Optional[Any]:
+        """Get a pool by ID (database model)."""
+        pass
+    
+    @abstractmethod
+    async def store_pool(self, pool: Any) -> None:
+        """Store a single pool record."""
+        pass
+    
+    @abstractmethod
+    async def store_new_pools_history(self, history_record: Any) -> None:
+        """Store a new pools history record."""
+        pass
+    
+    @abstractmethod
     async def get_pools_by_dex(self, dex_id: str) -> List[Pool]:
         """Get all pools for a specific DEX."""
         pass

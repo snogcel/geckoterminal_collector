@@ -203,6 +203,43 @@ class PerformanceMetrics(Base):
     )
 
 
+class NewPoolsHistory(Base):
+    """New pools history table for comprehensive historical tracking."""
+    
+    __tablename__ = "new_pools_history"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    pool_id = Column(String(255), nullable=False)
+    type = Column(String(20), default='pool')
+    name = Column(String(255))
+    base_token_price_usd = Column(Numeric(20, 10))
+    base_token_price_native_currency = Column(Numeric(20, 10))
+    quote_token_price_usd = Column(Numeric(20, 10))
+    quote_token_price_native_currency = Column(Numeric(20, 10))
+    address = Column(String(255))
+    reserve_in_usd = Column(Numeric(20, 4))
+    pool_created_at = Column(DateTime)
+    fdv_usd = Column(Numeric(20, 4))
+    market_cap_usd = Column(Numeric(20, 4))
+    price_change_percentage_h1 = Column(Numeric(10, 4))
+    price_change_percentage_h24 = Column(Numeric(10, 4))
+    transactions_h1_buys = Column(Integer)
+    transactions_h1_sells = Column(Integer)
+    transactions_h24_buys = Column(Integer)
+    transactions_h24_sells = Column(Integer)
+    volume_usd_h24 = Column(Numeric(20, 4))
+    dex_id = Column(String(100))
+    base_token_id = Column(String(255))
+    quote_token_id = Column(String(255))
+    network_id = Column(String(50))
+    collected_at = Column(DateTime, default=func.current_timestamp())
+    
+    # Unique constraint to prevent duplicate records for same pool at same collection time
+    __table_args__ = (
+        UniqueConstraint('pool_id', 'collected_at', name='uq_new_pools_history_pool_collected'),
+    )
+
+
 class SystemAlerts(Base):
     """System alerts for monitoring and failure notification."""
     

@@ -112,6 +112,15 @@ class BaseDataCollector(ABC):
             self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
             self.logger.warning(f"Failed to initialize structured logger: {e}")
     
+    def set_rate_limiter(self, rate_limiter: EnhancedRateLimiter) -> None:
+        """
+        Set the rate limiter for this collector.
+        
+        Args:
+            rate_limiter: Enhanced rate limiter instance to use
+        """
+        self.rate_limiter = rate_limiter
+    
     def generate_symbol(self, pool) -> str:
         """
         Generate consistent symbol for a pool across all collectors.

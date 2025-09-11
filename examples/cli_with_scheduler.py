@@ -31,6 +31,7 @@ from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCol
 from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
 from gecko_terminal_collector.collectors.trade_collector import TradeCollector
 from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
+from gecko_terminal_collector.collectors.new_pools_collector import NewPoolsCollector
 
 # Setup logging
 logging.basicConfig(
@@ -108,29 +109,57 @@ class SchedulerCLI:
         """Register all collectors with the scheduler and rate limiting."""
         logger.info("Registering collectors with enhanced rate limiting...")
         
-        # Get rate limiters for each collector type
+        # Standard collectors configuration (collector_id, collector_class, interval, enabled, additional_params)
         collectors_config = [
-            ("dex_monitoring", DEXMonitoringCollector, "1h", True),
-            ("top_pools", TopPoolsCollector, config.intervals.top_pools_monitoring, True),
-            ("watchlist_monitor", WatchlistMonitor, config.intervals.watchlist_check, True),
-            ("watchlist_collector", WatchlistCollector, config.intervals.watchlist_check, True),
-            ("ohlcv", OHLCVCollector, config.intervals.ohlcv_collection, True),
-            ("trade", TradeCollector, config.intervals.trade_collection, True),
-            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False)
+            ("dex_monitoring", DEXMonitoringCollector, "1h", True, {}),
+            ("top_pools", TopPoolsCollector, config.intervals.top_pools_monitoring, True, {}),
+            ("watchlist_monitor", WatchlistMonitor, config.intervals.watchlist_check, True, {}),
+            ("watchlist_collector", WatchlistCollector, config.intervals.watchlist_check, True, {}),
+            ("ohlcv", OHLCVCollector, config.intervals.ohlcv_collection, True, {}),
+            ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
+            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
         ]
         
-        for collector_id, collector_class, interval, enabled in collectors_config:
+        # Add network-specific new pools collectors
+        for network_name, network_config in config.new_pools.networks.items():
+            collector_id = f"new_pools_{network_name}"
+            rate_limit_key = network_config.rate_limit_key or collector_id
+            
+            collectors_config.append((
+                collector_id,
+                NewPoolsCollector,
+                network_config.interval,
+                network_config.enabled,
+                {"network": network_name}
+            ))
+            
+            logger.info(f"Added new pools collector for network '{network_name}' "
+                       f"(interval: {network_config.interval}, enabled: {network_config.enabled})")
+        
+        # Register all collectors
+        for collector_config in collectors_config:
+            if len(collector_config) == 4:
+                # Legacy format without additional params
+                collector_id, collector_class, interval, enabled = collector_config
+                additional_params = {}
+            else:
+                # New format with additional params
+                collector_id, collector_class, interval, enabled, additional_params = collector_config
+            
             try:
                 # Get rate limiter for this collector
                 rate_limiter = await self.rate_limit_coordinator.get_limiter(collector_id)
                 
-                # Create collector instance
-                collector = collector_class(
-                    config=config,
-                    db_manager=self.db_manager,
-                    metadata_tracker=metadata_tracker,
-                    use_mock=use_mock
-                )
+                # Create collector instance with additional parameters
+                collector_kwargs = {
+                    "config": config,
+                    "db_manager": self.db_manager,
+                    "metadata_tracker": metadata_tracker,
+                    "use_mock": use_mock
+                }
+                collector_kwargs.update(additional_params)
+                
+                collector = collector_class(**collector_kwargs)
                 
                 # Set rate limiter if collector supports it
                 if hasattr(collector, 'set_rate_limiter'):

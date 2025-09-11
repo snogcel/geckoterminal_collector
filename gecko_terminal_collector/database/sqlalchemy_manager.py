@@ -18,6 +18,7 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.database.models import (
     CollectionMetadata as CollectionMetadataModel,
     DEX as DEXModel,
+    NewPoolsHistory as NewPoolsHistoryModel,
     OHLCVData as OHLCVDataModel,
     Pool as PoolModel,
     Token as TokenModel,
@@ -1297,4 +1298,80 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error updating watchlist entry: {e}")
+                raise
+    
+    async def get_pool_by_id(self, pool_id: str) -> Optional[PoolModel]:
+        """
+        Get a pool by ID (database model).
+        
+        Args:
+            pool_id: Pool identifier
+            
+        Returns:
+            Pool model instance or None if not found
+        """
+        try:
+            with self.connection.get_session() as session:
+                return session.query(PoolModel).filter_by(id=pool_id).first()
+        except Exception as e:
+            logger.error(f"Error getting pool by ID {pool_id}: {e}")
+            return None
+    
+    async def store_pool(self, pool: PoolModel) -> None:
+        """
+        Store a single pool record.
+        
+        Args:
+            pool: Pool model instance to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(pool)
+                session.commit()
+                logger.debug(f"Stored pool {pool.id}")
+            except IntegrityError:
+                session.rollback()
+                # Pool already exists, update it
+                existing = session.query(PoolModel).filter_by(id=pool.id).first()
+                if existing:
+                    existing.address = pool.address
+                    existing.name = pool.name
+                    existing.dex_id = pool.dex_id
+                    existing.base_token_id = pool.base_token_id
+                    existing.quote_token_id = pool.quote_token_id
+                    existing.reserve_usd = pool.reserve_usd
+                    existing.created_at = pool.created_at
+                    existing.last_updated = pool.last_updated
+                    session.commit()
+                    logger.debug(f"Updated existing pool {pool.id}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing pool {pool.id}: {e}")
+                raise
+    
+    async def store_new_pools_history(self, history_record: Any) -> None:
+        """
+        Store a new pools history record.
+        
+        Args:
+            history_record: NewPoolsHistory model instance to store
+        """
+        from gecko_terminal_collector.database.models import NewPoolsHistory
+        
+        with self.connection.get_session() as session:
+            try:
+                session.add(history_record)
+                session.commit()
+                logger.debug(f"Stored new pools history record for pool {history_record.pool_id}")
+            except IntegrityError as e:
+                session.rollback()
+                # Handle unique constraint violation (duplicate record)
+                if "uq_new_pools_history_pool_collected" in str(e):
+                    logger.debug(f"Duplicate new pools history record for pool {history_record.pool_id} at {history_record.collected_at}")
+                else:
+                    logger.error(f"Integrity error storing new pools history: {e}")
+                    raise
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing new pools history record: {e}")
                 raise

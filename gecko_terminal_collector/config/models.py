@@ -93,6 +93,23 @@ class WatchlistConfig:
 
 
 @dataclass
+class NetworkConfig:
+    """Network-specific configuration for new pools collection."""
+    enabled: bool = True
+    interval: str = "30m"
+    rate_limit_key: Optional[str] = None
+
+
+@dataclass
+class NewPoolsConfig:
+    """New pools collection configuration."""
+    networks: Dict[str, NetworkConfig] = field(default_factory=lambda: {
+        "solana": NetworkConfig(enabled=True, interval="30m", rate_limit_key="new_pools_solana"),
+        "ethereum": NetworkConfig(enabled=False, interval="30m", rate_limit_key="new_pools_ethereum")
+    })
+
+
+@dataclass
 class CollectionConfig:
     """Main collection configuration container."""
     dexes: DEXConfig = field(default_factory=DEXConfig)
@@ -104,6 +121,7 @@ class CollectionConfig:
     error_handling: ErrorConfig = field(default_factory=ErrorConfig)
     rate_limiting: RateLimitConfig = field(default_factory=RateLimitConfig)
     watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
+    new_pools: NewPoolsConfig = field(default_factory=NewPoolsConfig)
     
     def validate(self) -> List[str]:
         """
@@ -143,6 +161,14 @@ class CollectionConfig:
         
         if self.thresholds.max_retries < 0:
             errors.append("Max retries must be non-negative")
+        
+        # Validate new pools configuration
+        for network_name, network_config in self.new_pools.networks.items():
+            if not network_name:
+                errors.append("Network name cannot be empty")
+            
+            if not self._is_valid_interval(network_config.interval):
+                errors.append(f"Invalid interval format for network '{network_name}': {network_config.interval}")
         
         return errors
     

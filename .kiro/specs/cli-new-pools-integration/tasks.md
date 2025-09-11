@@ -1,6 +1,10 @@
 # Implementation Plan
 
-- [ ] 1. Enhance CLI collector registration system
+- [x] 1. Enhance CLI collector registration system
+
+
+
+
   - Modify `_register_collectors` method in `SchedulerCLI` class to support network-specific NewPoolsCollector instances
   - Add support for additional constructor parameters in collector configuration tuples
   - Implement network-specific rate limiter assignment for new pools collectors

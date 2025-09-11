@@ -55,12 +55,35 @@ error_handling:
   circuit_breaker_threshold: 5    # Failures before circuit breaker opens
   circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
 
+# Rate Limiting Configuration
+rate_limiting:
+  requests_per_minute: 30         # Global requests per minute limit
+  daily_limit: 10000              # Global daily request limit
+  circuit_breaker_threshold: 5    # Failures before circuit breaker opens
+  circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
+  backoff_base_delay: 1.0         # Base delay for exponential backoff
+  backoff_max_delay: 300.0        # Maximum backoff delay
+  backoff_jitter_factor: 0.3      # Jitter factor for backoff
+  state_file_dir: ".rate_limiter_state"  # Directory for rate limiter state files
+
 # Watchlist Configuration
 watchlist:
   file_path: "watchlist.csv"      # Path to watchlist CSV file
   check_interval: "1h"            # How often to check for file changes
   auto_add_new_tokens: true       # Automatically add new tokens from watchlist
   remove_inactive_tokens: false   # Remove tokens no longer in watchlist
+
+# New Pools Collection Configuration
+new_pools:
+  networks:
+    solana:
+      enabled: true               # Enable new pools collection for Solana
+      interval: "30m"             # Collection interval for Solana
+      rate_limit_key: "new_pools_solana"  # Rate limiter key for Solana
+    ethereum:
+      enabled: false              # Enable new pools collection for Ethereum
+      interval: "30m"             # Collection interval for Ethereum
+      rate_limit_key: "new_pools_ethereum"  # Rate limiter key for Ethereum
 
 # Environment Variable Overrides:
 # You can override any configuration value using environment variables:

@@ -249,6 +249,54 @@ class WatchlistConfigValidator(BaseModel):
         return v
 
 
+class NetworkConfigValidator(BaseModel):
+    """Pydantic model for network-specific configuration validation."""
+    enabled: bool = Field(default=True, description="Enable collection for this network")
+    interval: str = Field(default="30m", description="Collection interval for this network")
+    rate_limit_key: str = Field(default=None, description="Rate limiter key for this network")
+    
+    @field_validator('interval')
+    @classmethod
+    def validate_interval(cls, v):
+        """Validate interval format."""
+        return IntervalConfigValidator.validate_interval_format(v)
+    
+    @field_validator('rate_limit_key')
+    @classmethod
+    def validate_rate_limit_key(cls, v):
+        """Validate rate limit key format."""
+        if v and not re.match(r'^[a-zA-Z0-9_]+$', v):
+            raise ValueError(f"Invalid rate limit key format: {v}")
+        return v
+
+
+class NewPoolsConfigValidator(BaseModel):
+    """Pydantic model for new pools configuration validation."""
+    networks: Dict[str, NetworkConfigValidator] = Field(
+        default_factory=lambda: {
+            "solana": NetworkConfigValidator(enabled=True, interval="30m", rate_limit_key="new_pools_solana"),
+            "ethereum": NetworkConfigValidator(enabled=False, interval="30m", rate_limit_key="new_pools_ethereum")
+        },
+        description="Network-specific new pools collection configuration"
+    )
+    
+    @field_validator('networks')
+    @classmethod
+    def validate_networks(cls, v):
+        """Validate network configurations."""
+        if not v:
+            raise ValueError("At least one network must be configured")
+        
+        for network_name, network_config in v.items():
+            if not network_name:
+                raise ValueError("Network name cannot be empty")
+            
+            if not re.match(r'^[a-zA-Z0-9_]+$', network_name):
+                raise ValueError(f"Invalid network name format: {network_name}")
+        
+        return v
+
+
 class CollectionConfigValidator(BaseModel):
     """Main configuration validator using Pydantic."""
     dexes: DEXConfigValidator = Field(default_factory=DEXConfigValidator)
@@ -260,6 +308,7 @@ class CollectionConfigValidator(BaseModel):
     error_handling: ErrorConfigValidator = Field(default_factory=ErrorConfigValidator)
     rate_limiting: RateLimitConfigValidator = Field(default_factory=RateLimitConfigValidator)
     watchlist: WatchlistConfigValidator = Field(default_factory=WatchlistConfigValidator)
+    new_pools: NewPoolsConfigValidator = Field(default_factory=NewPoolsConfigValidator)
     
     model_config = {
         "validate_assignment": True,
@@ -271,8 +320,18 @@ class CollectionConfigValidator(BaseModel):
         """Convert to legacy CollectionConfig format for backward compatibility."""
         from gecko_terminal_collector.config.models import (
             CollectionConfig, DEXConfig, IntervalConfig, ThresholdConfig,
-            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, RateLimitConfig, WatchlistConfig
+            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, RateLimitConfig, WatchlistConfig,
+            NewPoolsConfig, NetworkConfig
         )
+        
+        # Convert new pools configuration
+        new_pools_networks = {}
+        for network_name, network_validator in self.new_pools.networks.items():
+            new_pools_networks[network_name] = NetworkConfig(
+                enabled=network_validator.enabled,
+                interval=network_validator.interval,
+                rate_limit_key=network_validator.rate_limit_key
+            )
         
         return CollectionConfig(
             dexes=DEXConfig(
@@ -328,6 +387,9 @@ class CollectionConfigValidator(BaseModel):
                 check_interval=self.watchlist.check_interval,
                 auto_add_new_tokens=self.watchlist.auto_add_new_tokens,
                 remove_inactive_tokens=self.watchlist.remove_inactive_tokens
+            ),
+            new_pools=NewPoolsConfig(
+                networks=new_pools_networks
             )
         )
 
