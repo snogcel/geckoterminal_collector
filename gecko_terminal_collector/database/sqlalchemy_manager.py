@@ -375,7 +375,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error storing OHLCV data: {e}")
                 raise
         
-        return stored_count
+        # Return total processed records (new + updated)
+        return stored_count + updated_count
     
     def _validate_ohlcv_record(self, record: OHLCVRecord) -> List[str]:
         """

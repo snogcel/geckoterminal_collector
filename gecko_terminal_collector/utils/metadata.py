@@ -83,8 +83,9 @@ class MetadataTracker:
     success rates, and error history for monitoring and debugging.
     """
     
-    def __init__(self):
+    def __init__(self, db_manager=None):
         self._metadata: Dict[str, CollectionMetadata] = {}
+        self.db_manager = db_manager
     
     def get_metadata(self, collector_type: str) -> CollectionMetadata:
         """Get metadata for a collector type, creating if not exists."""
@@ -103,6 +104,28 @@ class MetadataTracker:
             f"Total runs: {metadata.total_runs}, "
             f"Records collected: {result.records_collected}"
         )
+        
+        # Persist metadata to database if db_manager is available
+        if self.db_manager:
+            try:
+                import asyncio
+                # Create a task to update database metadata
+                asyncio.create_task(self._update_database_metadata(result))
+            except Exception as e:
+                logger.warning(f"Failed to persist metadata to database: {e}")
+    
+    async def _update_database_metadata(self, result: CollectionResult) -> None:
+        """Update metadata in the database."""
+        try:
+            await self.db_manager.update_collection_metadata(
+                collector_type=result.collector_type,
+                last_run=result.collection_time,
+                success=result.success,
+                error_message='; '.join(result.errors) if result.errors else None
+            )
+            logger.debug(f"Persisted metadata to database for {result.collector_type}")
+        except Exception as e:
+            logger.error(f"Error persisting metadata to database: {e}")
     
     def get_all_metadata(self) -> Dict[str, CollectionMetadata]:
         """Get metadata for all collectors."""

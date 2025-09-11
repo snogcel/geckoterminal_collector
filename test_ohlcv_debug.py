@@ -31,7 +31,7 @@ async def test_ohlcv_parsing():
     }
     
     # Parse the response
-    pool_id = '7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP'
+    pool_id = 'solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP'
     timeframe = '1h'
     
     print(f"Testing OHLCV parsing for pool {pool_id}")

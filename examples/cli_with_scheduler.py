@@ -73,8 +73,8 @@ class SchedulerCLI:
             health_check_interval=300
         )
         
-        # Create metadata tracker
-        metadata_tracker = MetadataTracker()
+        # Create metadata tracker with database persistence
+        metadata_tracker = MetadataTracker(db_manager=self.db_manager)
         
         # Create database manager
         print("---")
@@ -321,17 +321,15 @@ def run_once(config, collector, mock):
         
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
-            collector = job_id.removeprefix("collector_")
+            collector_key = collector_status['collector_key'] if collector_status else ""
 
             print("-collector_status--")
             print("job_id: ", job_id)
-            print("collector: ", collector)
-            print("collector_key: ", collector_status['collector_key'])
+            print("collector_key: ", collector_key)
+            print("looking for: ", collector)
             print("---")
 
-            print(collector_status['collector_key'])
-
-            if collector_status and collector in collector_status['collector_key']:
+            if collector_status and collector in collector_key:
                 target_job_id = job_id
                 break
         
