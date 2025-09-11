@@ -41,125 +41,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def _get_new_pools_statistics(db_manager, network_filter=None, limit=10):
-    """
-    Get comprehensive statistics for new pools collection.
-    
-    Args:
-        db_manager: Database manager instance
-        network_filter: Optional network to filter by
-        limit: Number of recent records to retrieve
-    
-    Returns:
-        Dictionary containing statistics and recent records
-    """
-    from datetime import datetime, timedelta
-    from sqlalchemy import func, desc
-    from gecko_terminal_collector.database.models import NewPoolsHistory as NewPoolsHistoryModel, Pool as PoolModel
-    
-    stats = {
-        'total_pools': 0,
-        'total_history_records': 0,
-        'network_distribution': {},
-        'dex_distribution': {},
-        'collection_activity': [],
-        'recent_records': []
-    }
-    
-    with db_manager.connection.get_session() as session:
-        try:
-            # Get total pools count
-            total_pools_query = session.query(func.count(PoolModel.id))
-            if network_filter:
-                # Filter pools by network (assuming pool IDs contain network prefix)
-                total_pools_query = total_pools_query.filter(PoolModel.id.like(f"{network_filter}_%"))
-            stats['total_pools'] = total_pools_query.scalar() or 0
-            
-            # Get total history records count
-            total_history_query = session.query(func.count(NewPoolsHistoryModel.id))
-            if network_filter:
-                total_history_query = total_history_query.filter(NewPoolsHistoryModel.network_id == network_filter)
-            stats['total_history_records'] = total_history_query.scalar() or 0
-            
-            # Get network distribution
-            network_dist_query = session.query(
-                NewPoolsHistoryModel.network_id,
-                func.count(NewPoolsHistoryModel.id).label('count')
-            ).group_by(NewPoolsHistoryModel.network_id)
-            
-            if network_filter:
-                network_dist_query = network_dist_query.filter(NewPoolsHistoryModel.network_id == network_filter)
-            
-            for network_name, count in network_dist_query.all():
-                if network_name:  # Skip null network names
-                    stats['network_distribution'][network_name] = count
-            
-            # Get DEX distribution
-            dex_dist_query = session.query(
-                NewPoolsHistoryModel.dex_id,
-                func.count(NewPoolsHistoryModel.id).label('count')
-            ).group_by(NewPoolsHistoryModel.dex_id)
-            
-            if network_filter:
-                dex_dist_query = dex_dist_query.filter(NewPoolsHistoryModel.network_id == network_filter)
-            
-            for dex_name, count in dex_dist_query.all():
-                if dex_name:  # Skip null DEX names
-                    stats['dex_distribution'][dex_name] = count
-            
-            # Get collection activity for last 24 hours
-            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-            
-            activity_query = session.query(
-                func.strftime('%Y-%m-%d %H:00', NewPoolsHistoryModel.collected_at).label('hour'),
-                func.count(NewPoolsHistoryModel.id).label('records')
-            ).filter(
-                NewPoolsHistoryModel.collected_at >= twenty_four_hours_ago
-            ).group_by(
-                func.strftime('%Y-%m-%d %H:00', NewPoolsHistoryModel.collected_at)
-            ).order_by('hour')
-            
-            if network_filter:
-                activity_query = activity_query.filter(NewPoolsHistoryModel.network_id == network_filter)
-            
-            for hour, records in activity_query.all():
-                stats['collection_activity'].append({
-                    'hour': hour,
-                    'records': records
-                })
-            
-            # Get recent records with comprehensive information
-            recent_query = session.query(NewPoolsHistoryModel).order_by(desc(NewPoolsHistoryModel.collected_at))
-            
-            if network_filter:
-                recent_query = recent_query.filter(NewPoolsHistoryModel.network_id == network_filter)
-            
-            recent_query = recent_query.limit(limit)
-            
-            for record in recent_query.all():
-                stats['recent_records'].append({
-                    'pool_id': record.pool_id,
-                    'name': record.name,
-                    'address': record.address,
-                    'network_id': record.network_id,
-                    'dex_id': record.dex_id,
-                    'reserve_in_usd': float(record.reserve_in_usd) if record.reserve_in_usd else None,
-                    'volume_usd_h24': float(record.volume_usd_h24) if record.volume_usd_h24 else None,
-                    'price_change_percentage_h1': float(record.price_change_percentage_h1) if record.price_change_percentage_h1 else None,
-                    'price_change_percentage_h24': float(record.price_change_percentage_h24) if record.price_change_percentage_h24 else None,
-                    'transactions_h24_buys': record.transactions_h24_buys,
-                    'transactions_h24_sells': record.transactions_h24_sells,
-                    'pool_created_at': record.pool_created_at.strftime('%Y-%m-%d %H:%M:%S') if record.pool_created_at else None,
-                    'collected_at': record.collected_at.strftime('%Y-%m-%d %H:%M:%S') if record.collected_at else None,
-                    'fdv_usd': float(record.fdv_usd) if record.fdv_usd else None,
-                    'market_cap_usd': float(record.market_cap_usd) if record.market_cap_usd else None,
-                })
-        
-        except Exception as e:
-            logger.error(f"Error retrieving new pools statistics: {e}")
-            raise
-    
-    return stats
+# Import the new statistics engine
+from gecko_terminal_collector.utils.statistics_engine import StatisticsEngine
 
 
 class SchedulerCLI:
@@ -734,72 +617,160 @@ def collect_new_pools(config, network, mock):
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
 @click.option('--network', '-n', help='Filter by network (optional)')
 @click.option('--limit', '-l', default=10, help='Number of recent records to show')
-def new_pools_stats(config, network, limit):
+@click.option('--hours', '-h', default=24, help='Hours to look back for activity timeline')
+@click.option('--errors', is_flag=True, help='Show detailed error analysis')
+@click.option('--performance', is_flag=True, help='Show performance metrics')
+def new_pools_stats(config, network, limit, hours, errors, performance):
     """Display comprehensive statistics and recent data from new pools collection."""
     async def show_stats():
         scheduler_cli = SchedulerCLI(config)
-        await scheduler_cli.initialize(use_mock=True)
+        await scheduler_cli.initialize(use_mock=True)  # Mock for stats check
         
         try:
-            # Get database statistics
-            stats = await _get_new_pools_statistics(scheduler_cli.db_manager, network, limit)
+            logger.info(f"Retrieving comprehensive new pools statistics (network: {network}, limit: {limit})")
             
-            # Display comprehensive statistics
+            # Initialize statistics engine
+            stats_engine = StatisticsEngine(scheduler_cli.db_manager)
+            
+            # Get comprehensive statistics
+            stats = await stats_engine.get_comprehensive_statistics(network, limit, hours)
+            
             print(f"\n=== New Pools Collection Statistics ===")
-            
-            # Database totals
-            print(f"\n=== Database Totals ===")
-            print(f"Total Pools: {stats['total_pools']:,}")
-            print(f"Total History Records: {stats['total_history_records']:,}")
+            print(f"Total Pools in Database: {stats.total_pools:,}")
+            print(f"Total History Records: {stats.total_history_records:,}")
             
             # Network distribution
-            if stats['network_distribution']:
+            if stats.network_distribution:
                 print(f"\n=== Network Distribution ===")
-                for network_name, count in stats['network_distribution'].items():
-                    percentage = (count / stats['total_history_records'] * 100) if stats['total_history_records'] > 0 else 0
+                for network_name, count in sorted(stats.network_distribution.items()):
+                    percentage = (count / stats.total_history_records * 100) if stats.total_history_records > 0 else 0
                     print(f"{network_name}: {count:,} records ({percentage:.1f}%)")
             
             # DEX distribution
-            if stats['dex_distribution']:
+            if stats.dex_distribution:
                 print(f"\n=== DEX Distribution ===")
-                for dex_name, count in stats['dex_distribution'].items():
-                    percentage = (count / stats['total_history_records'] * 100) if stats['total_history_records'] > 0 else 0
+                sorted_dexes = sorted(stats.dex_distribution.items(), key=lambda x: x[1], reverse=True)
+                for dex_name, count in sorted_dexes[:10]:  # Top 10 DEXes
+                    percentage = (count / stats.total_history_records * 100) if stats.total_history_records > 0 else 0
                     print(f"{dex_name}: {count:,} records ({percentage:.1f}%)")
+                
+                if len(sorted_dexes) > 10:
+                    remaining_count = sum(count for _, count in sorted_dexes[10:])
+                    print(f"... and {len(sorted_dexes) - 10} more DEXes with {remaining_count:,} records")
             
             # Collection activity timeline
-            if stats['collection_activity']:
-                print(f"\n=== Collection Activity (Last 24 Hours) ===")
-                for activity in stats['collection_activity']:
-                    print(f"{activity['hour']}: {activity['records']} records")
+            if stats.collection_activity:
+                print(f"\n=== Collection Activity (Last {hours} Hours) ===")
+                total_recent_records = sum(activity['records'] for activity in stats.collection_activity)
+                print(f"Total records collected: {total_recent_records:,}")
+                
+                # Show hourly breakdown for last 6 hours
+                recent_activity = stats.collection_activity[-6:] if len(stats.collection_activity) > 6 else stats.collection_activity
+                if recent_activity:
+                    print("Recent hourly activity:")
+                    for activity in recent_activity:
+                        unique_pools = activity.get('unique_pools', 'N/A')
+                        avg_reserve = activity.get('avg_reserve_usd')
+                        total_volume = activity.get('total_volume_h24')
+                        
+                        activity_line = f"  {activity['hour']}: {activity['records']} records"
+                        if unique_pools != 'N/A':
+                            activity_line += f" ({unique_pools} unique pools)"
+                        if avg_reserve:
+                            activity_line += f", avg reserve: ${avg_reserve:,.2f}"
+                        if total_volume:
+                            activity_line += f", total volume: ${total_volume:,.2f}"
+                        
+                        print(activity_line)
+            
+            # Error summary
+            if stats.error_summary:
+                print(f"\n=== Collection Health (Last {hours} Hours) ===")
+                error_sum = stats.error_summary
+                print(f"Total Executions: {error_sum['total_executions']}")
+                print(f"Successful: {error_sum['successful_executions']} ({error_sum['success_rate']:.1f}%)")
+                print(f"Failed: {error_sum['failed_executions']}")
+                print(f"Partial: {error_sum['partial_executions']}")
+            
+            # Rate limiting context
+            if stats.rate_limiting_context:
+                rate_ctx = stats.rate_limiting_context
+                if rate_ctx['rate_limit_errors_count'] > 0:
+                    print(f"\n=== Rate Limiting Issues ===")
+                    print(f"Rate limit errors in last {hours}h: {rate_ctx['rate_limit_errors_count']}")
+                    print(f"Rate limit alerts: {rate_ctx['rate_limit_alerts_count']}")
+                    
+                    if rate_ctx['recent_rate_limit_errors']:
+                        print("Recent rate limit errors:")
+                        for error in rate_ctx['recent_rate_limit_errors']:
+                            print(f"  {error['timestamp']} - {error['collector_type']}: {error['error_message']}")
             
             # Recent records
-            if stats['recent_records']:
+            if stats.recent_records:
                 print(f"\n=== Recent Records (Last {limit}) ===")
-                for record in stats['recent_records']:
-                    network_display = f"[{record['network_id']}]" if record['network_id'] else ""
-                    dex_display = f"({record['dex_id']})" if record['dex_id'] else ""
-                    reserve_display = f"${record['reserve_in_usd']:,.2f}" if record['reserve_in_usd'] else "N/A"
-                    volume_display = f"${record['volume_usd_h24']:,.2f}" if record['volume_usd_h24'] else "N/A"
-                    
-                    print(f"\n{record['name']} {network_display} {dex_display}")
-                    print(f"  Pool ID: {record['pool_id']}")
+                for i, record in enumerate(stats.recent_records, 1):
+                    print(f"\n{i}. {record['name']} ({record['pool_id']})")
+                    print(f"  Network: {record['network_id']}, DEX: {record['dex_id']}")
                     print(f"  Address: {record['address']}")
-                    print(f"  Reserve: {reserve_display}")
-                    print(f"  24h Volume: {volume_display}")
-                    print(f"  Pool Created: {record['pool_created_at']}")
-                    print(f"  Collected: {record['collected_at']}")
                     
-                    # Price changes
+                    if record['reserve_in_usd']:
+                        print(f"  Reserve: ${record['reserve_in_usd']:,.2f}")
+                    
+                    if record['volume_usd_h24']:
+                        print(f"  24h Volume: ${record['volume_usd_h24']:,.2f}")
+                    
                     if record['price_change_percentage_h1'] is not None:
-                        print(f"  1h Change: {record['price_change_percentage_h1']:+.2f}%")
-                    if record['price_change_percentage_h24'] is not None:
-                        print(f"  24h Change: {record['price_change_percentage_h24']:+.2f}%")
+                        change_1h = record['price_change_percentage_h1']
+                        change_24h = record['price_change_percentage_h24'] or 0
+                        print(f"  Price Change: 1h: {change_1h:+.2f}%, 24h: {change_24h:+.2f}%")
                     
-                    # Transaction counts
-                    if record['transactions_h24_buys'] is not None or record['transactions_h24_sells'] is not None:
+                    if record['fdv_usd']:
+                        print(f"  FDV: ${record['fdv_usd']:,.2f}")
+                    
+                    if record['pool_created_at']:
+                        print(f"  Pool Created: {record['pool_created_at']}")
+                    
+                    if record['collected_at']:
+                        print(f"  Collected: {record['collected_at']}")
+                    
+                    if record['transactions_h24_buys'] is not None and record['transactions_h24_sells'] is not None:
                         buys = record['transactions_h24_buys'] or 0
                         sells = record['transactions_h24_sells'] or 0
                         print(f"  24h Transactions: {buys} buys, {sells} sells")
+            
+            # Detailed error analysis if requested
+            if errors:
+                print(f"\n=== Detailed Error Analysis ===")
+                error_analysis = await stats_engine.get_error_analysis(network, hours)
+                
+                print(f"Total errors in last {hours}h: {error_analysis.error_count}")
+                print(f"Rate limiting errors: {error_analysis.rate_limiting_errors}")
+                print(f"Validation errors: {error_analysis.validation_errors}")
+                print(f"Database errors: {error_analysis.database_errors}")
+                print(f"API errors: {error_analysis.api_errors}")
+                
+                if error_analysis.recent_errors:
+                    print(f"\nRecent errors:")
+                    for error in error_analysis.recent_errors[:5]:
+                        print(f"  {error['timestamp']} - {error['collector_type']} ({error['error_type']})")
+                        print(f"    {error['error_message']}")
+                
+                if error_analysis.recovery_suggestions:
+                    print(f"\nRecovery suggestions:")
+                    for suggestion in error_analysis.recovery_suggestions:
+                        print(f"  • {suggestion}")
+            
+            # Performance metrics if requested
+            if performance:
+                print(f"\n=== Performance Metrics ===")
+                perf_metrics = await stats_engine.get_collection_performance_metrics(network, hours)
+                
+                print(f"Total executions: {perf_metrics['total_executions']}")
+                print(f"Average execution time: {perf_metrics['avg_execution_time']}s")
+                print(f"Min/Max execution time: {perf_metrics['min_execution_time']}s / {perf_metrics['max_execution_time']}s")
+                print(f"Total records collected: {perf_metrics['total_records_collected']:,}")
+                print(f"Average records per execution: {perf_metrics['avg_records_per_execution']:.1f}")
+                print(f"Processing rate: {perf_metrics['records_per_second']:.1f} records/second")
             
             # Summary
             print(f"\n=== Summary ===")
@@ -808,18 +779,21 @@ def new_pools_stats(config, network, limit):
             else:
                 print("Showing statistics for all networks")
             
-            if stats['total_history_records'] > 0:
-                latest_collection = stats['recent_records'][0]['collected_at'] if stats['recent_records'] else "Unknown"
+            if stats.total_history_records > 0:
+                latest_collection = stats.recent_records[0]['collected_at'] if stats.recent_records else "Unknown"
                 print(f"Latest collection: {latest_collection}")
                 
                 # Calculate collection frequency
-                if len(stats['collection_activity']) > 1:
-                    total_hours_with_data = len([a for a in stats['collection_activity'] if a['records'] > 0])
+                if len(stats.collection_activity) > 1:
+                    total_hours_with_data = len([a for a in stats.collection_activity if a['records'] > 0])
                     if total_hours_with_data > 0:
-                        avg_records_per_hour = sum(a['records'] for a in stats['collection_activity']) / total_hours_with_data
+                        avg_records_per_hour = sum(a['records'] for a in stats.collection_activity) / total_hours_with_data
                         print(f"Average records per active hour: {avg_records_per_hour:.1f}")
             else:
                 print("No collection data found")
+            
+            # Show available options
+            print(f"\nUse --errors for detailed error analysis, --performance for performance metrics")
         
         except Exception as e:
             logger.error(f"Failed to retrieve statistics: {e}")
@@ -829,6 +803,94 @@ def new_pools_stats(config, network, limit):
             await scheduler_cli.shutdown()
     
     asyncio.run(show_stats())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--network', '-n', help='Filter by network (optional)')
+@click.option('--hours', '-h', default=24, help='Hours to look back for error analysis')
+def new_pools_errors(config, network, hours):
+    """Display comprehensive error analysis for new pools collection with rate limiting context."""
+    async def show_errors():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=True)
+        
+        try:
+            logger.info(f"Analyzing new pools collection errors (network: {network}, hours: {hours})")
+            
+            # Initialize statistics engine
+            stats_engine = StatisticsEngine(scheduler_cli.db_manager)
+            
+            # Get comprehensive error analysis
+            error_analysis = await stats_engine.get_error_analysis(network, hours)
+            
+            print(f"\n=== New Pools Collection Error Analysis (Last {hours} Hours) ===")
+            
+            # Error summary
+            print(f"\nTotal errors: {error_analysis.error_count}")
+            if error_analysis.error_count == 0:
+                print("✅ No errors found in the specified time period!")
+                return
+            
+            # Error categorization
+            print(f"\n=== Error Categories ===")
+            print(f"Rate limiting errors: {error_analysis.rate_limiting_errors}")
+            print(f"Validation errors: {error_analysis.validation_errors}")
+            print(f"Database errors: {error_analysis.database_errors}")
+            print(f"API errors: {error_analysis.api_errors}")
+            
+            # Recent errors with details
+            if error_analysis.recent_errors:
+                print(f"\n=== Recent Errors (Last 10) ===")
+                for i, error in enumerate(error_analysis.recent_errors[:10], 1):
+                    print(f"\n{i}. {error['timestamp']} - {error['collector_type']}")
+                    print(f"   Type: {error['error_type']}")
+                    print(f"   Message: {error['error_message']}")
+                    if error['execution_time']:
+                        print(f"   Execution time: {error['execution_time']:.2f}s")
+                    if error['records_collected']:
+                        print(f"   Records collected: {error['records_collected']}")
+            
+            # Recovery suggestions
+            if error_analysis.recovery_suggestions:
+                print(f"\n=== Recovery Suggestions ===")
+                for i, suggestion in enumerate(error_analysis.recovery_suggestions, 1):
+                    print(f"{i}. {suggestion}")
+            
+            # Rate limiting context
+            stats = await stats_engine.get_comprehensive_statistics(network, 5, hours)
+            if stats.rate_limiting_context and stats.rate_limiting_context['rate_limit_errors_count'] > 0:
+                print(f"\n=== Rate Limiting Context ===")
+                rate_ctx = stats.rate_limiting_context
+                print(f"Rate limit errors: {rate_ctx['rate_limit_errors_count']}")
+                print(f"Rate limit alerts: {rate_ctx['rate_limit_alerts_count']}")
+                
+                if rate_ctx['recent_rate_limit_errors']:
+                    print("\nRecent rate limit errors:")
+                    for error in rate_ctx['recent_rate_limit_errors']:
+                        print(f"  {error['timestamp']} - {error['collector_type']}")
+                        print(f"    {error['error_message']}")
+                
+                print(f"\n💡 Use 'rate-limit-status' command to check current rate limiter status")
+                print(f"💡 Use 'reset-rate-limiter --network {network or 'NETWORK'}' to reset rate limiters if needed")
+            
+            # Performance impact
+            perf_metrics = await stats_engine.get_collection_performance_metrics(network, hours)
+            if perf_metrics['total_executions'] > 0:
+                success_rate = ((perf_metrics['total_executions'] - error_analysis.error_count) / perf_metrics['total_executions']) * 100
+                print(f"\n=== Performance Impact ===")
+                print(f"Success rate: {success_rate:.1f}%")
+                print(f"Total executions: {perf_metrics['total_executions']}")
+                print(f"Failed executions: {error_analysis.error_count}")
+        
+        except Exception as e:
+            logger.error(f"Failed to analyze errors: {e}")
+            print(f"Error analyzing errors: {e}")
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(show_errors())
 
 
 @cli.command()
