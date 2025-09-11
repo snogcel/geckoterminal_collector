@@ -11,7 +11,12 @@
   - Create collector configuration entries for solana and ethereum networks with configurable intervals
   - _Requirements: 1.1, 1.2, 1.3, 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 2. Implement collect-new-pools CLI command
+- [x] 2. Implement collect-new-pools CLI command
+
+
+
+
+
   - Create new CLI command function with click decorators for network-specific new pools collection
   - Add command-line options for config file path, network selection, and mock mode
   - Implement async execution wrapper to initialize SchedulerCLI and run NewPoolsCollector

@@ -438,6 +438,127 @@ def rate_limit_status(config):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--network', '-n', default='solana', help='Network to collect pools for')
+@click.option('--mock', is_flag=True, help='Use mock clients for testing')
+def collect_new_pools(config, network, mock):
+    """Run new pools collection for a specific network on-demand."""
+    async def run_collection():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=mock)
+        
+        try:
+            # Create a temporary NewPoolsCollector instance for this network
+            config_manager = ConfigManager(config)
+            collection_config = config_manager.get_config()
+            
+            # Check if network is configured
+            if network not in collection_config.new_pools.networks:
+                logger.error(f"Network '{network}' not configured in new_pools.networks")
+                available_networks = list(collection_config.new_pools.networks.keys())
+                logger.info(f"Available networks: {', '.join(available_networks)}")
+                return
+            
+            # Get rate limiter for this network
+            collector_id = f"new_pools_{network}"
+            rate_limiter = await scheduler_cli.rate_limit_coordinator.get_limiter(collector_id)
+            
+            # Create metadata tracker
+            metadata_tracker = MetadataTracker(db_manager=scheduler_cli.db_manager)
+            
+            # Create collector instance
+            collector = NewPoolsCollector(
+                config=collection_config,
+                db_manager=scheduler_cli.db_manager,
+                network=network,
+                metadata_tracker=metadata_tracker,
+                use_mock=mock
+            )
+            
+            # Set rate limiter
+            if hasattr(collector, 'set_rate_limiter'):
+                collector.set_rate_limiter(rate_limiter)
+            
+            logger.info(f"Starting new pools collection for network: {network}")
+            
+            # Check rate limiter status before execution
+            if rate_limiter:
+                try:
+                    limiter_status = await rate_limiter.get_status()
+                    if limiter_status.get('backoff_until'):
+                        logger.warning(f"Rate limiter in backoff until: {limiter_status['backoff_until']}")
+                        logger.warning("Collection may be delayed due to rate limiting")
+                except Exception as e:
+                    logger.warning(f"Could not check rate limiter status: {e}")
+            
+            # Execute collection
+            result = await collector.collect()
+            
+            # Display comprehensive results
+            print(f"\n=== New Pools Collection Results ===")
+            print(f"Network: {network}")
+            print(f"Success: {result.success}")
+            print(f"Total Records: {result.records_collected}")
+            print(f"Collection Time: {result.collection_time}")
+            
+            if result.metadata:
+                print(f"\n=== Collection Details ===")
+                print(f"Pools Created: {result.metadata.get('pools_created', 0)}")
+                print(f"History Records: {result.metadata.get('history_records', 0)}")
+                print(f"API Pools Received: {result.metadata.get('api_pools_received', 0)}")
+            
+            if result.errors:
+                print(f"\n=== Errors ({len(result.errors)}) ===")
+                for error in result.errors:
+                    print(f"  • {error}")
+            
+            # Show rate limiting status after execution
+            if rate_limiter:
+                try:
+                    rate_status = await rate_limiter.get_status()
+                    print(f"\n=== Rate Limiting Status ===")
+                    print(f"Daily Requests: {rate_status.get('daily_requests', 0)}/{rate_status.get('daily_limit', 0)}")
+                    print(f"Circuit State: {rate_status.get('circuit_state', 'Unknown')}")
+                    
+                    if rate_status.get('backoff_until'):
+                        print(f"⚠️  In backoff until: {rate_status['backoff_until']}")
+                    
+                    metrics = rate_status.get('metrics', {})
+                    print(f"Total API Requests: {metrics.get('total_requests', 0)}")
+                    print(f"Rate Limit Hits: {metrics.get('rate_limit_hits', 0)}")
+                    
+                    if metrics.get('rate_limit_hits', 0) > 0:
+                        print(f"⚠️  Rate limiting detected during collection")
+                except Exception as e:
+                    print(f"\n=== Rate Limiting Status ===")
+                    print(f"Could not retrieve rate limiter status: {e}")
+            
+            # Show global rate limiting status
+            global_status = await scheduler_cli.rate_limit_coordinator.get_global_status()
+            print(f"\n=== Global Rate Usage ===")
+            print(f"Daily Usage: {global_status['global_usage']['daily_usage_percentage']:.1f}%")
+            print(f"Total Daily Requests: {global_status['global_usage']['total_daily_requests']}")
+            
+        except Exception as e:
+            logger.error(f"Collection failed: {e}")
+            
+            # Check if it's a rate limiting issue
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                logger.error("This appears to be a rate limiting issue.")
+                if scheduler_cli.rate_limit_coordinator:
+                    rate_status = await scheduler_cli.rate_limit_coordinator.get_global_status()
+                    for limiter_id, limiter_status in rate_status['limiters'].items():
+                        if network in limiter_id and limiter_status['backoff_until']:
+                            logger.error(f"Rate limiter {limiter_id} in backoff until: {limiter_status['backoff_until']}")
+                            logger.error("Try again later or use --mock flag for testing")
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(run_collection())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
 @click.option('--collector', help='Reset rate limiter for specific collector')
 @click.option('--all', 'reset_all', is_flag=True, help='Reset all rate limiters')
 def reset_rate_limiter(config, collector, reset_all):

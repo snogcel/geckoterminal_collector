@@ -129,6 +129,11 @@ class BaseGeckoClient(ABC):
     async def get_specific_token_on_network(self, network: str, token_address: str) -> Any:
         """Get token information."""
         pass
+    
+    @abstractmethod
+    async def get_new_pools_by_network(self, network: str) -> Any:
+        """Get new pools by network."""
+        pass
 
 
 class GeckoTerminalClient(BaseGeckoClient):
@@ -301,6 +306,13 @@ class GeckoTerminalClient(BaseGeckoClient):
             return await self._sdk_client.get_specific_token_on_network(network, token_address)
         
         return await self._execute_with_retry(_get_token)
+    
+    async def get_new_pools_by_network(self, network: str) -> Any:
+        """Get new pools by network."""
+        async def _get_new_pools():
+            return await self._sdk_client.get_new_pools_by_network(network)
+        
+        return await self._execute_with_retry(_get_new_pools)
     
     async def direct_api_call(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -668,4 +680,98 @@ class MockGeckoTerminalClient(BaseGeckoClient):
                     "price_usd": "1.0"
                 }
             }
+        }
+    
+    async def get_new_pools_by_network(self, network: str) -> Dict[str, Any]:
+        """Get new pools by network (mock)."""
+        # Load new pools data from fixture if available
+        new_pools_data = self.fixtures.get("new_pools", [])
+        
+        # If no fixture data, create mock new pools data
+        if not new_pools_data:
+            new_pools_data = [
+                {
+                    "id": f"{network}_mock_pool_1",
+                    "name": "MOCK1 / SOL",
+                    "address": "mock_address_1",
+                    "base_token_price_usd": "0.00001234",
+                    "base_token_price_native_currency": "0.00000006",
+                    "quote_token_price_usd": "215.48",
+                    "quote_token_price_native_currency": "1",
+                    "reserve_in_usd": "5000.00",
+                    "pool_created_at": "2025-09-11T08:00:00Z",
+                    "fdv_usd": "12345.67",
+                    "market_cap_usd": None,
+                    "price_change_percentage_h1": "2.5",
+                    "price_change_percentage_h24": "5.2",
+                    "transactions_h1_buys": "8",
+                    "transactions_h1_sells": "3",
+                    "transactions_h24_buys": "25",
+                    "transactions_h24_sells": "12",
+                    "volume_usd_h24": "1250.75",
+                    "dex_id": "pump-fun",
+                    "base_token_id": f"{network}_mock_token_1",
+                    "quote_token_id": f"{network}_So11111111111111111111111111111111111111112",
+                    "network_id": network
+                },
+                {
+                    "id": f"{network}_mock_pool_2",
+                    "name": "MOCK2 / SOL",
+                    "address": "mock_address_2",
+                    "base_token_price_usd": "0.00005678",
+                    "base_token_price_native_currency": "0.00000026",
+                    "quote_token_price_usd": "215.48",
+                    "quote_token_price_native_currency": "1",
+                    "reserve_in_usd": "3200.50",
+                    "pool_created_at": "2025-09-11T07:30:00Z",
+                    "fdv_usd": "56789.12",
+                    "market_cap_usd": "45000.00",
+                    "price_change_percentage_h1": "-1.2",
+                    "price_change_percentage_h24": "3.8",
+                    "transactions_h1_buys": "5",
+                    "transactions_h1_sells": "7",
+                    "transactions_h24_buys": "18",
+                    "transactions_h24_sells": "22",
+                    "volume_usd_h24": "890.25",
+                    "dex_id": "raydium",
+                    "base_token_id": f"{network}_mock_token_2",
+                    "quote_token_id": f"{network}_So11111111111111111111111111111111111111112",
+                    "network_id": network
+                }
+            ]
+        
+        # Format as API response
+        formatted_pools = []
+        for pool in new_pools_data:
+            formatted_pool = {
+                "id": pool.get("id"),
+                "type": "pool",
+                "attributes": {
+                    "name": pool.get("name"),
+                    "base_token_price_usd": str(pool.get("base_token_price_usd", 0)),
+                    "base_token_price_native_currency": str(pool.get("base_token_price_native_currency", 0)),
+                    "quote_token_price_usd": str(pool.get("quote_token_price_usd", 0)),
+                    "quote_token_price_native_currency": str(pool.get("quote_token_price_native_currency", 1)),
+                    "address": pool.get("address"),
+                    "reserve_in_usd": str(pool.get("reserve_in_usd", 0)),
+                    "pool_created_at": pool.get("pool_created_at"),
+                    "fdv_usd": str(pool.get("fdv_usd", 0)) if pool.get("fdv_usd") else None,
+                    "market_cap_usd": str(pool.get("market_cap_usd", 0)) if pool.get("market_cap_usd") else None,
+                    "price_change_percentage_h1": str(pool.get("price_change_percentage_h1", 0)),
+                    "price_change_percentage_h24": str(pool.get("price_change_percentage_h24", 0)),
+                    "transactions_h1_buys": int(pool.get("transactions_h1_buys", 0)),
+                    "transactions_h1_sells": int(pool.get("transactions_h1_sells", 0)),
+                    "transactions_h24_buys": int(pool.get("transactions_h24_buys", 0)),
+                    "transactions_h24_sells": int(pool.get("transactions_h24_sells", 0)),
+                    "volume_usd_h24": str(pool.get("volume_usd_h24", 0)),
+                    "dex_id": pool.get("dex_id"),
+                    "base_token_id": pool.get("base_token_id"),
+                    "quote_token_id": pool.get("quote_token_id"),
+                    "network_id": pool.get("network_id", network)
+                }
+            }
+            formatted_pools.append(formatted_pool)
+        
+        return {
+            "data": formatted_pools
         }
