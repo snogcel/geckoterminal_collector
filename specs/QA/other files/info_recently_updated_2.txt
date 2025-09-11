@@ -1,0 +1,62 @@
+{
+  "data": [
+    {
+      "id": "solana_BoLTp38Aqnaewa1yJ98tLx19y5DEQgrDjtwWv3k9hBxu",
+      "type": "token",
+      "attributes": {
+        "address": "BoLTp38Aqnaewa1yJ98tLx19y5DEQgrDjtwWv3k9hBxu",
+        "name": "BOLT",
+        "symbol": "BOLT",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69035/large/Bolt_IMage.PNG?1757320261",
+        "coingecko_coin_id": "bolt-2",
+        "websites": [
+          "https://boltonsol.dev"
+        ],
+        "discord_url": null,
+        "telegram_handle": "boltverse",
+        "twitter_handle": "BoltisonX",
+        "description": "Solana traditionally has many rugs and Bolt's launch embodies the essence of bringing energy, trust, and community outreach back to Solana. See what Bolt is about below.\r\n\r\nBolt is a streak of pure lightning given life a fast, lovable, and fearless guardian born from the Stormcore, the heart of the magical realm known as Cloudspire. Glowing with raw energy, Bolt moves faster than the eye can track, a living current that surges through the skies, rivers, and hidden realms. His mission is simple but powerful: protect the Cloudspire from the shadows that seek to consume it.\r\nThis isn’t just a character it’s a movement. The Bolt community carries his energy into the digital realm, spreading light, speed, and fun while standing against the “Nullis” of the crypto world fear, doubt, and negativity.\r\n\r\nThe Bolt ecosystem is built for community raids, high-energy engagement, and a long-term journey toward building one of the most iconic meme coins on the Solana chain.",
+        "gt_score": 58.28744954128441,
+        "metadata_updated_at": "2025-09-08T08:45:01Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_H2eWtG57do5krGxpZdzs6sDddHLz5Nny7797YhR4pump",
+      "type": "token",
+      "attributes": {
+        "address": "H2eWtG57do5krGxpZdzs6sDddHLz5Nny7797YhR4pump",
+        "name": "GoldDigger",
+        "symbol": "GDIG",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69033/large/IMG_9125.jpeg?1757320064",
+        "coingecko_coin_id": "golddigger",
+        "websites": [
+          "https://www.golddigger.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": "GoldDiggerFun",
+        "twitter_handle": "gdig344165",
+        "description": "GoldDigger ($GDIG) is a revolutionary gold mine-linked cryptocurrency that merges the excitement of meme culture with the stability of a fixed gold-producing asset\r\nGolddigger ($GDIG) is a Solana-powered meme coin built around the thrill of the chase and the fun of striking digital gold. More than just a token, GDIG embodies the spirit of adventurers, risk-takers, and community-driven treasure hunters who believe fortune favors the bold.\r\n\r\nBacked by Solana’s lightning-fast transactions and ultra-low fees, Golddigger creates a playground where meme culture meets the rush of discovery. Every GDIG holder is part of a community digging for the next big opportunity, turning humor, hype, and treasure-hunting energy into a movement.\r\n\r\nWith its playful branding, strong community focus, and treasure-inspired ecosystem, GDIG aims to become more than just a coin — it’s the golden meme of Solana, rewarding those who dare to dig deeper.",
+        "gt_score": 85.44337614678898,
+        "metadata_updated_at": "2025-09-08T08:35:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    }
+]
+}

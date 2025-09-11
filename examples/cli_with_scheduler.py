@@ -301,9 +301,19 @@ def run_once(config, collector, mock):
         
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
-            collector_key = collector_status['collector_key'] if collector_status else ""
 
-            if collector_status and collector in collector_key:
+            print("-_collector_status--")
+            collector = job_id.removeprefix("collector_")
+            print("-collector_status--")
+            print("job_id: ", job_id)
+            print("collector: ", collector)
+            print("collector_key: ", collector_status['collector_key'])
+            print("---")
+            print(collector_status['collector_key'])
+
+            #collector_key = collector_status['collector_key'] if collector_status else ""
+
+            if collector_status and collector in collector_status['collector_key']:
                 target_job_id = job_id
                 break
         

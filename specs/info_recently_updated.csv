@@ -1,0 +1,25 @@
+,,"Context: ""oracle"" is a trusted node in a decentralized system that is able to connect to normal HTTP servers."
+id,solana_SW1TCHLmRGTfW5xZknqQdpdarB8PD95sJYWpNp9TbFx,
+type,token,
+attributes_address,SW1TCHLmRGTfW5xZknqQdpdarB8PD95sJYWpNp9TbFx,
+attributes_name,Switchboard,
+attributes_symbol,SWTCH,
+attributes_decimals,9,
+attributes_image_url,https://coin-images.coingecko.com/coins/images/69058/large/IMG_1044.JPG-modified.png?1757384872,
+attributes_coingecko_coin_id,switchboard,
+attributes_websites,['https://switchboard.xyz'],
+attributes_discord_url,https://discord.com/invite/switchboardxyz,
+attributes_telegram_handle,,
+attributes_twitter_handle,switchboardxyz,
+attributes_description,"Switchboard: The Everything Oracle.
+
+It's not just another oracle; it's the fastest, most customizable and only permissionless oracle protocol out there.
+
+Trusted by leading decentralized applications to secure over $5 billion in value, Switchboard offers unparalleled data access across multiple blockchains.
+
+Switchboard offers both the fastest oracles on the market and a platform to build your own oracles for any custom data feeds you need.
+",
+attributes_gt_score,,
+attributes_metadata_updated_at,2025-09-09T02:28:01Z,
+relationships_network_data_id,solana,
+relationships_network_data_type,network,

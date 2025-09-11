@@ -1,0 +1,132 @@
+Confirmed that location of watchlist file_path --should-- be:
+
+file_path: "C:\\Projects\\geckoterminal_collector\\specs\\watchlist_test.csv"      # Path to watchlist CSV file
+
+-- at what point is the first watchlist defined? 
+
+Running watchlist collector...
+INFO: Retrieving active watchlist entries
+INFO: No active watchlist entries found
+
+______________________
+
+
+
+1. is it writing stuff to DB after init?
+
+
+cli.py
+
+validate_workflow_command
+build_ohlcv_command
+
+
+
+
+2. Validate-workflow produces output successfully, which is the main goal of this component at current time.
+
+-- it's not handling the --days parameter it looks like
+
+result = await watchlist_collector.collect_single_item(item) # this is calling watchlist_collector directly
+
+
+--> cli.py:1846
+ohlcv_result = await ohlcv_collector.collect_for_pool(
+                    pool_id=pool_id,
+                    timeframe=args.timeframe
+                )
+
+--> ohlcv_collector.py
+
+		# Get OHLCV data from API
+                response = await self.client.get_ohlcv_data(
+                    network=self.network,
+                    pool_address=pool_address,
+                    timeframe=self._convert_timeframe_to_api_format(target_timeframe),
+                    limit=self.limit,
+                    currency=self.currency,
+                    token=self.token
+                )
+
+--> gecko_client.py:275 #TODO, troubleshoot this more
+
+	async def get_ohlcv_data(self, network: str, pool_address: str, 
+                           timeframe: str = "1h", 
+                           before_timestamp: Optional[int] = None,
+                           limit: int = 1000,
+                           currency: str = "usd",
+                           token: str = "base") -> Any:
+        """Get OHLCV data for a pool."""
+        pass
+
+
+	async def get_ohlcv_data(self, network: str, pool_address: str, 
+                           timeframe: str = "1h", 
+                           before_timestamp: Optional[int] = None,
+                           limit: int = 1000,
+                           currency: str = "usd",
+                           token: str = "base") -> Dict[str, Any]:
+        """Get OHLCV data for a pool (mock)."""
+        ohlcv_data = self.fixtures.get("ohlcv", [])
+        
+        # Convert CSV format to API format
+        formatted_data = []
+        for row in ohlcv_data:
+            formatted_data.append([
+                row.get("timestamp"),
+                row.get("open"),
+                row.get("high"), 
+                row.get("low"),
+                row.get("close"),
+                row.get("volume_usd")  # Use volume_usd from CSV
+            ])
+        
+        return {
+            "data": {
+                "id": pool_address,
+                "type": "pool",
+                "attributes": {
+                    "ohlcv_list": formatted_data
+                }
+            },
+            "meta": {
+                "base": {
+                    "address": pool_address,
+                    "symbol": "TOKEN"
+                }
+            }
+        }
+
+
+3. Document process to manually put stuff into watchlist.csv
+
+Heaven / LIGHT token
+
+- Grab DexScreener URL
+
+detailUrl: /solana/eku9zgskunvvk6nhmpsqnxqckpzt1picrcjdxsbwo9ua
+tokenSymbol: LIGHT
+tokenName: light
+chain: SOL
+dex: Heaven
+
+Go to --> https://dexscreener.com/solana/eku9zgskunvvk6nhmpsqnxqckpzt1picrcjdxsbwo9ua
+
+Scrape:
+
+Pair: EkU9zGSkUnVVK6nhmPSqnxqcKPzt1PicrCjdxSbWo9uA = poolAddress
+LIGHT: LiGHtkg3uTa9836RaNkKLLriqTNRcMdRAhqjGWNv777 = networkAddress
+SOL: So11111111111111111111111111111111111111112
+
+
+tokenSymbol,tokenName,chain,dex,poolAddress,networkAddress
+"LIGHT","Light","SOL","Heaven","EkU9zGSkUnVVK6nhmPSqnxqcKPzt1PicrCjdxSbWo9uA","LiGHtkg3uTa9836RaNkKLLriqTNRcMdRAhqjGWNv777"
+
+_____________________
+
+
+
+
+
+
+

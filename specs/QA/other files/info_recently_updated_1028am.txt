@@ -1,0 +1,2913 @@
+{
+  "data": [
+    {
+      "id": "solana_6VaiLPR5VouK91oFbZigfSU6Gu7A4aRToTXNb7R6ZVjB",
+      "type": "token",
+      "attributes": {
+        "address": "6VaiLPR5VouK91oFbZigfSU6Gu7A4aRToTXNb7R6ZVjB",
+        "name": "TROLL",
+        "symbol": "TROLL",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/r9hexneq6r1fuzus2o2kdl7jow6n",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://trollnow.net"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "trollteamuganda",
+        "description": "For all the trolls. The most famous og meme to exist",
+        "gt_score": 63.18036697247707,
+        "metadata_updated_at": "2025-09-08T13:56:50Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_DNeC4WPqdjcptsx39nfM4bkpQ1zeccAD4XLpPBP1pump",
+      "type": "token",
+      "attributes": {
+        "address": "DNeC4WPqdjcptsx39nfM4bkpQ1zeccAD4XLpPBP1pump",
+        "name": "COCK",
+        "symbol": "COCK",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/3s8yoilne2xi8hcjau5awh0sb4wn",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://cockcto.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "CockOnSol_",
+        "description": "$COCK CTO\nGetting hard for round 2",
+        "gt_score": 62.813394495412844,
+        "metadata_updated_at": "2025-09-08T13:55:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Goq85eLFNC64hLviCQH46VN2ZikUsZqncQzcqUhN3dBZ",
+      "type": "token",
+      "attributes": {
+        "address": "Goq85eLFNC64hLviCQH46VN2ZikUsZqncQzcqUhN3dBZ",
+        "name": "ZombieCurrency",
+        "symbol": "XRZ",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/4u7xyuphg7639yx4zsp9x296uxc8",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://zombiecurrency.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "XRZcoinsolana",
+        "description": "*OFFICIAL* ZombieCurrency.com© 2025 Meme Coin\nTrademark (name,designs,ticker), and all images are copyrights and rights exclusive to owner per USPTO.\nBEWARE: (Every other meme coin of our name/ticker is a FRAUD)!!\n\nCHECK OUR WEBSITE FOR ALL UPDATES INCLUDING; Coin info, memes & NEW \n*MERCHANDISE!*\n",
+        "gt_score": 57.18653211009175,
+        "metadata_updated_at": "2025-09-08T13:54:41Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_2MpjiarUbQnJaWbnypSaeoA3ks58Qv4YamXjtKBxbonk",
+      "type": "token",
+      "attributes": {
+        "address": "2MpjiarUbQnJaWbnypSaeoA3ks58Qv4YamXjtKBxbonk",
+        "name": "Money Printer",
+        "symbol": "MONEY",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69051/large/xu7p5sj11vf3l9bdhjapf3mpq8bg.?1757338271",
+        "coingecko_coin_id": "money-printer",
+        "websites": [
+          "https://www.moneyprinter.online"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "money___Printer",
+        "description": "$MONEY is the meme of 2025. Built for the era of endless printing, it flips the system on its head. Every time they fire up the presses, the chart moves. Fiat loses value — $MONEY gains momentum. They print paper, we mint power.",
+        "gt_score": 73.82253211009174,
+        "metadata_updated_at": "2025-09-08T13:40:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_76rTxzztXjJe7AUaBi7jQ5J61MFgpQgB4Cc934sWbonk",
+      "type": "token",
+      "attributes": {
+        "address": "76rTxzztXjJe7AUaBi7jQ5J61MFgpQgB4Cc934sWbonk",
+        "name": "67COIN",
+        "symbol": "67",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69049/large/gu9n3cil1grfhqigg92bfq73p2my.?1757337238",
+        "coingecko_coin_id": "67coin",
+        "websites": [
+          "https://www.tiktok.com/search?q=67"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "67coinn",
+        "description": "",
+        "gt_score": 98.53211009174312,
+        "metadata_updated_at": "2025-09-08T13:25:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FyyDnWQUAcGoJ4L7ab9P7VUFmT3Bs2ggW2DSJz5cpump",
+      "type": "token",
+      "attributes": {
+        "address": "FyyDnWQUAcGoJ4L7ab9P7VUFmT3Bs2ggW2DSJz5cpump",
+        "name": "W Coin",
+        "symbol": "W Coin",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69048/large/igc3re5vim5ipkon9c95dab3zl9u.?1757336363",
+        "coingecko_coin_id": "w-coin-2",
+        "websites": [
+          "https://x.com/i/communities/1964806127256051947"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Regrets10x",
+        "description": "",
+        "gt_score": 72.5994495412844,
+        "metadata_updated_at": "2025-09-08T13:05:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_DxiAg5mqccrmYJuG8JA2RBhYrPvokoU7wPqc7ZQKpump",
+      "type": "token",
+      "attributes": {
+        "address": "DxiAg5mqccrmYJuG8JA2RBhYrPvokoU7wPqc7ZQKpump",
+        "name": "homeless coin",
+        "symbol": "homeless",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69046/large/azxj274rfjnrlt9nnb32ou2iarfo.?1757335972",
+        "coingecko_coin_id": "homeless-coin",
+        "websites": [],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "zurhxbt",
+        "description": "",
+        "gt_score": 76.88073394495413,
+        "metadata_updated_at": "2025-09-08T13:00:05Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8LFpoJWGS65GMDL7jPKPPgvns3g6vEDg15BmcUSsezuR",
+      "type": "token",
+      "attributes": {
+        "address": "8LFpoJWGS65GMDL7jPKPPgvns3g6vEDg15BmcUSsezuR",
+        "name": "Dogenarii coin",
+        "symbol": "DOGENARII",
+        "decimals": 6,
+        "image_url": null,
+        "coingecko_coin_id": "dogenarii-coin",
+        "websites": [],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "dogecoin",
+        "description": "",
+        "gt_score": 68.9297247706422,
+        "metadata_updated_at": "2025-09-08T13:00:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Fp6oesdikNmEUot6oNz8LcNq1BhzHgJCqKbNbfd8DTyR",
+      "type": "token",
+      "attributes": {
+        "address": "Fp6oesdikNmEUot6oNz8LcNq1BhzHgJCqKbNbfd8DTyR",
+        "name": "BuddyPond",
+        "symbol": "BPC",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/3laip1s5r094cv34cwhy6mjnj02b",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://buddypond.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "BuddyPond",
+        "twitter_handle": "hopon_buddypond",
+        "description": "$BUDDYPOND (BPC): The coin for BuddyPond.com! Making the internet fun again. Browser OS, Messenger, Tons of apps, Open-source, Staking rewards, incredibly amazing! Hop on Buddy Pond!",
+        "gt_score": 6.727889908256881,
+        "metadata_updated_at": "2025-09-08T12:42:26Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_q29umWshmh2fmm1CdRb4cBKhqtW9xX25ezNQi7Bpump",
+      "type": "token",
+      "attributes": {
+        "address": "q29umWshmh2fmm1CdRb4cBKhqtW9xX25ezNQi7Bpump",
+        "name": "nunu",
+        "symbol": "nunu",
+        "decimals": 6,
+        "image_url": null,
+        "coingecko_coin_id": "nunu",
+        "websites": [
+          "https://chillnunu.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "i",
+        "description": "",
+        "gt_score": 75.65743119266055,
+        "metadata_updated_at": "2025-09-08T12:40:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_7o9nv5MPTzvx1Zbd9CGPBuiYKHii8zLZxJBKnyfKpump",
+      "type": "token",
+      "attributes": {
+        "address": "7o9nv5MPTzvx1Zbd9CGPBuiYKHii8zLZxJBKnyfKpump",
+        "name": "Movr AI",
+        "symbol": "MOVR",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69044/large/movr.jpg?1757333751",
+        "coingecko_coin_id": "movr-ai",
+        "websites": [
+          "https://www.movr.ai"
+        ],
+        "discord_url": null,
+        "telegram_handle": "MOVRai",
+        "twitter_handle": "MOVR_ai",
+        "description": "MOVR is an AI-native content engine designed for creators, brands, and communities who need to move at internet speed. One idea becomes endless outputs across TikTok, YouTube Shorts, blogs, X, LinkedIn, and Instagram, all created, optimized, and distributed autonomously. Powered by AI agents that learn and adapt in real time, MOVR works 24/7 to maximize reach, engagement, and consistency while you earn $MOVR tokens from performance. Built for the viral age, MOVR turns content into a compounding asset and distribution into a fully automated workflow.",
+        "gt_score": 54.00612844036697,
+        "metadata_updated_at": "2025-09-08T12:20:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8TEdZ927iyYdB7dKgpQoTzW12YuQjudzR3Q6M8Z9pump",
+      "type": "token",
+      "attributes": {
+        "address": "8TEdZ927iyYdB7dKgpQoTzW12YuQjudzR3Q6M8Z9pump",
+        "name": "COCO",
+        "symbol": "COCO",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/20igr6595k6mice0eo03rs9g7gwd",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://www.cocotoken.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": "CocoEntry",
+        "twitter_handle": "CocosToken",
+        "description": "$COCO holds the wheel - straight to the moon.",
+        "gt_score": 59.082568807339456,
+        "metadata_updated_at": "2025-09-08T11:31:08Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BoLTp38Aqnaewa1yJ98tLx19y5DEQgrDjtwWv3k9hBxu",
+      "type": "token",
+      "attributes": {
+        "address": "BoLTp38Aqnaewa1yJ98tLx19y5DEQgrDjtwWv3k9hBxu",
+        "name": "BOLT",
+        "symbol": "BOLT",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69035/large/Bolt_IMage.PNG?1757320261",
+        "coingecko_coin_id": "bolt-2",
+        "websites": [
+          "https://boltonsol.dev"
+        ],
+        "discord_url": null,
+        "telegram_handle": "boltverse",
+        "twitter_handle": "BoltisonX",
+        "description": "Solana traditionally has many rugs and Bolt's launch embodies the essence of bringing energy, trust, and community outreach back to Solana. See what Bolt is about below.\r\n\r\nBolt is a streak of pure lightning given life a fast, lovable, and fearless guardian born from the Stormcore, the heart of the magical realm known as Cloudspire. Glowing with raw energy, Bolt moves faster than the eye can track, a living current that surges through the skies, rivers, and hidden realms. His mission is simple but powerful: protect the Cloudspire from the shadows that seek to consume it.\r\nThis isn’t just a character it’s a movement. The Bolt community carries his energy into the digital realm, spreading light, speed, and fun while standing against the “Nullis” of the crypto world fear, doubt, and negativity.\r\n\r\nThe Bolt ecosystem is built for community raids, high-energy engagement, and a long-term journey toward building one of the most iconic meme coins on the Solana chain.",
+        "gt_score": 58.28744954128441,
+        "metadata_updated_at": "2025-09-08T08:45:01Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_H2eWtG57do5krGxpZdzs6sDddHLz5Nny7797YhR4pump",
+      "type": "token",
+      "attributes": {
+        "address": "H2eWtG57do5krGxpZdzs6sDddHLz5Nny7797YhR4pump",
+        "name": "GoldDigger",
+        "symbol": "GDIG",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69033/large/IMG_9125.jpeg?1757320064",
+        "coingecko_coin_id": "golddigger",
+        "websites": [
+          "https://www.golddigger.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": "GoldDiggerFun",
+        "twitter_handle": "gdig344165",
+        "description": "GoldDigger ($GDIG) is a revolutionary gold mine-linked cryptocurrency that merges the excitement of meme culture with the stability of a fixed gold-producing asset\r\nGolddigger ($GDIG) is a Solana-powered meme coin built around the thrill of the chase and the fun of striking digital gold. More than just a token, GDIG embodies the spirit of adventurers, risk-takers, and community-driven treasure hunters who believe fortune favors the bold.\r\n\r\nBacked by Solana’s lightning-fast transactions and ultra-low fees, Golddigger creates a playground where meme culture meets the rush of discovery. Every GDIG holder is part of a community digging for the next big opportunity, turning humor, hype, and treasure-hunting energy into a movement.\r\n\r\nWith its playful branding, strong community focus, and treasure-inspired ecosystem, GDIG aims to become more than just a coin — it’s the golden meme of Solana, rewarding those who dare to dig deeper.",
+        "gt_score": 85.44337614678898,
+        "metadata_updated_at": "2025-09-08T08:35:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_GQsefQc5YPE12wkMnYMxD8Rq1wrRX7f9iFgpBjNpBAGS",
+      "type": "token",
+      "attributes": {
+        "address": "GQsefQc5YPE12wkMnYMxD8Rq1wrRX7f9iFgpBjNpBAGS",
+        "name": "lambo",
+        "symbol": "LAMBO",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68302/large/Lambo_logo_.png?1757314317",
+        "coingecko_coin_id": "lambo-5",
+        "websites": [
+          "https://lambobags.space",
+          "https://x.com/i/communities/1956762307033477526"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Lambo_OnBags",
+        "description": "$LAMBO – Turning the Meme Into Reality\r\n\r\nIn crypto, one question has stood the test of time: “Wen Lambo?”\r\nIt’s more than a meme—it’s a symbol of success, a cultural milestone, and the ultimate flex that every trader dreams about.\r\n\r\n$LAMBO was created to finally answer that question.\r\n\r\nInstead of being just another meme token, $LAMBO brings real utility tied to culture. Through transaction fee royalties, lucky holders will have the chance to win actual Lamborghinis. Not promises, not hypotheticals—real cars, delivered to real people in the community.\r\n\r\nWhy $LAMBO?\r\n\r\nMost projects in crypto fade into noise because they lack identity. $LAMBO is different because it represents something instantly recognizable. Whether you are a crypto veteran who’s been through multiple cycles or a newcomer curious about the hype, the Lamborghini is a universal symbol of aspiration.\r\n\r\nThe simplicity of the idea makes it powerful: hold $LAMBO, engage with the community, and you could drive away in the very car that defines crypto culture.\r\n\r\nMore Than a Meme\r\n\r\nBut $LAMBO isn’t just about giveaways. It’s also about showcasing how trading itself can be rewarding on @BagsApp.\r\nOn most platforms, creators take the spotlight while traders are left chasing volatility. $LAMBO flips that narrative by proving that even traders win. Every trade contributes to the ecosystem and strengthens the reward pool, creating a system where participation has visible impact.\r\n\r\nThis isn’t just a token; it’s an entry ticket to a cultural movement where memes, rewards, and community energy come together.\r\n\r\nThe Mission\r\n\r\nThe mission of $LAMBO is simple:\r\n\t•\tBring normies into crypto by connecting with an iconic symbol they already know.\r\n\t•\tGive veterans a project that speaks their language and honors the culture.\r\n\t•\tShow how @BagsApp empowers both creators and traders alike.\r\n\r\n$LAMBO is designed to be fun, inclusive, and rewarding. It’s about keeping the spirit of crypto alive—not with complicated jargon or overhyped promises, but with a clear vision that excites everyone.\r\n\r\n“Wen Lambo?” is no longer a question. With $LAMBO, it’s the answer.\r\n",
+        "gt_score": 65.25981651376146,
+        "metadata_updated_at": "2025-09-08T07:30:32Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_AAqcHuk11wcjMVjcWQosvtVzA6ZSoLHzeJ7NZyo4QcM9",
+      "type": "token",
+      "attributes": {
+        "address": "AAqcHuk11wcjMVjcWQosvtVzA6ZSoLHzeJ7NZyo4QcM9",
+        "name": "SOLMAKER",
+        "symbol": "MAKER",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/37727/large/avatar.png?1715334726",
+        "coingecko_coin_id": "solmaker",
+        "websites": [
+          "https://solmaker.app"
+        ],
+        "discord_url": null,
+        "telegram_handle": "solmaker_dapp",
+        "twitter_handle": "solmaker_app",
+        "description": "We offer a diverse range of Solana on-chain robots at our dapp, from market-making to copycat trading bots.\r\n",
+        "gt_score": null,
+        "metadata_updated_at": "2025-09-08T04:46:59Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Ciphern9cCXtms66s8Mm6wCFC27b2JProRQLYmiLMH3N",
+      "type": "token",
+      "attributes": {
+        "address": "Ciphern9cCXtms66s8Mm6wCFC27b2JProRQLYmiLMH3N",
+        "name": "Cipher",
+        "symbol": "CIPHER",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69025/large/cipher200.png?1757301127",
+        "coingecko_coin_id": "cipher-3",
+        "websites": [
+          "https://www.cipherlabsx.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "cipherverification",
+        "twitter_handle": "CipherWallet_X",
+        "description": "Cipher is a Solana-native security stack addressing human error and Web2/Web3 vulnerabilities. It offers a comprehensive solution with AI-driven risk scoring, a two-layered hot/cold wallet (with BitGo custody), and features like transaction masking and malware detection. The goal is to provide enterprise-grade safeguards and effortless security for both retail users and institutional treasuries on Solana.\r\n",
+        "gt_score": 36.26899082568807,
+        "metadata_updated_at": "2025-09-08T03:20:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_41zjgj4AQNfkSEgrFRzThRWk2LecGFZjyeGFtwmLpump",
+      "type": "token",
+      "attributes": {
+        "address": "41zjgj4AQNfkSEgrFRzThRWk2LecGFZjyeGFtwmLpump",
+        "name": "NFTKID",
+        "symbol": "NFTKID",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/ywsmd5vgxgqgzy41hfqwws1vlk99",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://pump.fun/coin/41zjgj4aqnfksegrfrzthrwk2lecgfzjyegftwmlpump"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Nftkid23",
+        "description": null,
+        "gt_score": 41.8959633027523,
+        "metadata_updated_at": "2025-09-08T01:41:59Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Cph1zxsCUz18v6aa2hiUYwfVkSV7BSFHmCaJLqQspump",
+      "type": "token",
+      "attributes": {
+        "address": "Cph1zxsCUz18v6aa2hiUYwfVkSV7BSFHmCaJLqQspump",
+        "name": "Arken World",
+        "symbol": "ARK",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69016/large/arken-world-logo.jpg?1757258686",
+        "coingecko_coin_id": "arken-world",
+        "websites": [
+          "https://www.arken.world"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "arkenworld",
+        "description": "Arken World is a continuously expanding digital universe — a living, breathing world of conflict, community, and activations.",
+        "gt_score": 82.99688073394495,
+        "metadata_updated_at": "2025-09-07T15:45:23Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_5EKFigDd1fhbGxq8hVTzBMcGhJZ1rKxL5aZtPuYqpump",
+      "type": "token",
+      "attributes": {
+        "address": "5EKFigDd1fhbGxq8hVTzBMcGhJZ1rKxL5aZtPuYqpump",
+        "name": "GrandpaTrenchLive",
+        "symbol": "GRAMPS",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69017/large/8x66u8nbhdgnsitxm8vk0o7rhf2t.?1757257042",
+        "coingecko_coin_id": "grandpatrenchlive",
+        "websites": [
+          "https://pump.fun/coin/5ekfigdd1fhbgxq8hvtzbmcghjz1rkxl5aztpuyqpump"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "grandpatrencher",
+        "description": "",
+        "gt_score": 74.43420183486238,
+        "metadata_updated_at": "2025-09-07T15:10:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_B8RHrVBxSjBGKqAbn1tXo6CWjvt5jFkkqjbCZtuDpump",
+      "type": "token",
+      "attributes": {
+        "address": "B8RHrVBxSjBGKqAbn1tXo6CWjvt5jFkkqjbCZtuDpump",
+        "name": "Deflationary USD",
+        "symbol": "DUSD",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69018/large/aubdpf7a37nnq6c3u8o7vlrmbems.?1757257192",
+        "coingecko_coin_id": "deflationary-usd",
+        "websites": [
+          "https://www.deflationaryusd.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "dusdSol",
+        "description": "Automated buyback and burn",
+        "gt_score": 75.04598165137614,
+        "metadata_updated_at": "2025-09-07T15:10:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_3nSMUVeDed6G67RwLvBWxiYU2qEGVJXf2TD5MiTRpump",
+      "type": "token",
+      "attributes": {
+        "address": "3nSMUVeDed6G67RwLvBWxiYU2qEGVJXf2TD5MiTRpump",
+        "name": "Lack Of Memes",
+        "symbol": "MEMELESS",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69013/large/7iz385hpj5riluh075mn5w7sa8eo.?1757256305",
+        "coingecko_coin_id": "lack-of-memes-2",
+        "websites": [
+          "https://x.com/i/communities/1964143184667181218"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "Token Lack Of Memes created via PumpPortal",
+        "gt_score": 71.98770642201835,
+        "metadata_updated_at": "2025-09-07T14:50:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Fv73EXJBRfctJzLVC3P7uQP6er6JU8b4KtDr4LQFpump",
+      "type": "token",
+      "attributes": {
+        "address": "Fv73EXJBRfctJzLVC3P7uQP6er6JU8b4KtDr4LQFpump",
+        "name": "brickcoin",
+        "symbol": "brick",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69015/large/md9knepw3yo2vovd381r5mer90cv.?1757256564",
+        "coingecko_coin_id": "brickcoin",
+        "websites": [
+          "https://www.brickbrick.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "by_brick_sol",
+        "description": "building brick by brick",
+        "gt_score": 82.99688073394495,
+        "metadata_updated_at": "2025-09-07T14:50:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Bi9BBzsT7ec796EzWhT3ZTms95zw8pH4PCzYW8fVpump",
+      "type": "token",
+      "attributes": {
+        "address": "Bi9BBzsT7ec796EzWhT3ZTms95zw8pH4PCzYW8fVpump",
+        "name": "Baseball Thief",
+        "symbol": "KAREN",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69014/large/axqnso354j5a208j516pklq06se7.?1757256377",
+        "coingecko_coin_id": "baseball-thief",
+        "websites": [
+          "https://x.com/i/communities/1964172789897728108"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "A Karen at a Phillies baseball game, stole a ball from a kid after his dad retrieved it for him. ",
+        "gt_score": 67.09475229357798,
+        "metadata_updated_at": "2025-09-07T14:50:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_919MM61rJb1KairDkbNoH8iCVkX1fGFn7w4Dj6Mapump",
+      "type": "token",
+      "attributes": {
+        "address": "919MM61rJb1KairDkbNoH8iCVkX1fGFn7w4Dj6Mapump",
+        "name": "Kuusou",
+        "symbol": "KUUSOU",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69006/large/tokenpic-min.png?1757253562",
+        "coingecko_coin_id": "kuusou",
+        "websites": [
+          "https://kuusoucloud.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "kuusou_cloud",
+        "twitter_handle": "KuusouSOL",
+        "description": "$KUUSOU is a Solana-based community coin that began as a meme but has quickly evolved into a broader brand. It represents a movement built around a halo-wearing cloud mascot and a dedicated community known as Cloud Gang. Beyond simple token trading, $KUUSOU integrates anime-inspired art, and plans for physical merchandise like plush toys. The project actively emphasizes creativity, charity, and long-term brand growth—positioning itself as more than just another meme coin.\r\n\r\nBy combining digital culture, anime aesthetics, and community-driven initiatives, $KUUSOU aims to become a recognizable brand that resonates with both crypto enthusiasts and mainstream audiences.",
+        "gt_score": 65.01541284403669,
+        "metadata_updated_at": "2025-09-07T14:10:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_bZqP1p2mUd9ftH6AFBmoyQqsAFcG5mddMMh3Y8mpump",
+      "type": "token",
+      "attributes": {
+        "address": "bZqP1p2mUd9ftH6AFBmoyQqsAFcG5mddMMh3Y8mpump",
+        "name": "TUTUT COIN",
+        "symbol": "TUTC",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/69007/large/tutc_logo.jpg?1757253881",
+        "coingecko_coin_id": "tutut-coin",
+        "websites": [
+          "https://www.tututcoin.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "tututcoin",
+        "description": "TUTUT is an innovative cryptocurrency designed to facilitate secure, fast, and decentralized transactions on the blockchain. Leveraging cutting-edge technology,\r\n\r\nTutut Coin is a next-generation digital currency built on the Solana blockchain, designed to facilitate fast, low-cost, and secure transactions for payments and remittances. Our mission is to provide a seamless financial experience for users worldwide.\r\n\r\nProblem Statement​ Traditional payment and remittance systems are slow, expensive, and centralized. High transaction fees and long processing times make international money transfers inefficient. Tutut Coin aims to solve these issues by leveraging blockchain technology to provide an instant, low-fee, and decentralized alternative.",
+        "gt_score": 71.13155963302752,
+        "metadata_updated_at": "2025-09-07T14:10:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_aDJLHm1KxsHmnoYJY8VDyWvbGykBNhWJqNgPX7Ppump",
+      "type": "token",
+      "attributes": {
+        "address": "aDJLHm1KxsHmnoYJY8VDyWvbGykBNhWJqNgPX7Ppump",
+        "name": "Moona Lisa",
+        "symbol": "MOONA",
+        "decimals": 6,
+        "image_url": null,
+        "coingecko_coin_id": "moona-lisa",
+        "websites": [
+          "https://moona-lisa.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": "moonalisasoll",
+        "twitter_handle": "moonalisasol",
+        "description": "$MOONA – From Da Vinci to Blockchain\r\n\r\nThey said the Renaissance ended centuries ago. They were wrong.\r\n\r\n$MOONA isn’t just a meme coin — it’s a legendary resurrection of a story buried in the dusty notebooks of Leonardo da Vinci himself. Hidden between sketches of flying machines and anatomical studies, scholars uncovered a peculiar doodle: a cow standing proudly on the moon, glowing with divine lunar energy. Some claim it was a joke, others say it was a vision. But what if it was the first ever tokenomics model?\r\n\r\nFast forward 500 years, and the prophecy has awakened on Solana. The Lunar Cow, Da Vinci’s mythical muse, now lives as $MOONA — a coin blending Renaissance genius, cosmic humor, and meme magic. This is not just another token. It’s art, it’s satire, it’s history rewritten on-chain.",
+        "gt_score": 66.85005504587157,
+        "metadata_updated_at": "2025-09-07T14:10:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_a4WcyMS183n6anrtQ5r9i4YVX2VuT7b2h3NywnEBAGS",
+      "type": "token",
+      "attributes": {
+        "address": "a4WcyMS183n6anrtQ5r9i4YVX2VuT7b2h3NywnEBAGS",
+        "name": "FEED GAZA",
+        "symbol": "GAZA",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/67953/large/photo_2025-08-22_00-04-37.jpg?1756346626",
+        "coingecko_coin_id": "feed-gaza",
+        "websites": [
+          "https://healgaza.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": "healthechildrenchat",
+        "twitter_handle": "HealGazaSOL",
+        "description": "The Fees raised from this coin will go towards The PCRF (Palestine Children's Relief Fund) to help the children of GAZA suffering through the conflict. 100% of fees will go towards PCRF.",
+        "gt_score": 71.98781651376146,
+        "metadata_updated_at": "2025-09-07T06:07:49Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_2ZqgkCpvXjzB4NstzBUPSrsYrrbziUv5mC9CsxSQZryG",
+      "type": "token",
+      "attributes": {
+        "address": "2ZqgkCpvXjzB4NstzBUPSrsYrrbziUv5mC9CsxSQZryG",
+        "name": "fartcoin killer",
+        "symbol": "BUTTPLUG",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68525/large/Screenshot_2025-09-05_at_4.41.17_PM.png?1757133940",
+        "coingecko_coin_id": "fartcoin-killer",
+        "websites": [
+          "https://buttplugcto.com",
+          "https://x.com/i/communities/1959382840782487683"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "ButtplugSol",
+        "description": "",
+        "gt_score": 72.59937614678898,
+        "metadata_updated_at": "2025-09-07T06:03:14Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_DokPYQ33k3T9S7EEesvwvuuAtoQb4pY8NWszukKwXWjv",
+      "type": "token",
+      "attributes": {
+        "address": "DokPYQ33k3T9S7EEesvwvuuAtoQb4pY8NWszukKwXWjv",
+        "name": "Gashy",
+        "symbol": "Gash",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/fkcjjpa88blo5sniepfblfvyl8xz",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://gashycoin.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "gashycoin",
+        "twitter_handle": "Gashycoin",
+        "description": "#Gashy is a Solana meme token powered by the Gashy Gang 🐾. With LP locked, mint authority revoked, and active community events, Gashy builds a fun and transparent ecosystem driven by loyalty, challenges, and unstoppable meme energy.",
+        "gt_score": 65.3211376146789,
+        "metadata_updated_at": "2025-09-07T05:19:19Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_JA8JfHs6v8ZXmz4MDFaqgEJHkxWxRnXfVbXidm1sTGCG",
+      "type": "token",
+      "attributes": {
+        "address": "JA8JfHs6v8ZXmz4MDFaqgEJHkxWxRnXfVbXidm1sTGCG",
+        "name": "KITA",
+        "symbol": "$Kita",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/86fwyid72jkruza4fl96tnvzdsor",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://skita.io"
+        ],
+        "discord_url": null,
+        "telegram_handle": "skitacoin",
+        "twitter_handle": "AlienKITA",
+        "description": "$KITA is a Solana-native meme coin powered by community, transparency, and innovation. With locked liquidity, active challenges, and growing holders, the KITA Army is building a fun yet resilient ecosystem for long-term growth.",
+        "gt_score": 65.3211376146789,
+        "metadata_updated_at": "2025-09-07T05:18:37Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_CQMBR2vnAuMj7beoHn5aKztNQHXUrkikFVjnn7kqjupx",
+      "type": "token",
+      "attributes": {
+        "address": "CQMBR2vnAuMj7beoHn5aKztNQHXUrkikFVjnn7kqjupx",
+        "name": "Kohai",
+        "symbol": "KOHAI",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/wpurr5jujsku0ouxucfo8ok370i6",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://terminal.kohai.gg"
+        ],
+        "discord_url": null,
+        "telegram_handle": "KohaiNexus",
+        "twitter_handle": "KohaiNexus",
+        "description": "Kohai is your all-in-one Gaming Nexus — powered by Blockchain & AI, built for gamers, creators, and teams who want to play, earn, grow, and build communities like never before.\n\nAt the core? $KOHAI Token — the magic gaming and esports token that fuels everything in the Kohai ecosystem.",
+        "gt_score": 42.93581651376147,
+        "metadata_updated_at": "2025-09-07T05:15:44Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BfRFQwRNtXTzACDt5zxf4qi4Es5s3NuCwwiEexv4moon",
+      "type": "token",
+      "attributes": {
+        "address": "BfRFQwRNtXTzACDt5zxf4qi4Es5s3NuCwwiEexv4moon",
+        "name": "Just Dont Do It",
+        "symbol": "DONTDOIT",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/ahlhertbyc9mrah1fexfh1398koc",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://wedontdoit.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "dontdoit_coin",
+        "description": "$DONTDOIT was built on a simple promise:\n\nDon’t rug.\nDon’t dump.\nDon’t do it.\n\nOur motto, \"Just Don’t Do It,\" is a playful yet powerful reminder to hold strong. Every seasoned crypto holder has that one coin they sold too early. We’re the antidote to that regret.",
+        "gt_score": 36.269174311926605,
+        "metadata_updated_at": "2025-09-07T05:14:32Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FGyYLt3Rvopv4zamv2g79Zq583MCNN4YXAu1TuvwBMEv",
+      "type": "token",
+      "attributes": {
+        "address": "FGyYLt3Rvopv4zamv2g79Zq583MCNN4YXAu1TuvwBMEv",
+        "name": "Btecoin",
+        "symbol": "BTEC",
+        "decimals": 10,
+        "image_url": "https://assets.geckoterminal.com/ll4syp7twz4lm5kes51hwnqale8x",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://btecoin.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "$[BTEC] is the foundation of [BTECOIN], a decentralized protocol built on Solana. With our liquidity permanently locked, we offer an unshakable commitment to security and long-term vision. This isn't a temporary project; it's a permanent fixture of the Solana ecosystem, designed to trust BTEC",
+        "gt_score": 66.54433027522936,
+        "metadata_updated_at": "2025-09-07T05:13:51Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_AjgSvYmJLhvt3FteiyTqQf8XBj1SVs6T6AmSUfkHpump",
+      "type": "token",
+      "attributes": {
+        "address": "AjgSvYmJLhvt3FteiyTqQf8XBj1SVs6T6AmSUfkHpump",
+        "name": "Groyper",
+        "symbol": "Groyper",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/y6oz733bxig4pw2l8ra07i2111tn",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://www.groyperarmy.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "GroyperFrogPortal",
+        "twitter_handle": "GroyperSol",
+        "description": "the memecoin for the groyper movement on solana",
+        "gt_score": 73.51669724770642,
+        "metadata_updated_at": "2025-09-07T05:12:06Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_2dPkLQi1WLkrbQbBAS9d8GHARF4oWQXFXrUbMq7bstar",
+      "type": "token",
+      "attributes": {
+        "address": "2dPkLQi1WLkrbQbBAS9d8GHARF4oWQXFXrUbMq7bstar",
+        "name": "star.fun",
+        "symbol": "STAR",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68995/large/star_gecko_orange.png?1757217983",
+        "coingecko_coin_id": "star",
+        "websites": [
+          "https://star.fun",
+          "https://docs.star.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "stardotfun",
+        "description": "Star is where founders raise via public token sales, live on stream. It is a fundraising platform, a token launchpad, and a livestreaming site, all in one. Star hosts livestreamed fundraising rounds, where startups get to pitch curated panels of experts while actively raising. \r\n\r\nBrilliant ideas can come from anywhere. Star is building a meritocratic platform where those ideas get a fair shot at funding from a global community eager to back the next big thing. \r\n",
+        "gt_score": 60.97853211009174,
+        "metadata_updated_at": "2025-09-07T04:10:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_CasqeWMxfdfzhohWNA7VHFGkmTxJ8jkv5foinUBZpump",
+      "type": "token",
+      "attributes": {
+        "address": "CasqeWMxfdfzhohWNA7VHFGkmTxJ8jkv5foinUBZpump",
+        "name": "Unstable Cult",
+        "symbol": "USC",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68857/large/-g4j917.jpg?1757131396",
+        "coingecko_coin_id": "unstable-cult",
+        "websites": [
+          "https://unstablecultcto.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "UnstableCultCTO",
+        "twitter_handle": "UnstableCultCTO",
+        "description": "A new cult where everything is unstable",
+        "gt_score": 45.4434128440367,
+        "metadata_updated_at": "2025-09-07T02:36:59Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_9LjvTxWgtoEVdwRucY9hJLqmTcPnCRxoDiwbpzRvpump",
+      "type": "token",
+      "attributes": {
+        "address": "9LjvTxWgtoEVdwRucY9hJLqmTcPnCRxoDiwbpzRvpump",
+        "name": "Coin",
+        "symbol": "COINS",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/67053/large/C.png?1751613836",
+        "coingecko_coin_id": "coin-3",
+        "websites": [
+          "https://www.reservebankapp.com",
+          "https://linktr.ee/the_mint"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Fedreserveapp",
+        "description": "Reserve Coin (COINS) is digital money designed for everyday life. With the Reserve Bank app, you can add a Reserve Bank Card to Apple Pay, Samsung Pay, or Google Pay and pay with your phone anywhere regular cards are accepted. Instead of being just something people trade online, COINS is built to be useful in the real world—easy to spend, simple to understand, and ready to use for shopping, sending money, or everyday payments.",
+        "gt_score": 76.63607339449541,
+        "metadata_updated_at": "2025-09-07T02:36:45Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_CmUnSFZCKUFGs2L8eZGQukAj833Y8r2SiJav55Nnrihd",
+      "type": "token",
+      "attributes": {
+        "address": "CmUnSFZCKUFGs2L8eZGQukAj833Y8r2SiJav55Nnrihd",
+        "name": "CHADFORM",
+        "symbol": "CHAD",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/55919/large/karma-1.png?1753848436",
+        "coingecko_coin_id": "chad-4",
+        "websites": [
+          "https://www.karmapay.xyz"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "karmawallet",
+        "description": "Chadform is a Web3-native, AI-enhanced form builder that replaces traditional subscriptions with token-powered access. Inspired by tools like Typeform, Chadform offers a fast, modern, and AI-ready platform—completely free to use for anyone holding $CHAD, our Solana-based token. Users unlock full access, including unlimited responses, advanced logic, and integrations, just by verifying their wallet. No monthly fees. No response limits. By funding operations through transaction volume, we’ve created a sustainable, decentralized model where the product is free, and the community drives growth. Built in Amsterdam, Chadform proves that premium software can be user-first, token-backed, and community-owned. Own your tools. Own your access. Own it with $CHAD.\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n",
+        "gt_score": 47.27816513761468,
+        "metadata_updated_at": "2025-09-07T02:36:28Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_HgBRWfYxEfvPhtqkaeymCQtHCrKE46qQ43pKe8HCpump",
+      "type": "token",
+      "attributes": {
+        "address": "HgBRWfYxEfvPhtqkaeymCQtHCrKE46qQ43pKe8HCpump",
+        "name": "Bertram The Pomeranian",
+        "symbol": "Bert",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/51480/large/photo_2025-04-22_23.04.39.png?1745405423",
+        "coingecko_coin_id": "bertram-the-pomeranian",
+        "websites": [
+          "https://www.bert.global"
+        ],
+        "discord_url": null,
+        "telegram_handle": "BERTCOINCTO",
+        "twitter_handle": "bertcoincto",
+        "description": " In a market dominated by hype and lack of substance, $BERT was born with one simple yet powerful mission: to transform a meme into a real force for good - helping dogs globally\r\n\r\nInspired by a real dog, Bertram the Pomeranian, with millions of fans globally, $BERT bridges the gap between Web2 and Web3 through AI, smart dog tags and real world impact\r\n\r\n$BERT is no longer a meme, it is a global movement.     ",
+        "gt_score": 92.66055045871559,
+        "metadata_updated_at": "2025-09-07T02:35:59Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_51zudBR4NmATG35goida4dLQH5YPn9k8hVkLcizNpump",
+      "type": "token",
+      "attributes": {
+        "address": "51zudBR4NmATG35goida4dLQH5YPn9k8hVkLcizNpump",
+        "name": "jam cat",
+        "symbol": "jam",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/51446/large/jamcat.jpg?1731602538",
+        "coingecko_coin_id": "jam-cat",
+        "websites": [
+          "https://www.jamcat.lol",
+          "https://jamcat-ai.vercel.app"
+        ],
+        "discord_url": null,
+        "telegram_handle": "jamcatOnSolana",
+        "twitter_handle": "jamcat_sol",
+        "description": "Jam Cat ($JAM) is a Solana-based meme token rooted in a viral animation of a rhythmically bobbing cat. The original meme gained over one million organic views across platforms such as TikTok, Tenor, and Instagram. Building on this meme momentum, the project developed an AI agent that creates cat-themed, finance-infused poetry and content, primarily posted on X (formerly Twitter). $JAM serves as the native token supporting the Jam Cat brand and community ecosystem.\r\n\r\n",
+        "gt_score": 69.78587155963304,
+        "metadata_updated_at": "2025-09-07T02:35:43Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_5Ro9KjSUGYisjREz8K5uD1fMdXnu1Jfq3Ktqm4EQMc1R",
+      "type": "token",
+      "attributes": {
+        "address": "5Ro9KjSUGYisjREz8K5uD1fMdXnu1Jfq3Ktqm4EQMc1R",
+        "name": "TOWER (Wormhole)",
+        "symbol": "TOWER",
+        "decimals": 8,
+        "image_url": "https://coin-images.coingecko.com/coins/images/14134/large/TOWER-CG.png?1757133786",
+        "coingecko_coin_id": "tower",
+        "websites": [
+          "https://www.towerecosystem.com"
+        ],
+        "discord_url": "https://discord.gg/towerfranchise",
+        "telegram_handle": "TowerToken",
+        "twitter_handle": "TowerToken",
+        "description": "",
+        "gt_score": 55.84091743119266,
+        "metadata_updated_at": "2025-09-07T02:34:07Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_ACWJRei2VGU4tru1oxKHnfoJ3iachwpTeXfEPUNg5Tv",
+      "type": "token",
+      "attributes": {
+        "address": "ACWJRei2VGU4tru1oxKHnfoJ3iachwpTeXfEPUNg5Tv",
+        "name": "Elon",
+        "symbol": "ELON",
+        "decimals": 8,
+        "image_url": "https://coin-images.coingecko.com/coins/images/37515/large/Untitled_design.png?1749676564",
+        "coingecko_coin_id": "elon",
+        "websites": [
+          "https://www.eloncoin.co"
+        ],
+        "discord_url": null,
+        "telegram_handle": "eloncointg",
+        "twitter_handle": "ElonCoin0X69420",
+        "description": "Eloncoin (ELON) is a memecoin inspired by the legendary Elon Musk, blending meme culture with crypto hype. Built on Ethereum, it dreams of being an \"intergalactic currency\" for space pioneers. With a nod to Dogecoin, Eloncoin's community aims for Mars, driven by Elon Musk's playful humor. In the cosmic battle for influence, one truth reigns: Who controls the memes, controls the Universe.         \r\n",
+        "gt_score": 18.532110091743117,
+        "metadata_updated_at": "2025-09-06T15:00:37Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BV3PUxYhLs1X859A8ev7QaGnQLESnqY7kTaak3Aepump",
+      "type": "token",
+      "attributes": {
+        "address": "BV3PUxYhLs1X859A8ev7QaGnQLESnqY7kTaak3Aepump",
+        "name": "firecoin",
+        "symbol": "firecoin",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68990/large/firecoin_logo_%281%29.jpg?1757163346",
+        "coingecko_coin_id": "firecoin-2",
+        "websites": [
+          "https://firecoin.space"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "firecoinsol",
+        "description": "Firecoin is a digital asset inspired by the concept of the eternal flame, representing energy, resilience, and guidance. It is designed to act as a decentralized token that embodies light and strength, giving holders a sense of empowerment in the digital economy. The project’s purpose is to create a community-driven ecosystem where Firecoin symbolizes progress, illumination, and the ability to move forward regardless of challenges. By leveraging blockchain technology, Firecoin aims to provide transparency, security, and accessibility to its users while maintaining its thematic connection to the symbolic power of fire.",
+        "gt_score": 39.9388256880734,
+        "metadata_updated_at": "2025-09-06T13:05:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FTPnEQ3NfRRZ9tvmpDW6JFrvweBE5sanxnXSpJL1dvbB",
+      "type": "token",
+      "attributes": {
+        "address": "FTPnEQ3NfRRZ9tvmpDW6JFrvweBE5sanxnXSpJL1dvbB",
+        "name": "Bird.Money (Wormhole)",
+        "symbol": "wBIRD",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/13260/large/favicon-180x180.png?1696513035",
+        "coingecko_coin_id": "bird-money",
+        "websites": [
+          "https://bird.money"
+        ],
+        "discord_url": "https://discord.gg/Z2BeCnS",
+        "telegram_handle": "birdmoneygroup",
+        "twitter_handle": "_birdmoney",
+        "description": "Bird.Money is developing data-driven solutions used to analyze risk in Decentralized Finance by securely delivering their Blockchain Individualized Risk of Default (BIRD) Score — DeFi’s improvement on the legacy financial system’s credit score — to lending platforms and protocols. The BIRD Score is the first DeFi credit score based on the statistical prediction of loan default, created using advanced machine learning methods and made available to lending protocols as a simple, accessible rating. It’s the next generation of credit scoring.\r\n\r\nTogether with its lending platform, decentralized analytics oracle and API, Bird.Money is leading the way in empowering DeFi product innovation. Bird.Money’s suite of analytics products and services enable truly individualized DeFi solutions to be uniquely tailored to each and every user.",
+        "gt_score": 28.073394495412845,
+        "metadata_updated_at": "2025-09-06T09:02:21Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_GBUxQFRXQjSPjkxymAUKPfbUbSpRY8Ui7az1HCxtpump",
+      "type": "token",
+      "attributes": {
+        "address": "GBUxQFRXQjSPjkxymAUKPfbUbSpRY8Ui7az1HCxtpump",
+        "name": "Mirror Chain",
+        "symbol": "MIR",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68987/large/tlj71kyym6gb58ekdzkez8lay8v9.?1757144126",
+        "coingecko_coin_id": "mirror-chain",
+        "websites": [
+          "https://mirrorchain.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "chain_mirror",
+        "description": "A New Playground For Degens 🪞",
+        "gt_score": 77.49236697247706,
+        "metadata_updated_at": "2025-09-06T07:40:07Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_5XgpGK83mxVdcGuZxv7My99ZmuSzdJo4noLaaD4bpump",
+      "type": "token",
+      "attributes": {
+        "address": "5XgpGK83mxVdcGuZxv7My99ZmuSzdJo4noLaaD4bpump",
+        "name": "Betly",
+        "symbol": "BETLY",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68985/large/mivyrdqxl3nfkrwoz8hekltxsanr.?1757141971",
+        "coingecko_coin_id": "betly",
+        "websites": [
+          "https://www.betly.trade"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "betlytrade",
+        "description": "Swipe on preditction markets, not thots",
+        "gt_score": 73.21089908256882,
+        "metadata_updated_at": "2025-09-06T07:10:13Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_WYHYGzvnz5xWs3DzjasXucDppQmA8W5QVnpk38sd8pp",
+      "type": "token",
+      "attributes": {
+        "address": "WYHYGzvnz5xWs3DzjasXucDppQmA8W5QVnpk38sd8pp",
+        "name": "PIPCAT",
+        "symbol": "PIPCAT",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68986/large/7fegtgrxepm8ygfep31ijg2c29tm.?1757142350",
+        "coingecko_coin_id": "pipcat",
+        "websites": [
+          "https://pip.fun/tokens/93bd9f49-e73f-4211-bf7d-6ac3ec84bf33"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "",
+        "gt_score": 73.82275229357798,
+        "metadata_updated_at": "2025-09-06T07:10:06Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_M3NC8TeMfosXhHLZC26BP8Et2h6ozcCXYF18nx4pump",
+      "type": "token",
+      "attributes": {
+        "address": "M3NC8TeMfosXhHLZC26BP8Et2h6ozcCXYF18nx4pump",
+        "name": "Baby Troll",
+        "symbol": "Troll",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68984/large/qatfzhv56az91ju5oof31jsslfoi.?1757141695",
+        "coingecko_coin_id": "baby-troll-3",
+        "websites": [
+          "https://babytrollsol.io"
+        ],
+        "discord_url": null,
+        "telegram_handle": "babytrololo",
+        "twitter_handle": "trollbaby_sol",
+        "description": "",
+        "gt_score": 64.64825688073394,
+        "metadata_updated_at": "2025-09-06T07:00:09Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8wMEqzHQAy5dkdGrSPRM4hCEB8UZdyBdTFFUU9winQtu",
+      "type": "token",
+      "attributes": {
+        "address": "8wMEqzHQAy5dkdGrSPRM4hCEB8UZdyBdTFFUU9winQtu",
+        "name": "Tsunami",
+        "symbol": "TSUNAMI",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68982/large/BfPYmqnR_400x400_%281%29.jpg?1757141290",
+        "coingecko_coin_id": "tsunami-2",
+        "websites": [
+          "https://tsunamitoken.xyz"
+        ],
+        "discord_url": null,
+        "telegram_handle": "Tsunami_Portal",
+        "twitter_handle": "Tsunami_SOL_",
+        "description": "A primordial force unleashed from the depths, inspired by Hokusai's legendary Great Wave. 🌊                                      \r\n                                                                                                                                      \r\n                                                                                                                                                                     \r\n                                                                                                                                  \r\n                                                                                                                  \r\n                                                                                                                                         ",
+        "gt_score": 58.4097247706422,
+        "metadata_updated_at": "2025-09-06T06:55:01Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Bpn193geWPDvWW2po4cr5hpudLha8LeZYngmWHh2bonk",
+      "type": "token",
+      "attributes": {
+        "address": "Bpn193geWPDvWW2po4cr5hpudLha8LeZYngmWHh2bonk",
+        "name": "B33",
+        "symbol": "B33",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68979/large/IMG_8513.jpeg?1757139935",
+        "coingecko_coin_id": "b33",
+        "websites": [
+          "https://www.b33sol.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "b33onsol",
+        "twitter_handle": "B33SOL",
+        "description": "B33 is a 3,333 free-mint NFT collection on Solana, powered by a utility token from bonk.fun\r\n3.33% royalties → 40% into token buybacks\r\n40% of LP fees → token buybacks\r\nUpcoming trading bot with rev share → more token buybacks\r\nThe result? Relentless consolidation and growth, fueled by the community, for the community.\r\nB33 isn’t just art, it’s a movement.\r\nYou've been rugged, we get it. We've all been there, that sick feeling when you see a project you believed in disappear, taking your trust and your SOL with it. This isn't another empty promise. This is a story about B, the protector we all wish we had.",
+        "gt_score": 58.28744954128441,
+        "metadata_updated_at": "2025-09-06T06:30:08Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_7yF97k6jrBkb7BXJYXzmwQLQyxVirLtCSSGb75qLqAN8",
+      "type": "token",
+      "attributes": {
+        "address": "7yF97k6jrBkb7BXJYXzmwQLQyxVirLtCSSGb75qLqAN8",
+        "name": "Playermon",
+        "symbol": "PYM",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/20682/large/eALRa3rZ_400x400.png?1696520082",
+        "coingecko_coin_id": "playermon",
+        "websites": [
+          "https://playermon.com"
+        ],
+        "discord_url": "https://discord.com/invite/sMAAYz4q8v",
+        "telegram_handle": "playermonofficial",
+        "twitter_handle": "playermons",
+        "description": "Playermon is a boundless NFT Game where anyone can explore and battle in the universe with their favorite Playermons!",
+        "gt_score": null,
+        "metadata_updated_at": "2025-09-06T06:15:38Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_35GHS5aN5DHwYuLMfc6a9QQmBbQQQSVLj1SKBdXtFnFg",
+      "type": "token",
+      "attributes": {
+        "address": "35GHS5aN5DHwYuLMfc6a9QQmBbQQQSVLj1SKBdXtFnFg",
+        "name": "Hope Coin",
+        "symbol": "Hope",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/k9oj8ci1slt55kadfzirct7lx6j7",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://tributetohope.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "tributetohope",
+        "twitter_handle": "tributetohope",
+        "description": "$HOPE is a Solana memecoin and social impact token created as a living tribute to Hope, the South African rhino who survived a brutal poaching incident and became a global symbol of resilience. The project blends meme-culture virality with real-world conservation: transparent wallet allocations fund",
+        "gt_score": 67.1559633027523,
+        "metadata_updated_at": "2025-09-06T03:39:14Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_7Hg1Pu379wRogNhFx3EDWbNwP7ep1JwUg9YAC4X7moon",
+      "type": "token",
+      "attributes": {
+        "address": "7Hg1Pu379wRogNhFx3EDWbNwP7ep1JwUg9YAC4X7moon",
+        "name": "ECLIPSER",
+        "symbol": "ECLPS",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/ytyi1xmfk8si79kemiraim336jcf",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://www.universeeclipse.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "ECLIPSERKNIGHT",
+        "description": "ECLIPSER \"Dedicated To Everyday Heroes \" Selected Proceeds To Everyday Heroes such as First Responders, Teachers Etc. , Chosen by Sole-Proprietor.\n\nA portion of the initial token distribution is allocated for business development, while another portion is dedicated to supporting and rewarding.",
+        "gt_score": 16.207889908256885,
+        "metadata_updated_at": "2025-09-06T03:30:20Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_2s9nMsELCFxCrhUEgXCD5zcjQv5fDomEr9xJ5Y5npump",
+      "type": "token",
+      "attributes": {
+        "address": "2s9nMsELCFxCrhUEgXCD5zcjQv5fDomEr9xJ5Y5npump",
+        "name": "Squeeble",
+        "symbol": "SQBL",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/ggtz1li4hc0cgirogn8cmjo8lv0a",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://squeeble.netlify.app"
+        ],
+        "discord_url": null,
+        "telegram_handle": "squeeblez",
+        "twitter_handle": "Squeeblecoin",
+        "description": "$SQUEEBLE is Solana's yellow ticker, he slipped through a glitch and into your watchlist—no presale, no promises, just momentum. Fair launch on Pump.Fun, lore-driven memes, and a community that never sleeps. If you know, you know.",
+        "gt_score": 47.0948623853211,
+        "metadata_updated_at": "2025-09-06T03:27:32Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_ACyjvccCjSyV2UiECwccV6cgczjf5PGuDuAjZnMapump",
+      "type": "token",
+      "attributes": {
+        "address": "ACyjvccCjSyV2UiECwccV6cgczjf5PGuDuAjZnMapump",
+        "name": "PUMPTRON",
+        "symbol": "PPTRON",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/em28j8yf5lv3tqlniyl5gie3frij",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://pumptron.pro"
+        ],
+        "discord_url": null,
+        "telegram_handle": "pumptron_portal",
+        "twitter_handle": "pumptron_agent",
+        "description": "AI agent monetizing the X feed 24/7 through token creation. Powered by Grok, live streaming on X, supported by creator fees.",
+        "gt_score": 56.758458715596326,
+        "metadata_updated_at": "2025-09-06T03:23:48Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_6zsNXPkpGHaf8p71wThVTxr5fhtG8yKHw2TrkiKqpump",
+      "type": "token",
+      "attributes": {
+        "address": "6zsNXPkpGHaf8p71wThVTxr5fhtG8yKHw2TrkiKqpump",
+        "name": "SimpCoin",
+        "symbol": "SIMP",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68969/large/awf7tybq19rqqg89t6839i0wy1t7.?1757117427",
+        "coingecko_coin_id": "simpcoin",
+        "websites": [
+          "https://www.simpcoin.live"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "SimpFees",
+        "description": "Donating 100% of fees straight to e-girls \r\n\r\nThe ironic simp flywheel",
+        "gt_score": 59.75533944954128,
+        "metadata_updated_at": "2025-09-06T00:20:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_HWVYokjL4ugzUWqJZfLPCYikkR4EANxWjYKvGYXGCyHq",
+      "type": "token",
+      "attributes": {
+        "address": "HWVYokjL4ugzUWqJZfLPCYikkR4EANxWjYKvGYXGCyHq",
+        "name": "NOKKI",
+        "symbol": "NOKKI",
+        "decimals": 6,
+        "image_url": "missing_large.png",
+        "coingecko_coin_id": "nokki",
+        "websites": [
+          "https://nokki.xyz"
+        ],
+        "discord_url": null,
+        "telegram_handle": "its_nokki",
+        "twitter_handle": "its_nokki",
+        "description": "NOKKI doesn’t rule through crowns or thrones. His way of holding the universe together comes from curiosity, humor, and a spark of wonder. Every orbit, every falling star, every strange ripple across the galaxy carries his touch. He reminds us that the cosmos is not just cold and distant — it can also feel alive, clumsy, and strangely warm.",
+        "gt_score": 52.17119266055046,
+        "metadata_updated_at": "2025-09-05T22:40:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_6h1ACr3LWM1YgVqxwcqEVJtHA2ygT8Z7tutYMy3gbunt",
+      "type": "token",
+      "attributes": {
+        "address": "6h1ACr3LWM1YgVqxwcqEVJtHA2ygT8Z7tutYMy3gbunt",
+        "name": "Blunt",
+        "symbol": "Blunt",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68966/large/ylk2lpyfb80kvsft4lajdmnmf682.?1757107918",
+        "coingecko_coin_id": "blunt",
+        "websites": [
+          "https://www.thebluntcoin.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "$BLUNT is the first certified runner on bunt.fun, and we're not just another meme coin, we know how to roll up and smoke the competition.",
+        "gt_score": 76.88073394495413,
+        "metadata_updated_at": "2025-09-05T21:40:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_9nJVEmiNFqLkueCGTsYtqAgx6v7wvckQEH5jzhBopump",
+      "type": "token",
+      "attributes": {
+        "address": "9nJVEmiNFqLkueCGTsYtqAgx6v7wvckQEH5jzhBopump",
+        "name": "FrankenFrog",
+        "symbol": "FFROG",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/39450/large/GTLNw82bgAE0Wol.jpeg?1722311771",
+        "coingecko_coin_id": "frankenfrog",
+        "websites": [
+          "https://frankenfrog.xyz"
+        ],
+        "discord_url": null,
+        "telegram_handle": "FrankenFrog",
+        "twitter_handle": "Frankenfrogxyz",
+        "description": "FrankenFrog is a Tamagotchi-style meme token on the Solana blockchain, designed to grow and evolve with community engagement. Created by the ingenious mad scientist Dr. Croakstein, FrankenFrog starts as an enchanted egg and hatches into various stages of development as milestones are reached.\r\n\r\nThe journey begins at 0 followers, with the egg stage glowing with potential. As the community grows to 1,000 followers, the egg hatches and the $FFROG token is released. Each subsequent milestone (1,000, 5,000, 10,000, 25,000, 50,000, and 100,000 followers) sees FrankenFrog evolve from a young frog, then to a scientist frog, and finally into a wise sage frog. Each stage brings new features, utilities, and exciting partnerships.\r\n\r\nJoin the FrankenFrog adventure, be part of a dynamic and growing community, and help bring this magical, ribbiting journey to life!",
+        "gt_score": 57.67577981651376,
+        "metadata_updated_at": "2025-09-05T19:39:34Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_5arEQv5tGJj8UbhnPrc1WL5KMmijCe4FuexCaEXUBAGS",
+      "type": "token",
+      "attributes": {
+        "address": "5arEQv5tGJj8UbhnPrc1WL5KMmijCe4FuexCaEXUBAGS",
+        "name": "fred the kitty",
+        "symbol": "FRED",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68486/large/gcn1wvaczvrzdgir5yt4zc2wrd9o.?1755899012",
+        "coingecko_coin_id": "fred-the-kitty",
+        "websites": [
+          "https://x.com/i/communities/1959643973225709826"
+        ],
+        "discord_url": null,
+        "telegram_handle": "Fred_the_farmhelper",
+        "twitter_handle": "FREDfarmhelper",
+        "description": "fred the kitty",
+        "gt_score": 62.56880733944954,
+        "metadata_updated_at": "2025-09-05T17:56:56Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_HS9MCtW3Q2R3GV2fjPTkSL66tGfNQaSMvjuSz4Hx5wCP",
+      "type": "token",
+      "attributes": {
+        "address": "HS9MCtW3Q2R3GV2fjPTkSL66tGfNQaSMvjuSz4Hx5wCP",
+        "name": "FARTGOAT",
+        "symbol": "FARTGOAT",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68120/large/IMG_7071.png?1757092197",
+        "coingecko_coin_id": "fartgoat-2",
+        "websites": [
+          "https://www.fart-goat.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "FARTGOATERS",
+        "twitter_handle": "fartgoater",
+        "description": "GOATSIUS FARTIMUS",
+        "gt_score": 78.71559633027523,
+        "metadata_updated_at": "2025-09-05T17:45:33Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8ZHE4ow1a2jjxuoMfyExuNamQNALv5ekZhsBn5nMDf5e",
+      "type": "token",
+      "attributes": {
+        "address": "8ZHE4ow1a2jjxuoMfyExuNamQNALv5ekZhsBn5nMDf5e",
+        "name": "MORI COIN",
+        "symbol": "MORI",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/66886/large/jczblkgbpxg0g3pky3uj0clklmzl.?1750931484",
+        "coingecko_coin_id": "mori-coin",
+        "websites": [
+          "https://morico.in"
+        ],
+        "discord_url": null,
+        "telegram_handle": "moricoineng",
+        "twitter_handle": "moricoinmeme",
+        "description": "",
+        "gt_score": 93.88385321100917,
+        "metadata_updated_at": "2025-09-05T17:42:06Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_C7AxK6ZdbmN9RmLnmV95vE2MrmAU77ftQZz5RVhcpump",
+      "type": "token",
+      "attributes": {
+        "address": "C7AxK6ZdbmN9RmLnmV95vE2MrmAU77ftQZz5RVhcpump",
+        "name": "Trashy By Matt Furie",
+        "symbol": "Trashy",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68958/large/trashy.jpg?1757088440",
+        "coingecko_coin_id": "trashy-by-matt-furie",
+        "websites": [
+          "https://trashybymattfurie.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "TrashybyMattFurie",
+        "twitter_handle": "trashysol_",
+        "description": "Meet Trashy the garbage superhero we didn't know we needed. He's a bit clumsy, and rough around the edges but He has a heart of gold, ready to take on the crypto industry's final bosses. Join him on his quest to clean up the blockchain, one meme at a time.\r\nWith his trusty trash bag of justice, he dives into scams, rug pulls, and shady projects, exposing villains while turning chaos into laughter. Trashy isn’t perfect, but that’s what makes him real, fighting greed, spreading truth, and reminding us that even in the digital dump, hope can shine.",
+        "gt_score": 73.82275229357798,
+        "metadata_updated_at": "2025-09-05T16:09:33Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_CpFE715P5DnDoJj9FbCRcuyHHeTXNdRnvzNkHvq1o23U",
+      "type": "token",
+      "attributes": {
+        "address": "CpFE715P5DnDoJj9FbCRcuyHHeTXNdRnvzNkHvq1o23U",
+        "name": "DARC Token (Wormhole)",
+        "symbol": "DARC",
+        "decimals": 8,
+        "image_url": "https://coin-images.coingecko.com/coins/images/2943/large/darctoken.png?1696503688",
+        "coingecko_coin_id": "darcmatter-coin",
+        "websites": [
+          "https://konstellation.tech",
+          "https://konstellation.gitbook.io"
+        ],
+        "discord_url": "https://discord.gg/9wP5kkj",
+        "telegram_handle": "Konstellation",
+        "twitter_handle": "KNSTL_TECH",
+        "description": "Konstellation is a decentralized cross-chain capital markets protocol built with Cosmos SDK. It is aimed to efficiently connect funds and the various components of the asset management industry with investors. Konstellation intends to be the financial services industry hub for Cosmos and other blockchain ecosystems through strategic inter-blockchain communications. The network is powered by DARC tokens, which are required for the Konstellation network's governance and transactions.",
+        "gt_score": 47.88990825688074,
+        "metadata_updated_at": "2025-09-05T13:44:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_4WtkHh1Gwgd5dc9cfqSY54U2fUZHbNzVLbrmrbvFMGhq",
+      "type": "token",
+      "attributes": {
+        "address": "4WtkHh1Gwgd5dc9cfqSY54U2fUZHbNzVLbrmrbvFMGhq",
+        "name": "ORCIB",
+        "symbol": "PALMO",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68951/large/palmo-small.png?1757052985",
+        "coingecko_coin_id": "orcib",
+        "websites": [
+          "https://orcib.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "orcibchannel",
+        "twitter_handle": "orcibteam",
+        "description": "ORCIB (PALMO) is the community utility token of the ORCIB Ecosystem, developed on the Solana blockchain. Originally introduced as a meme token inspired by the human palm, it has evolved into a native token supporting decentralized identity, creative rights, and governance. The project’s vision is to redefine digital ownership and participation by combining blockchain technology with creativity and community-driven innovation. With transparent tokenomics and active community involvement, ORCIB (PALMO) provides the foundation for building a sustainable and inclusive decentralized ecosystem.",
+        "gt_score": 83.608623853211,
+        "metadata_updated_at": "2025-09-05T06:20:10Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_HUWzPAUYLgAMWbP8MiQctEUDjqgp5dzQDVw61xpA1Xdc",
+      "type": "token",
+      "attributes": {
+        "address": "HUWzPAUYLgAMWbP8MiQctEUDjqgp5dzQDVw61xpA1Xdc",
+        "name": "TICKERON",
+        "symbol": "TICKERON",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68950/large/326750259_1308186269972316_1297707510463276371_n.png?1757052791",
+        "coingecko_coin_id": "tickeron",
+        "websites": [
+          "https://tickeron.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Tickeron_Token",
+        "description": "AI-Market Insights is dedicated to developing advanced Financial Learning Models (FLMs) for AI agents, enabling them to analyze vast amounts of market data, identify trends, and make informed decisions. Our mission is to empower traders by providing intelligent tools that enhance their ability to profit from market movements, optimize strategies, and reduce risks. By combining cutting-edge AI technology with deep financial expertise, we aim to transform the way both beginner and professional traders interact with the market, creating smarter, data-driven trading experiences and fostering financial literacy through AI-driven insights.",
+        "gt_score": 38.10403669724771,
+        "metadata_updated_at": "2025-09-05T06:20:10Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BHKVuBNfsK3Pre1bmfG76NbVt8xrx3Z5DdFtrsoVpump",
+      "type": "token",
+      "attributes": {
+        "address": "BHKVuBNfsK3Pre1bmfG76NbVt8xrx3Z5DdFtrsoVpump",
+        "name": "Firechicken",
+        "symbol": "FCKN",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68945/large/FCKN007.jpg?1757051262",
+        "coingecko_coin_id": "firechicken",
+        "websites": [
+          "https://firechicken.vip",
+          "https://fckn.vip"
+        ],
+        "discord_url": null,
+        "telegram_handle": "FireChicken007",
+        "twitter_handle": "FireChicken007",
+        "description": "FireChicken is a meme-powered crypto project with a serious mission: combining community energy with sustainable liquidity investing. Born from lessons in past projects, FireChicken avoids insider advantages by ensuring fair accumulation and transparent token management.\r\n\r\nThe project generates revenue through liquidity pools (paired with tokens like USDC), reinvesting trading fees back into the ecosystem to strengthen long-term growth. Alongside its liquidity strategy, FireChicken provides daily educational content for its holders, covering topics like market psychology, liquidity mechanics, and risk management.\r\n\r\nWhile maintaining its lighthearted chicken mascot and meme-driven culture, FireChicken focuses on building trust, educating traders, and steadily growing its holder base. The goal is to balance fun and fundamentals — proving that a meme project can also deliver real value, sustainability, and community empowerment.",
+        "gt_score": 69.29662385321102,
+        "metadata_updated_at": "2025-09-05T05:50:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_GvV7sFu6FHJsSVXfpG7xqFnWar3c7YkcC74rqe7Bpump",
+      "type": "token",
+      "attributes": {
+        "address": "GvV7sFu6FHJsSVXfpG7xqFnWar3c7YkcC74rqe7Bpump",
+        "name": "Rage Guy",
+        "symbol": "RAGEGUY",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68944/large/rageguy.jpeg?1757051144",
+        "coingecko_coin_id": "rage-guy",
+        "websites": [
+          "https://rageguy.meme"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "RAGEGUYFU",
+        "description": "Rageguy refers to the main character of a series of crudely-drawn comics typically consisting of four panes, portraying situations that can bring rage and exasperation, with the main character screaming with anger as a result. Due to its simplicity and exploitability, Rageguy has been proven popular thus being evolved into a comic series now known as Rage Comics.\r\n\r\nThe first instance of Rageguy came in 2008 on the 4chan /b/ imageboard. The image consisted of a 4-pane comic made in MS Paint, portraying the \"toilet splashback\" experience. The first three panes described the incidence, and in the fourth pane, a drawing of Rageguy screaming appeared with a caption saying \"FFFFFFUUUUUUUUUU-\" on the right of the face in red letters.",
+        "gt_score": 75.65743119266055,
+        "metadata_updated_at": "2025-09-05T05:50:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_dTzEP9JU2NRDPuWtM32gaVKip2fTHBqjheU1APBpump",
+      "type": "token",
+      "attributes": {
+        "address": "dTzEP9JU2NRDPuWtM32gaVKip2fTHBqjheU1APBpump",
+        "name": "The Bitcoin Mascot",
+        "symbol": "BITTY",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/67374/large/np81u05cpqneklx7z6e6irmj8mj8.?1752587894",
+        "coingecko_coin_id": "the-bitcoin-mascot",
+        "websites": [
+          "https://bitty.meme"
+        ],
+        "discord_url": null,
+        "telegram_handle": "bittymemes",
+        "twitter_handle": "Bitty4Bitcoin",
+        "description": "Bitty is the forgotten Bitcoin mascot living on the official website since 2015 https://bitcoin.org/en/bitcoin-for-businesses (scroll down to see him pop out!)\r\nThe BITTY token is not affiliated with Bitcoin.org but pays tribute to the iconic mascot. Its goal is to foster community engagement, education, and playful interaction around Bitcoin culture. By combining the symbolic character with a digital token, Bitty bridges the gap between serious blockchain technology and lighthearted community creativity.",
+        "gt_score": 81.65137614678899,
+        "metadata_updated_at": "2025-09-05T05:39:18Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_ENb34XoeLtpepHB6Ae49VYT9xZHp8SA11HLPHnFR5VZB",
+      "type": "token",
+      "attributes": {
+        "address": "ENb34XoeLtpepHB6Ae49VYT9xZHp8SA11HLPHnFR5VZB",
+        "name": "SPY",
+        "symbol": "SOLANA",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/cwh4atj4liymhc5yu61u6plz80bo",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://spyseeds.com/index.php?route=common/home"
+        ],
+        "discord_url": null,
+        "telegram_handle": "Spyseeds",
+        "twitter_handle": "SPYSEEDS",
+        "description": "Welcome to SpySeeds, a company that is driven by your convenience. For thousands of years, people have used these substances to transcend the ordinary awakening of consciousness and heal themselves from their beneficial properties. ",
+        "gt_score": 55.65743119266055,
+        "metadata_updated_at": "2025-09-05T04:36:40Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_ZeTHxfrCYKRJa3ncYSW5gSpexk42gCU3pCRpArc7vMS",
+      "type": "token",
+      "attributes": {
+        "address": "ZeTHxfrCYKRJa3ncYSW5gSpexk42gCU3pCRpArc7vMS",
+        "name": "ETHZeroLayer",
+        "symbol": "ETH",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/ucb8p0i2vtlo7e6vrjsiipqmxgjk",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://etherzerolayer.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "etherzerolayer",
+        "description": "Technical token on Solana for practical Web3 liquidity research. Focus on testing LP behavior (V2/V3), MEV bots & aggregator reactions in real time.  Not an investment — created only for experiments and data to build future tools for the crypto community.",
+        "gt_score": 11.559633027522935,
+        "metadata_updated_at": "2025-09-05T04:34:41Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FSU2Qcxhvayob8jtjMxYAoyq5NiUKszPRik1pLLQKh3s",
+      "type": "token",
+      "attributes": {
+        "address": "FSU2Qcxhvayob8jtjMxYAoyq5NiUKszPRik1pLLQKh3s",
+        "name": "Trogecoin",
+        "symbol": "TROGE",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/9p9s0o4qth4mgfe60hhm8aylnko8",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://trogecoincto.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": "TrogecoinCTO",
+        "twitter_handle": "TrogecoinCTO",
+        "description": "Troge was born on 4chan in 2022 as the original Doge + Troll fusion.",
+        "gt_score": 58.59321100917432,
+        "metadata_updated_at": "2025-09-05T04:33:01Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_7xsn24vihNV6EGEyUVAsHg5ks9vVB74Uf5Tdnef7cyLG",
+      "type": "token",
+      "attributes": {
+        "address": "7xsn24vihNV6EGEyUVAsHg5ks9vVB74Uf5Tdnef7cyLG",
+        "name": "Tokerate",
+        "symbol": "TKRT",
+        "decimals": 8,
+        "image_url": "https://assets.geckoterminal.com/600l0y6cncezj3j8g0w65qaex0a4",
+        "coingecko_coin_id": null,
+        "websites": [],
+        "discord_url": null,
+        "telegram_handle": "TokeRate",
+        "twitter_handle": "TokerateDEX",
+        "description": "Tokerate is a Solana-based DEX with a CEX-like futures trading terminal, featuring a dynamic order book, on-chart trading, and a no-code SPL token creator. $TKRT powers trading, token creation, and ad fees, with 90% of supply locked in liquidity.",
+        "gt_score": 31.743119266055047,
+        "metadata_updated_at": "2025-09-05T04:01:36Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_4NGbC4RRrUjS78ooSN53Up7gSg4dGrj6F6dxpMWHbonk",
+      "type": "token",
+      "attributes": {
+        "address": "4NGbC4RRrUjS78ooSN53Up7gSg4dGrj6F6dxpMWHbonk",
+        "name": "Pandu Pandas",
+        "symbol": "PANDU",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68943/large/photo_2025-08-19_14-36-11.jpg?1757044242",
+        "coingecko_coin_id": "pandu-pandas",
+        "websites": [
+          "https://pandupandas.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "pandupandas",
+        "description": "Meet Pandu — your AI friend who’s always by your side. Talk with him in real time through text or voice, share your thoughts, ask questions, or just enjoy a casual conversation. Whether you’re looking for advice, company, or simply someone to listen, Pandu is here as a true companion you can connect with anytime.\r\n\r\nPandu unites real-time conversation, creative generation, and future-ready AI systems — all powered by next-gen technology.",
+        "gt_score": 65.62689908256881,
+        "metadata_updated_at": "2025-09-05T03:55:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_3t1bNt1RoXZvrPDZp8SXEaaQarZRBFf7W6mi9Eb8BAGS",
+      "type": "token",
+      "attributes": {
+        "address": "3t1bNt1RoXZvrPDZp8SXEaaQarZRBFf7W6mi9Eb8BAGS",
+        "name": "UNITE THE KINGDOM",
+        "symbol": "UTK",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68888/large/UTK-UniteTheKingdom.jpg?1757003551",
+        "coingecko_coin_id": "unite-the-kingdom",
+        "websites": [
+          "https://utkcoin.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "+fHhWp1yluBQ0Mzgx",
+        "twitter_handle": "utkbags",
+        "description": "Our Mission\r\nOur mission is to unite the kingdom and champion the fundamental right of free speech for every British citizen. We are building a movement dedicated to preserving our culture and heritage.\r\n\r\nFree Speech for All\r\nWe believe in a strong, sovereign Britain where open dialogue and traditional values are not just protected, but celebrated. This is more than a token; it's a stand for the future of our nation.\r\n\r\nOur Vision\r\nWe envision a future where British values thrive, and every voice can be heard without fear. Join us in building a stronger, freer Britain.",
+        "gt_score": 79.69416513761468,
+        "metadata_updated_at": "2025-09-05T02:27:29Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_6NPE165SHwcNcrWYZauv4Rdj4SnjFC2zrgCsGQdZbonk",
+      "type": "token",
+      "attributes": {
+        "address": "6NPE165SHwcNcrWYZauv4Rdj4SnjFC2zrgCsGQdZbonk",
+        "name": "Future Arises In The Heart",
+        "symbol": "FAITH",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68099/large/8rb9n2valqqxris4w9n0foicdtbf.?1754727322",
+        "coingecko_coin_id": "future-arises-in-the-heart",
+        "websites": [
+          "https://faith-token.lovable.app"
+        ],
+        "discord_url": null,
+        "telegram_handle": "join_for_faith",
+        "twitter_handle": "i",
+        "description": "The Faith Project is a creative series blending imagery, symbolism, and motivational phrases. It centers on a rooted “F” symbol paired with epic, mythic, and scenic visuals—sunrises, mountains, smelters, warriors, storms. Each design explores faith as strength, resilience, and renewal, transforming hardship and chaos into hope, courage, and endurance.\r\n    Faith is trusting the unseen, holding hope when clarity fades, courageously stepping forward, finding strength in surrender, and believing promises beyond present struggles with unwavering confidence in divine purpose.\r\n",
+        "gt_score": 58.532110091743114,
+        "metadata_updated_at": "2025-09-05T02:27:08Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_3joMReCCSESngJEpFLoKR2dNcChjSRCDtybQet5uSpse",
+      "type": "token",
+      "attributes": {
+        "address": "3joMReCCSESngJEpFLoKR2dNcChjSRCDtybQet5uSpse",
+        "name": "Simon's Cat",
+        "symbol": "CAT",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/39765/large/Dv9GheV0_400x400.jpg?1756951559",
+        "coingecko_coin_id": "simon-s-cat",
+        "websites": [
+          "https://www.simons.cat"
+        ],
+        "discord_url": null,
+        "telegram_handle": "SimonsCatWorld",
+        "twitter_handle": "SimonsCatMeme",
+        "description": "Simon’s Cat Token is the officially endorsed memecoin, backed by full IP rights from the iconic Simon’s Cat brand.\r\n\r\nOriginating from the beloved British animated series created by Simon Tofield, Simon’s Cat has garnered over 1.6 billion views on its official YouTube channel and even more across various social networks. \r\n\r\nThe project aims to establish the brand’s presence in Web3 while also contributing to initiatives aimed at feeding and rescuing cats globally.",
+        "gt_score": 66.72792660550458,
+        "metadata_updated_at": "2025-09-05T02:24:39Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_dJhBorriSsJwkWKTFGNDnvmQm7CG81WksStqaYFepag",
+      "type": "token",
+      "attributes": {
+        "address": "dJhBorriSsJwkWKTFGNDnvmQm7CG81WksStqaYFepag",
+        "name": "Project Ascend",
+        "symbol": "ASCEND",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68940/large/cgcv8mj96n1gaw8a7y4l6w982q70.?1757032148",
+        "coingecko_coin_id": "project-ascend",
+        "websites": [
+          "https://pags.fm"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "pagsapp",
+        "description": "Creator Capital Market on pump.fun",
+        "gt_score": 63.18036697247707,
+        "metadata_updated_at": "2025-09-05T00:40:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_85y3AuomcSaUv8tBkxDeoB2GV7HhJrkvxr37PDu8pump",
+      "type": "token",
+      "attributes": {
+        "address": "85y3AuomcSaUv8tBkxDeoB2GV7HhJrkvxr37PDu8pump",
+        "name": "#reset",
+        "symbol": "reset",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68939/large/uhd6eu0wwhk322e1ih3zcz75fia8.?1757029140",
+        "coingecko_coin_id": "reset-2",
+        "websites": [
+          "https://x.com/i/communities/1963263923517522088"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "",
+        "gt_score": 53.63908256880734,
+        "metadata_updated_at": "2025-09-04T23:50:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_3arUrpH3nzaRJbbpVgY42dcqSq9A5BFgUxKozZ4npump",
+      "type": "token",
+      "attributes": {
+        "address": "3arUrpH3nzaRJbbpVgY42dcqSq9A5BFgUxKozZ4npump",
+        "name": "StreamerCoin",
+        "symbol": "STREAMER",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68938/large/10mvvyf9fufjjc4nupdo8epqzmdp.?1757022678",
+        "coingecko_coin_id": "streamercoin",
+        "websites": [
+          "https://streamercoin.live"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "StreamerSolana",
+        "description": "",
+        "gt_score": 75.65743119266055,
+        "metadata_updated_at": "2025-09-04T21:55:05Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_XsYdjDjNUygZ7yGKfQaB6TxLh2gC6RRjzLtLAGJrhzV",
+      "type": "token",
+      "attributes": {
+        "address": "XsYdjDjNUygZ7yGKfQaB6TxLh2gC6RRjzLtLAGJrhzV",
+        "name": "Procter &amp; Gamble xStock",
+        "symbol": "PGx",
+        "decimals": 8,
+        "image_url": "https://coin-images.coingecko.com/coins/images/55636/large/Ticker_PG__Company_Name_Proctor___Gamble__size_200x200_2x.png?1746863267",
+        "coingecko_coin_id": "procter-gamble-xstock",
+        "websites": [
+          "https://xstocks.com",
+          "https://backed.fi",
+          "https://assets.backed.fi"
+        ],
+        "discord_url": null,
+        "telegram_handle": "xstocksfi",
+        "twitter_handle": "xStocksFi",
+        "description": "\"For too long, investing has come with barriers. Borders. Brokers. Limitations. It’s been complicated, costly, and — for millions — out of reach. xStocks were created to change that.\r\n\r\nxStocks are tokenized stocks. They’re backed 1:1 by the underlying assets, composable with DeFi protocols, compliant with EU regulations, accessible to non-US users, and provide a legal claim to the value of the stock.\r\n\r\nxStocks enable easy access to 57 US Stocks and ETFs to regular users through top centralized and decentralized exchanges, and can be integrated with other DeFi protocols like any other token.\"",
+        "gt_score": 0.9174311926605505,
+        "metadata_updated_at": "2025-09-04T20:57:24Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FxVxbhxq4xqAjSjVCsYNFHgVr44hF5i5CnSTpgNvpump",
+      "type": "token",
+      "attributes": {
+        "address": "FxVxbhxq4xqAjSjVCsYNFHgVr44hF5i5CnSTpgNvpump",
+        "name": "Brewski",
+        "symbol": "Brewski",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68935/large/q56impd5q98xjvgbamzlsuespmsu.?1757015732",
+        "coingecko_coin_id": "brewski",
+        "websites": [
+          "https://x.com/i/communities/1963032683145044049"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "",
+        "gt_score": 63.425137614678896,
+        "metadata_updated_at": "2025-09-04T19:59:51Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Eh6XEPhSwoLv5wFApukmnaVSHQ6sAnoD9BmgmwQoN2sN",
+      "type": "token",
+      "attributes": {
+        "address": "Eh6XEPhSwoLv5wFApukmnaVSHQ6sAnoD9BmgmwQoN2sN",
+        "name": "Staked USDe",
+        "symbol": "sUSDe",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/33669/large/sUSDe-Symbol-Color.png?1716307680",
+        "coingecko_coin_id": "ethena-staked-usde",
+        "websites": [
+          "https://app.ethena.fi"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "ethena_labs",
+        "description": "",
+        "gt_score": 35.29045871559633,
+        "metadata_updated_at": "2025-09-04T18:47:29Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_7df5p5aoW787CqUWGU2cwtdmtjd5Eiy3oJTbSpeRjupx",
+      "type": "token",
+      "attributes": {
+        "address": "7df5p5aoW787CqUWGU2cwtdmtjd5Eiy3oJTbSpeRjupx",
+        "name": "OUTLAW Crypto Games",
+        "symbol": "OUTLAW",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68931/large/unnamed.jpg?1757008709",
+        "coingecko_coin_id": "outlaw-crypto-games",
+        "websites": [
+          "https://www.outlawgames.app"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "outlawgamefi",
+        "description": "What is Outlaw GameFi?\r\n\r\nMini-Game Platform: Outlaw is positioned as the first mini-game platform on Jupiter Studio, focusing on fun, skill-based, family-friendly games.\r\n\r\nGameFi Model: It combines gaming with decentralized finance — classic GameFi. That means players don’t just play for entertainment; gameplay feeds into a token economy.\r\n\r\nProfit Sharing: The unique hook is that profits from the mini-games flow directly back to $OUTLAW holders. So as games get played and generate revenue, token holders benefit.\r\n\r\nNarrative Fit: GameFi is already seen as a strong narrative in the broader crypto cycle, and Outlaw taps into that sector while adding its own twist with mini-games and profit distribution.\r\nPlatform\tFirst mini-game platform on Jupiter Studio\r\nGames\tSkill-based, family-friendly mini-games\r\nEcosystem\tBuilt on GameFi principles (play-to-earn, token utility)\r\nValue Model\tMini-game profits go back to $OUTLAW holders",
+        "gt_score": 78.34862385321102,
+        "metadata_updated_at": "2025-09-04T18:05:07Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8mYyeBom52k3V7qcQWkpSPcD6gPHmP4KK9Uf7DJ6zREV",
+      "type": "token",
+      "attributes": {
+        "address": "8mYyeBom52k3V7qcQWkpSPcD6gPHmP4KK9Uf7DJ6zREV",
+        "name": "Stable Coin",
+        "symbol": "SC",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68930/large/_PRWj0xK_400x400.jpg?1757008576",
+        "coingecko_coin_id": "stable-coin-3",
+        "websites": [
+          "https://www.thestablecoin.net"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "the_stablecoin",
+        "description": "Stable Coin is not a traditional stablecoin. Instead, it is a Solana-based token designed to create a more stable trading environment by rewarding long-term holders directly in USDC. A token that gets more valuable to hold over time, where trading activity directly benefits committed participants through stable USDC distributions. Built on principles that align incentives and create lasting value..",
+        "gt_score": 33.211045871559634,
+        "metadata_updated_at": "2025-09-04T18:01:32Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_HjjmgBxtnu7soQfbyQAi3ZJAo8MPAA9rn6EPN2K9bonk",
+      "type": "token",
+      "attributes": {
+        "address": "HjjmgBxtnu7soQfbyQAi3ZJAo8MPAA9rn6EPN2K9bonk",
+        "name": "The Surfing Frenchie",
+        "symbol": "Dale",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68928/large/Screenshot_2025-09-03_at_10.03.41%E2%80%AFAM.png?1757007926",
+        "coingecko_coin_id": "the-surfing-frenchie",
+        "websites": [
+          "https://www.surfwithdale.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "DaletheFrenchie",
+        "twitter_handle": "DaletheFrenchie",
+        "description": "Dale is a Surfing French Bulldog featured in Disney's live-action Lilo & Stitch. The $Dale token was launched by Greg Dutcher, Dale's owner, and Dale continues to produce content across social media as he surfs and skates around Hawaii. Dale is the only Disney-featured animal with a token, and his goal is to grow Bonk's holder base and audience through his socials and event participation. Dale's team's goal is to share Dale's joy with as many people as possible.",
+        "gt_score": 81.77357798165139,
+        "metadata_updated_at": "2025-09-04T17:55:08Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_GLGfrAW1yroEQCEz4mdmXE2YF8UPfYma4t9wDbwjpump",
+      "type": "token",
+      "attributes": {
+        "address": "GLGfrAW1yroEQCEz4mdmXE2YF8UPfYma4t9wDbwjpump",
+        "name": "GLO",
+        "symbol": "GLO",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68925/large/glo_%281%29.jpg?1756998225",
+        "coingecko_coin_id": "glo-2",
+        "websites": [
+          "https://glosol.fun"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "journeyofGLO",
+        "description": "The project is about GLO, a one-eyed glowing traveler who symbolizes guidance, hope, and illumination. His endless journey reflects the project’s vision of never stopping, always pushing forward, and continuously creating new paths for others to follow. GLO’s radiant glow is not just a light—it is a beacon that represents clarity, direction, and inspiration. Through him, the project embodies progress, unity, and the power to guide communities through uncertainty, ensuring that no one is left in the dark.",
+        "gt_score": 42.996880733944955,
+        "metadata_updated_at": "2025-09-04T15:08:35Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FCm2wUQnQn8SvhbbyRD4BkUqbMuqjKryVxyTJvjBsqdk",
+      "type": "token",
+      "attributes": {
+        "address": "FCm2wUQnQn8SvhbbyRD4BkUqbMuqjKryVxyTJvjBsqdk",
+        "name": "lonelythriftss",
+        "symbol": "Vtg",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/lio3kxu5g02bme2htvyxweo9lpsz",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://pump.fun/fcm2wuqnqn8svhbbyrd4bkuqbmuqjkryvxytjvjbsqdk"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "Assets of the crypto coin vintage clothes, market is up on that alone but imagine a crypto and earning free clothes to sell or to wear totally up to you💸",
+        "gt_score": 36.08568807339449,
+        "metadata_updated_at": "2025-09-04T14:57:39Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BFU1D2ddyzz7giRUsWRmZ3DoUZ82GhL29ZJLvYGxmoon",
+      "type": "token",
+      "attributes": {
+        "address": "BFU1D2ddyzz7giRUsWRmZ3DoUZ82GhL29ZJLvYGxmoon",
+        "name": "GSpot Coin",
+        "symbol": "GSpot",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/wu77qqm2o26qy41r3ilbe8565kci",
+        "coingecko_coin_id": null,
+        "websites": [
+          "https://www.gspotuniverse.com"
+        ],
+        "discord_url": "https://discord.gg/5pTgdjuHmm",
+        "telegram_handle": "GspotNation",
+        "twitter_handle": "Gspot_coin",
+        "description": "Welcome to GSpot, the coin that’s all about the ultimate quest—finding that elusive sweet spot! More than just a memecoin, GSpot is an entire universe filled with adventure, mystery, and a rich story mode that immerses you in the thrill of discovery.",
+        "gt_score": 71.13155963302752,
+        "metadata_updated_at": "2025-09-04T14:48:31Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_3Gdx9LmKZJyciSz3mbge3YKLqskiMG71m1iDMPAwpump",
+      "type": "token",
+      "attributes": {
+        "address": "3Gdx9LmKZJyciSz3mbge3YKLqskiMG71m1iDMPAwpump",
+        "name": "ARMY",
+        "symbol": "ARMY",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68918/large/Army.jpg?1756973005",
+        "coingecko_coin_id": "army-4",
+        "websites": [
+          "https://pump.fun/coin/3gdx9lmkzjycisz3mbge3yklqskimg71m1idmpawpump"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "armycoinsol",
+        "description": "$ARMY is more than a meme — it’s a movement. Inspired by the unity of frogs and toads (an “army” in nature), this Solana-based token rallies holders to join the ranks, fight for glory, and dominate the meme coin trenches.\r\n\r\nLaunched on pump.fun, $ARMY blends humor, community culture, and meme mastery with a bold vision for the future.\r\n\r\nBuilt for believers, $ARMY is a rally cry for those ready to stand together, create viral moments, and rewrite the meme coin narrative. \r\n\r\nSoon we will rule every timeline, top every leaderboard, and take the trenches once and for all. Long live the $ARMY!",
+        "gt_score": 57.064220183486235,
+        "metadata_updated_at": "2025-09-04T08:10:04Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FLxwDc58Fnb9h1Yq6Vc7YhXjFPwzZadhLPJpUHGMjups",
+      "type": "token",
+      "attributes": {
+        "address": "FLxwDc58Fnb9h1Yq6Vc7YhXjFPwzZadhLPJpUHGMjups",
+        "name": "Assteroid",
+        "symbol": "assteroid",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68916/large/assteroid_pfp.png?1756972543",
+        "coingecko_coin_id": "assteroid",
+        "websites": [
+          "https://assteroid.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "grabassteroid",
+        "description": "assteroid, one of a kind shape orbiting in the Solar System, has been a widely used meme for over a decade. From smashing the icy cold giant twice billions of years ago to constant news reports of a potential to hit the Earth - the little hot rock has one kind of a job. Its name, bringing up the smile on everyone's face, from a mix of intended mispronunciation and human immaturity has cemented its place in the internet culture. ",
+        "gt_score": 35.29045871559633,
+        "metadata_updated_at": "2025-09-04T08:00:03Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FRsV3m924aGpLMuEekoo3JkkMt1oopaM4JY9ki5YLXrp",
+      "type": "token",
+      "attributes": {
+        "address": "FRsV3m924aGpLMuEekoo3JkkMt1oopaM4JY9ki5YLXrp",
+        "name": "Volt",
+        "symbol": "XVM",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68914/large/tokenlogo.png?1756971977",
+        "coingecko_coin_id": "volt-2",
+        "websites": [
+          "https://voltrwa.org"
+        ],
+        "discord_url": null,
+        "telegram_handle": "VoltRWA",
+        "twitter_handle": "VoltRWA",
+        "description": "This platform is engineered to unlock the full potential of Real-World Assets (RWAs) by bringing them onto the XRP Ledger with unparalleled efficiency. Our purpose is to democratize access to high-value assets by providing a streamlined, end-to-end solution for tokenization. Functionally, we offer tools for asset verification, compliant legal wrapping, and the minting of RWA tokens. The project's core utility is twofold: for asset owners, it unlocks immediate liquidity and access to global capital markets; for investors, it offers fractional, transparent, and liquid access to investment classes like private equity and infrastructure bonds. We leverage the XRPL's native speed and built-in DEX to ensure low-cost transactions and instant settlement, setting a new standard for RWA interoperability and finance.",
+        "gt_score": 55.96330275229357,
+        "metadata_updated_at": "2025-09-04T07:55:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_B6dvdDUUYBinNDUT4xsHBSCNu2SKb9P33Z79ySakLREV",
+      "type": "token",
+      "attributes": {
+        "address": "B6dvdDUUYBinNDUT4xsHBSCNu2SKb9P33Z79ySakLREV",
+        "name": "Kairos Sniper Bot",
+        "symbol": "KAIROS",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68912/large/KairosSniper.png?1756971731",
+        "coingecko_coin_id": "kairos-sniper-bot",
+        "websites": [
+          "https://kairossniper.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "KairosSniper",
+        "twitter_handle": "KairosSniper",
+        "description": "KAIROS is a cryptocurrency token on the Solana blockchain that powers a smart trading bot. The project's name is derived from the Greek word for \"perfect timing,\" which is what the bot helps traders achieve. The project aims to provide traders with a tool that automatically buys new tokens at the best prices. In addition to the trading bot, KAIROS offers a community-driven model where token holders can vote on important decisions, and a passive income system where holders earn rewards from transactions. The project's value is designed to grow through a regular token burning mechanism.",
+        "gt_score": 68.68495412844037,
+        "metadata_updated_at": "2025-09-04T07:48:25Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_8wT4PbcZoTtiVwRXRa9E1ThNqQHCmZTSrUPGJrtnMvTm",
+      "type": "token",
+      "attributes": {
+        "address": "8wT4PbcZoTtiVwRXRa9E1ThNqQHCmZTSrUPGJrtnMvTm",
+        "name": "AIcoin",
+        "symbol": "AIC",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/cgppa5shi6tn23xl3ubil5sekflk",
+        "coingecko_coin_id": null,
+        "websites": [],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "Aicoin is a next-generation, AI-powered cryptocurrency built on the Solana network. Harnessing Solana’s unmatched speed and scalability, Aicoin delivers intelligent, secure, and lightning-fast digital finance. Designed for real-world utility and driven by community growth, Aicoin isn’t just a token ",
+        "gt_score": 25.871559633027523,
+        "metadata_updated_at": "2025-09-04T06:12:48Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_EtKn4MuGbztsSYn1Q94DNtxXRLGGg7wdAU67JGxVkH4p",
+      "type": "token",
+      "attributes": {
+        "address": "EtKn4MuGbztsSYn1Q94DNtxXRLGGg7wdAU67JGxVkH4p",
+        "name": "FOWLCAT",
+        "symbol": "$FOWLCAT",
+        "decimals": 9,
+        "image_url": "https://assets.geckoterminal.com/7xbcyh7desfmhfesckpxbfd7bvdp",
+        "coingecko_coin_id": null,
+        "websites": [],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "Imafowlcat",
+        "description": "$FOWLCAT – The Meme With Claws\n\nA new kind of Solana memecoin with real community, future utility, and unstoppable vibes.",
+        "gt_score": 48.62385321100918,
+        "metadata_updated_at": "2025-09-04T06:07:47Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_gateMurAxe4YFoUR6J63gXGKtkbTfdkMdLjZrCmThFP",
+      "type": "token",
+      "attributes": {
+        "address": "gateMurAxe4YFoUR6J63gXGKtkbTfdkMdLjZrCmThFP",
+        "name": "Gate Wrapped SOL",
+        "symbol": "gtSOL",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68906/large/gtsol.png?1756953520",
+        "coingecko_coin_id": "gate-staked-sol",
+        "websites": [
+          "https://app.sanctum.so/explore/gtsol"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "By holding gtSOL, you can enjoy SOL staking yield while maintaining asset liquidity. As yield accumulates, 1 gtSOL can redeem more SOL, and you can continue to earn additional yields in Gate products and diverse DeFi scenarios.",
+        "gt_score": 10.091743119266056,
+        "metadata_updated_at": "2025-09-04T03:54:05Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_Dp8fc49A73C1ycnTzRet8oEWNRSpUymqcCbYsse5pump",
+      "type": "token",
+      "attributes": {
+        "address": "Dp8fc49A73C1ycnTzRet8oEWNRSpUymqcCbYsse5pump",
+        "name": "GROKAN APP",
+        "symbol": "GROKAN",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68904/large/03zx2wmvfrsol9hap39xtefztumd.?1756943091",
+        "coingecko_coin_id": "grokan-app",
+        "websites": [
+          "https://x.com/i/communities/1962891430004695400"
+        ],
+        "discord_url": null,
+        "telegram_handle": null,
+        "twitter_handle": null,
+        "description": "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱",
+        "gt_score": 66.48330275229357,
+        "metadata_updated_at": "2025-09-03T23:50:02Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_CXLBjMMcwkc17GfJtBos6rQCo1ypeH6eDbB82Kby4MRm",
+      "type": "token",
+      "attributes": {
+        "address": "CXLBjMMcwkc17GfJtBos6rQCo1ypeH6eDbB82Kby4MRm",
+        "name": "Wrapped UST (Wormhole)",
+        "symbol": "wUST",
+        "decimals": 9,
+        "image_url": "https://coin-images.coingecko.com/coins/images/15462/large/ust.png?1696515108",
+        "coingecko_coin_id": "wrapped-ust",
+        "websites": [
+          "https://terra.money"
+        ],
+        "discord_url": "https://terra.sc/classicdiscord",
+        "telegram_handle": null,
+        "twitter_handle": "terra_money",
+        "description": "USD pegged Terra Stablecoin",
+        "gt_score": null,
+        "metadata_updated_at": "2025-09-03T21:32:22Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_FfixAeHevSKBZWoXPTbLk4U4X9piqvzGKvQaFo3cpump",
+      "type": "token",
+      "attributes": {
+        "address": "FfixAeHevSKBZWoXPTbLk4U4X9piqvzGKvQaFo3cpump",
+        "name": "Polyfactual",
+        "symbol": "POLYFACTS",
+        "decimals": 6,
+        "image_url": "https://coin-images.coingecko.com/coins/images/68903/large/gwpvfnw9uxvc8ojohahvy2gp1jzy.?1756921813",
+        "coingecko_coin_id": "polyfactual",
+        "websites": [
+          "https://polyfactual.com"
+        ],
+        "discord_url": null,
+        "telegram_handle": "polyfactual",
+        "twitter_handle": "polyfactual",
+        "description": "Enjoyer of prediction markets, live research on all Polymarkets and Kalshi markets. This is our main token & channel. Find us on YouTube https://www.youtube.com/@polyfactual",
+        "gt_score": 75.65743119266055,
+        "metadata_updated_at": "2025-09-03T18:00:06Z"
+      },
+      "relationships": {
+        "network": {
+          "data": {
+            "id": "solana",
+            "type": "network"
+          }
+        }
+      }
+    }
+  ],
+  "included": [
+    {
+      "id": "solana",
+      "type": "network",
+      "attributes": {
+        "name": "Solana",
+        "coingecko_asset_platform_id": "solana"
+      }
+    }
+  ]
+}
