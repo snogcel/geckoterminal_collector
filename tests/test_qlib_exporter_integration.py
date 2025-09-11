@@ -444,6 +444,28 @@ class TestSymbolMapperRequirementsIntegration:
             created_at=datetime.utcnow()
         )
     
+    @pytest.fixture
+    def sample_ohlcv_records(self):
+        """Create sample OHLCV records for testing."""
+        base_time = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        records = []
+        
+        for i in range(24):  # 24 hours of data
+            record = OHLCVRecord(
+                pool_id="solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
+                timeframe="1h",
+                timestamp=int((base_time + timedelta(hours=i)).timestamp()),
+                open_price=Decimal(f"{100 + i}"),
+                high_price=Decimal(f"{105 + i}"),
+                low_price=Decimal(f"{95 + i}"),
+                close_price=Decimal(f"{102 + i}"),
+                volume_usd=Decimal(f"{1000 + i * 10}"),
+                datetime=base_time + timedelta(hours=i)
+            )
+            records.append(record)
+        
+        return records
+    
     @pytest.mark.asyncio
     async def test_requirement_integration_case_preservation(self, mock_enhanced_db_manager, sample_pool_mixed_case):
         """Test that case preservation works through the full integration."""

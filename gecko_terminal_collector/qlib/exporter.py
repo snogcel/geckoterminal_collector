@@ -194,9 +194,10 @@ class QLibExporter:
                         logger.debug(f"No OHLCV data found for symbol: {symbol}")
                         continue
                     
-                    # Convert to DataFrame format
+                    # Convert to DataFrame format - use canonical symbol from pool
+                    canonical_symbol = self._generate_symbol_name(pool)
                     symbol_data = self._convert_ohlcv_to_qlib_format(
-                        ohlcv_records, symbol, include_volume
+                        ohlcv_records, canonical_symbol, include_volume
                     )
                     
                     if not symbol_data.empty:

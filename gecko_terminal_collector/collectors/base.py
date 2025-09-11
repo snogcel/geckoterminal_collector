@@ -86,7 +86,11 @@ class BaseDataCollector(ABC):
             Generated symbol string
         """
         if self.symbol_mapper and hasattr(pool, 'id'):
-            return self.symbol_mapper.generate_symbol(pool)
+            try:
+                return self.symbol_mapper.generate_symbol(pool)
+            except Exception as e:
+                logger.warning(f"Symbol mapper failed for {self.__class__.__name__}: {e}. Falling back to basic generation.")
+                # Fall through to basic symbol generation
         
         # Fallback symbol generation for compatibility
         if hasattr(pool, 'id'):
