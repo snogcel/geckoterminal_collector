@@ -14,6 +14,8 @@ import logging
 from decimal import Decimal
 
 from gecko_terminal_collector.database.manager import DatabaseManager
+from gecko_terminal_collector.database.enhanced_manager import EnhancedDatabaseManager
+from gecko_terminal_collector.qlib.integrated_symbol_mapper import IntegratedSymbolMapper
 from gecko_terminal_collector.models.core import OHLCVRecord, Pool, Token
 
 
@@ -51,16 +53,39 @@ class QLibExporter:
         '1d': '1d'
     }
     
-    def __init__(self, db_manager: DatabaseManager):
+    def __init__(self, db_manager: DatabaseManager, symbol_mapper: Optional[IntegratedSymbolMapper] = None):
         """
-        Initialize QLib exporter with database manager.
+        Initialize QLib exporter with database manager and optional symbol mapper.
         
         Args:
             db_manager: Database manager instance for data access
+            symbol_mapper: Optional integrated symbol mapper for enhanced symbol handling
         """
         self.db_manager = db_manager
         self._symbol_cache = {}
         self._pool_cache = {}
+        
+        # Initialize symbol mapper if enhanced database manager is available
+        if isinstance(db_manager, EnhancedDatabaseManager):
+            self.symbol_mapper = symbol_mapper or IntegratedSymbolMapper(db_manager)
+        else:
+            self.symbol_mapper = None
+            
+        logger.info(f"QLibExporter initialized with {'integrated' if self.symbol_mapper else 'basic'} symbol mapping")
+    
+    async def initialize_symbol_cache(self, limit: Optional[int] = None) -> int:
+        """
+        Initialize symbol mapper cache from database.
+        
+        Args:
+            limit: Optional limit on number of symbols to cache
+            
+        Returns:
+            Number of symbols loaded into cache
+        """
+        if self.symbol_mapper:
+            return await self.symbol_mapper.populate_cache_from_database(limit=limit)
+        return 0
         
     async def get_symbol_list(self, 
                              network: str = "solana",
@@ -380,6 +405,11 @@ class QLibExporter:
         Returns:
             Symbol name string
         """
+        # Use integrated symbol mapper if available
+        if self.symbol_mapper:
+            return self.symbol_mapper.generate_symbol(pool)
+        
+        # Fallback to original logic
         # Use the full pool ID as the symbol to ensure uniqueness and reversibility
         # Keep original case to maintain exact mapping
         symbol = pool.id
@@ -452,6 +482,11 @@ class QLibExporter:
         Returns:
             Pool object or None if not found
         """
+        # Use integrated symbol mapper if available
+        if self.symbol_mapper:
+            return await self.symbol_mapper.lookup_pool_with_fallback(symbol)
+        
+        # Fallback to original logic
         # Check cache first
         if symbol in self._pool_cache:
             return self._pool_cache[symbol]

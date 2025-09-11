@@ -556,3 +556,112 @@ class EnhancedDatabaseManager(SQLAlchemyDatabaseManager):
                 session.rollback()
                 logger.error(f"Error cleaning up metadata: {e}")
                 raise
+    
+    async def get_all_pools(self, limit: Optional[int] = None) -> List:
+        """
+        Get all pools from the database.
+        
+        Args:
+            limit: Optional limit on number of pools to return
+            
+        Returns:
+            List of Pool objects
+        """
+        try:
+            # Use the parent class method to get pools
+            # This is a simplified implementation - in practice you'd want to implement
+            # a more efficient method in the base class
+            pools = []
+            
+            # Get all DEXes first
+            dexes = await self.get_dexes_by_network("solana")  # Assuming solana network
+            
+            for dex in dexes:
+                dex_pools = await self.get_pools_by_dex(dex.id)
+                pools.extend(dex_pools)
+                
+                if limit and len(pools) >= limit:
+                    pools = pools[:limit]
+                    break
+            
+            return pools
+            
+        except Exception as e:
+            logger.error(f"Error getting all pools: {e}")
+            return []
+    
+    async def get_pool_by_address(self, address: str):
+        """
+        Get pool by address.
+        
+        Args:
+            address: Pool address to search for
+            
+        Returns:
+            Pool object if found, None otherwise
+        """
+        try:
+            with self.connection.get_session() as session:
+                from gecko_terminal_collector.database.models import PoolModel
+                
+                pool_model = session.query(PoolModel).filter_by(address=address).first()
+                if pool_model:
+                    # Convert to Pool object
+                    from gecko_terminal_collector.models.core import Pool
+                    return Pool(
+                        id=pool_model.id,
+                        address=pool_model.address,
+                        name=pool_model.name,
+                        dex_id=pool_model.dex_id,
+                        base_token_id=pool_model.base_token_id,
+                        quote_token_id=pool_model.quote_token_id,
+                        reserve_usd=pool_model.reserve_usd,
+                        created_at=pool_model.created_at
+                    )
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting pool by address {address}: {e}")
+            return None
+    
+    async def search_pools_by_name_or_id(self, search_term: str, limit: int = 10) -> List:
+        """
+        Search pools by name or ID.
+        
+        Args:
+            search_term: Term to search for
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of Pool objects matching the search term
+        """
+        try:
+            with self.connection.get_session() as session:
+                from gecko_terminal_collector.database.models import PoolModel
+                from gecko_terminal_collector.models.core import Pool
+                
+                # Search by ID or name (case-insensitive)
+                pool_models = session.query(PoolModel).filter(
+                    (PoolModel.id.ilike(f"%{search_term}%")) |
+                    (PoolModel.name.ilike(f"%{search_term}%"))
+                ).limit(limit).all()
+                
+                pools = []
+                for pool_model in pool_models:
+                    pool = Pool(
+                        id=pool_model.id,
+                        address=pool_model.address,
+                        name=pool_model.name,
+                        dex_id=pool_model.dex_id,
+                        base_token_id=pool_model.base_token_id,
+                        quote_token_id=pool_model.quote_token_id,
+                        reserve_usd=pool_model.reserve_usd,
+                        created_at=pool_model.created_at
+                    )
+                    pools.append(pool)
+                
+                return pools
+                
+        except Exception as e:
+            logger.error(f"Error searching pools by name or ID '{search_term}': {e}")
+            return []

@@ -18,6 +18,14 @@ from gecko_terminal_collector.utils.resilience import HealthChecker, HealthStatu
 
 logger = logging.getLogger(__name__)
 
+# Import symbol mapper with fallback for compatibility
+try:
+    from gecko_terminal_collector.database.enhanced_manager import EnhancedDatabaseManager
+    from gecko_terminal_collector.qlib.integrated_symbol_mapper import IntegratedSymbolMapper
+    SYMBOL_MAPPER_AVAILABLE = True
+except ImportError:
+    SYMBOL_MAPPER_AVAILABLE = False
+
 
 class BaseDataCollector(ABC):
     """
@@ -48,6 +56,68 @@ class BaseDataCollector(ABC):
         self.db_manager = db_manager
         self.use_mock = use_mock
         self.metadata_tracker = metadata_tracker or MetadataTracker()
+        
+        # Initialize symbol mapper if enhanced database manager is available
+        self.symbol_mapper = None
+        self._initialize_symbol_mapper()
+    
+    def _initialize_symbol_mapper(self) -> None:
+        """Initialize symbol mapper if enhanced database manager is available."""
+        if (SYMBOL_MAPPER_AVAILABLE and 
+            hasattr(self, 'db_manager') and 
+            isinstance(self.db_manager, EnhancedDatabaseManager)):
+            try:
+                self.symbol_mapper = IntegratedSymbolMapper(self.db_manager)
+                logger.debug(f"Initialized integrated symbol mapper for {self.__class__.__name__}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize symbol mapper: {e}")
+                self.symbol_mapper = None
+        else:
+            logger.debug(f"Symbol mapper not available for {self.__class__.__name__}")
+    
+    def generate_symbol(self, pool) -> str:
+        """
+        Generate consistent symbol for a pool across all collectors.
+        
+        Args:
+            pool: Pool object or pool data
+            
+        Returns:
+            Generated symbol string
+        """
+        if self.symbol_mapper and hasattr(pool, 'id'):
+            return self.symbol_mapper.generate_symbol(pool)
+        
+        # Fallback symbol generation for compatibility
+        if hasattr(pool, 'id'):
+            pool_id = pool.id
+        elif isinstance(pool, dict):
+            pool_id = pool.get('id', '')
+        else:
+            pool_id = str(pool)
+        
+        # Basic symbol generation logic
+        symbol = pool_id
+        symbol = ''.join(c if c.isalnum() or c == '_' else '_' for c in symbol)
+        while '__' in symbol:
+            symbol = symbol.replace('__', '_')
+        symbol = symbol.strip('_')
+        
+        return symbol
+    
+    async def lookup_pool_by_symbol(self, symbol: str):
+        """
+        Look up pool by symbol using integrated symbol mapper.
+        
+        Args:
+            symbol: Symbol to look up
+            
+        Returns:
+            Pool object if found, None otherwise
+        """
+        if self.symbol_mapper:
+            return await self.symbol_mapper.lookup_pool_with_fallback(symbol)
+        return None
         
         # Initialize error handler with configuration
         retry_config = RetryConfig(
