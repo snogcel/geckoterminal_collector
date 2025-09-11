@@ -71,12 +71,22 @@ class NewPoolsCollector(BaseDataCollector):
                 self.network
             )
             
-            if not response or 'data' not in response:
+            if response is None or (isinstance(response, dict) and 'data' not in response):
                 error_msg = f"No data received from API for network {self.network}"
                 self.logger.warning(error_msg)
                 return self.create_failure_result([error_msg], 0, start_time)
             
-            pools_data = response['data']
+            # Handle different response formats (dict with 'data' key, DataFrame, or direct list)
+            if isinstance(response, dict) and 'data' in response:
+                pools_data = response['data']
+            elif hasattr(response, 'to_dict'):  # pandas DataFrame
+                pools_data = response.to_dict('records')
+            elif isinstance(response, list):
+                pools_data = response
+            else:
+                # Try to normalize the response using the data normalizer
+                pools_data = self.normalize_response_data(response)
+            
             self.logger.info(f"Received {len(pools_data)} new pools from API")
             
             # Validate the response data

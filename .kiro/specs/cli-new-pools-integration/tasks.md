@@ -37,7 +37,9 @@
   - Implement network filtering capability for targeted statistics
   - _Requirements: 2.5, 2.6, 5.1, 5.2, 5.3_
 
-- [ ] 4. Enhance existing CLI commands for new pools support
+- [x] 4. Enhance existing CLI commands for new pools support
+
+
 
 
 
