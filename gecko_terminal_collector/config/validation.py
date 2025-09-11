@@ -155,6 +155,56 @@ class DEXConfigValidator(BaseModel):
         return v
 
 
+class RateLimitConfigValidator(BaseModel):
+    """Pydantic model for rate limiting configuration validation."""
+    requests_per_minute: int = Field(
+        default=60,
+        ge=1,
+        le=1000,
+        description="Maximum requests per minute"
+    )
+    daily_limit: int = Field(
+        default=10000,
+        ge=100,
+        le=100000,
+        description="Maximum requests per day"
+    )
+    circuit_breaker_threshold: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Circuit breaker failure threshold"
+    )
+    circuit_breaker_timeout: int = Field(
+        default=300,
+        ge=30,
+        le=3600,
+        description="Circuit breaker timeout in seconds"
+    )
+    backoff_base_delay: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=60.0,
+        description="Base delay for exponential backoff"
+    )
+    backoff_max_delay: float = Field(
+        default=300.0,
+        ge=1.0,
+        le=3600.0,
+        description="Maximum delay for exponential backoff"
+    )
+    backoff_jitter_factor: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="Jitter factor for backoff randomization"
+    )
+    state_file_dir: str = Field(
+        default=".rate_limiter_state",
+        description="Directory for rate limiter state files"
+    )
+
+
 class ErrorConfigValidator(BaseModel):
     """Pydantic model for error handling configuration validation."""
     max_retries: int = Field(default=3, ge=0, le=10, description="Maximum retry attempts")
@@ -208,6 +258,7 @@ class CollectionConfigValidator(BaseModel):
     database: DatabaseConfigValidator = Field(default_factory=DatabaseConfigValidator)
     api: APIConfigValidator = Field(default_factory=APIConfigValidator)
     error_handling: ErrorConfigValidator = Field(default_factory=ErrorConfigValidator)
+    rate_limiting: RateLimitConfigValidator = Field(default_factory=RateLimitConfigValidator)
     watchlist: WatchlistConfigValidator = Field(default_factory=WatchlistConfigValidator)
     
     model_config = {
@@ -220,7 +271,7 @@ class CollectionConfigValidator(BaseModel):
         """Convert to legacy CollectionConfig format for backward compatibility."""
         from gecko_terminal_collector.config.models import (
             CollectionConfig, DEXConfig, IntervalConfig, ThresholdConfig,
-            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, WatchlistConfig
+            TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, RateLimitConfig, WatchlistConfig
         )
         
         return CollectionConfig(
@@ -261,6 +312,16 @@ class CollectionConfigValidator(BaseModel):
                 backoff_factor=self.error_handling.backoff_factor,
                 circuit_breaker_threshold=self.error_handling.circuit_breaker_threshold,
                 circuit_breaker_timeout=self.error_handling.circuit_breaker_timeout
+            ),
+            rate_limiting=RateLimitConfig(
+                requests_per_minute=self.rate_limiting.requests_per_minute,
+                daily_limit=self.rate_limiting.daily_limit,
+                circuit_breaker_threshold=self.rate_limiting.circuit_breaker_threshold,
+                circuit_breaker_timeout=self.rate_limiting.circuit_breaker_timeout,
+                backoff_base_delay=self.rate_limiting.backoff_base_delay,
+                backoff_max_delay=self.rate_limiting.backoff_max_delay,
+                backoff_jitter_factor=self.rate_limiting.backoff_jitter_factor,
+                state_file_dir=self.rate_limiting.state_file_dir
             ),
             watchlist=WatchlistConfig(
                 file_path=self.watchlist.file_path,
@@ -334,6 +395,16 @@ def get_env_var_mappings() -> Dict[str, str]:
         'GECKO_ERROR_BACKOFF_FACTOR': 'error_handling.backoff_factor',
         'GECKO_ERROR_CIRCUIT_BREAKER_THRESHOLD': 'error_handling.circuit_breaker_threshold',
         'GECKO_ERROR_CIRCUIT_BREAKER_TIMEOUT': 'error_handling.circuit_breaker_timeout',
+        
+        # Rate limiting configuration
+        'GECKO_RATE_LIMIT_REQUESTS_PER_MINUTE': 'rate_limiting.requests_per_minute',
+        'GECKO_RATE_LIMIT_DAILY_LIMIT': 'rate_limiting.daily_limit',
+        'GECKO_RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD': 'rate_limiting.circuit_breaker_threshold',
+        'GECKO_RATE_LIMIT_CIRCUIT_BREAKER_TIMEOUT': 'rate_limiting.circuit_breaker_timeout',
+        'GECKO_RATE_LIMIT_BACKOFF_BASE_DELAY': 'rate_limiting.backoff_base_delay',
+        'GECKO_RATE_LIMIT_BACKOFF_MAX_DELAY': 'rate_limiting.backoff_max_delay',
+        'GECKO_RATE_LIMIT_BACKOFF_JITTER_FACTOR': 'rate_limiting.backoff_jitter_factor',
+        'GECKO_RATE_LIMIT_STATE_FILE_DIR': 'rate_limiting.state_file_dir',
         
         # Watchlist configuration
         'GECKO_WATCHLIST_FILE_PATH': 'watchlist.file_path',

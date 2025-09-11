@@ -62,6 +62,19 @@ class DEXConfig:
 
 
 @dataclass
+class RateLimitConfig:
+    """Rate limiting configuration."""
+    requests_per_minute: int = 60
+    daily_limit: int = 10000
+    circuit_breaker_threshold: int = 5
+    circuit_breaker_timeout: int = 300  # seconds
+    backoff_base_delay: float = 1.0
+    backoff_max_delay: float = 300.0
+    backoff_jitter_factor: float = 0.3
+    state_file_dir: str = ".rate_limiter_state"
+
+
+@dataclass
 class ErrorConfig:
     """Error handling configuration."""
     max_retries: int = 3
@@ -89,6 +102,7 @@ class CollectionConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     api: APIConfig = field(default_factory=APIConfig)
     error_handling: ErrorConfig = field(default_factory=ErrorConfig)
+    rate_limiting: RateLimitConfig = field(default_factory=RateLimitConfig)
     watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
     
     def validate(self) -> List[str]:

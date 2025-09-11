@@ -67,7 +67,12 @@
   - Write integration tests for symbol mapping across the system
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 6. Fix CLI script rate limiter integration
+- [x] 6. Fix CLI script rate limiter integration
+
+
+
+
+
   - Update examples/cli_with_scheduler.py to use EnhancedRateLimiter
   - Fix rate limiter backoff logic in CLI context
   - Ensure proper error handling and logging in CLI operations
