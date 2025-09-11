@@ -38,6 +38,11 @@
   - _Requirements: 2.5, 2.6, 5.1, 5.2, 5.3_
 
 - [ ] 4. Enhance existing CLI commands for new pools support
+
+
+
+
+
   - Modify `status` command to display new pools collectors in scheduler status output
   - Update `run-once` command to support new pools collector execution through job ID matching
   - Enhance `rate-limit-status` command to show new pools collector rate limiting information

@@ -363,7 +363,16 @@ class SchedulerCLI:
         
         print(f"\n=== Collector Details ===")
         for job_id, collector_info in status['collectors'].items():
-            print(f"\n{collector_info['collector_key']}:")
+            collector_key = collector_info['collector_key']
+            
+            # Add network information for new pools collectors
+            network_info = ""
+            if collector_key.startswith('new_pools_'):
+                network = collector_key.replace('new_pools_', '')
+                network_info = f" (Network: {network})"
+            
+            print(f"\n{collector_key}{network_info}:")
+            print(f"  Type: {'New Pools Collector' if collector_key.startswith('new_pools_') else 'Standard Collector'}")
             print(f"  Interval: {collector_info['interval']}")
             print(f"  Enabled: {collector_info['enabled']}")
             print(f"  Last Run: {collector_info['last_run']}")
@@ -437,7 +446,7 @@ def status(config):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
-@click.option('--collector', '-col', help='Collector to run (e.g., dex_monitoring, top_pools)')
+@click.option('--collector', '-col', help='Collector to run (e.g., dex_monitoring, top_pools, new_pools_solana, or just solana for new_pools_solana)')
 @click.option('--mock', is_flag=True, help='Use mock clients for testing')
 def run_once(config, collector, mock):
     """Run a specific collector once."""
@@ -449,29 +458,66 @@ def run_once(config, collector, mock):
         collectors = scheduler_cli.scheduler.list_collectors()
         target_job_id = None
         
+        # First, try to find exact matches
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
-
-            print("-_collector_status--")
-            collector = job_id.removeprefix("collector_")
-            print("-collector_status--")
-            print("job_id: ", job_id)
-            print("collector: ", collector)
-            print("collector_key: ", collector_status['collector_key'])
-            print("---")
-            print(collector_status['collector_key'])
-
-            #collector_key = collector_status['collector_key'] if collector_status else ""
-
-            if collector_status and collector in collector_status['collector_key']:
-                target_job_id = job_id
-                break
+            
+            if collector_status:
+                collector_key = collector_status['collector_key']
+                
+                # Exact match has highest priority
+                if collector == collector_key:
+                    target_job_id = job_id
+                    logger.info(f"Found exact match: '{collector_key}'")
+                    break
+        
+        # If no exact match, try to find new pools collectors by network name
+        if not target_job_id:
+            for job_id in collectors:
+                collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+                
+                if collector_status:
+                    collector_key = collector_status['collector_key']
+                    
+                    # Prioritize new pools collectors for network names
+                    if collector_key == f"new_pools_{collector}":
+                        target_job_id = job_id
+                        logger.info(f"Found new pools collector for network '{collector}': '{collector_key}'")
+                        break
+        
+        # If still no match, try partial matches
+        if not target_job_id:
+            for job_id in collectors:
+                collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+                
+                if collector_status:
+                    collector_key = collector_status['collector_key']
+                    
+                    # Support partial matches for other collectors
+                    if (collector in collector_key or
+                        collector_key.endswith(f"_{collector}") or
+                        collector_key.startswith(f"{collector}_")):
+                        target_job_id = job_id
+                        logger.info(f"Found partial match: '{collector_key}' for '{collector}'")
+                        break
         
         if not target_job_id:
             logger.error(f"Collector '{collector}' not found")
-            available = [scheduler_cli.scheduler.get_collector_status(jid)['collector_key'] 
-                        for jid in collectors]
+            available = []
+            new_pools_collectors = []
+            
+            for jid in collectors:
+                collector_status = scheduler_cli.scheduler.get_collector_status(jid)
+                if collector_status:
+                    collector_key = collector_status['collector_key']
+                    available.append(collector_key)
+                    if collector_key.startswith('new_pools_'):
+                        network = collector_key.replace('new_pools_', '')
+                        new_pools_collectors.append(f"{network} (use '{collector_key}' or '{network}')")
+            
             logger.info(f"Available collectors: {', '.join(available)}")
+            if new_pools_collectors:
+                logger.info(f"New pools collectors: {', '.join(new_pools_collectors)}")
             return
         
         logger.info(f"Running collector '{collector}' once with rate limiting...")
@@ -532,7 +578,13 @@ def rate_limit_status(config):
         
         print(f"\n=== Individual Rate Limiter Status ===")
         for limiter_id, limiter_status in rate_status['limiters'].items():
-            print(f"\n{limiter_id.upper()}:")
+            # Add type information for new pools collectors
+            limiter_type = ""
+            if limiter_id.startswith('new_pools_'):
+                network = limiter_id.replace('new_pools_', '')
+                limiter_type = f" (New Pools - {network.title()})"
+            
+            print(f"\n{limiter_id.upper()}{limiter_type}:")
             print(f"  Daily requests: {limiter_status['daily_requests']}/{limiter_status['daily_limit']}")
             print(f"  Requests per minute: {limiter_status['requests_per_minute']}")
             print(f"  Circuit breaker state: {limiter_status['circuit_state']}")
@@ -781,9 +833,10 @@ def new_pools_stats(config, network, limit):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
-@click.option('--collector', help='Reset rate limiter for specific collector')
+@click.option('--collector', help='Reset rate limiter for specific collector (e.g., dex_monitoring, new_pools_solana)')
+@click.option('--network', help='Reset rate limiter for new pools collector of specific network (e.g., solana, ethereum)')
 @click.option('--all', 'reset_all', is_flag=True, help='Reset all rate limiters')
-def reset_rate_limiter(config, collector, reset_all):
+def reset_rate_limiter(config, collector, network, reset_all):
     """Reset rate limiter state (use with caution)."""
     async def reset_limiter():
         scheduler_cli = SchedulerCLI(config)
@@ -826,8 +879,25 @@ def reset_rate_limiter(config, collector, reset_all):
                 
             except Exception as e:
                 logger.error(f"Failed to reset rate limiter for {collector}: {e}")
+        elif network:
+            # Reset rate limiter for new pools collector of specific network
+            collector_id = f"new_pools_{network}"
+            try:
+                limiter = await scheduler_cli.rate_limit_coordinator.get_limiter(collector_id)
+                # Reset backoff state
+                limiter.backoff_state.consecutive_failures = 0
+                limiter.backoff_state.backoff_until = None
+                # Reset circuit breaker
+                limiter.circuit_state = limiter.circuit_state.CLOSED
+                limiter.circuit_failure_count = 0
+                limiter.circuit_last_failure = None
+                limiter.circuit_next_attempt = None
+                logger.info(f"Reset rate limiter for new pools collector on network '{network}' ({collector_id})")
+                
+            except Exception as e:
+                logger.error(f"Failed to reset rate limiter for new pools collector on network '{network}': {e}")
         else:
-            logger.error("Must specify either --collector or --all")
+            logger.error("Must specify either --collector, --network, or --all")
         
         await scheduler_cli.shutdown()
     
