@@ -41,6 +41,127 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _get_new_pools_statistics(db_manager, network_filter=None, limit=10):
+    """
+    Get comprehensive statistics for new pools collection.
+    
+    Args:
+        db_manager: Database manager instance
+        network_filter: Optional network to filter by
+        limit: Number of recent records to retrieve
+    
+    Returns:
+        Dictionary containing statistics and recent records
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, desc
+    from gecko_terminal_collector.database.models import NewPoolsHistory as NewPoolsHistoryModel, Pool as PoolModel
+    
+    stats = {
+        'total_pools': 0,
+        'total_history_records': 0,
+        'network_distribution': {},
+        'dex_distribution': {},
+        'collection_activity': [],
+        'recent_records': []
+    }
+    
+    with db_manager.connection.get_session() as session:
+        try:
+            # Get total pools count
+            total_pools_query = session.query(func.count(PoolModel.id))
+            if network_filter:
+                # Filter pools by network (assuming pool IDs contain network prefix)
+                total_pools_query = total_pools_query.filter(PoolModel.id.like(f"{network_filter}_%"))
+            stats['total_pools'] = total_pools_query.scalar() or 0
+            
+            # Get total history records count
+            total_history_query = session.query(func.count(NewPoolsHistoryModel.id))
+            if network_filter:
+                total_history_query = total_history_query.filter(NewPoolsHistoryModel.network_id == network_filter)
+            stats['total_history_records'] = total_history_query.scalar() or 0
+            
+            # Get network distribution
+            network_dist_query = session.query(
+                NewPoolsHistoryModel.network_id,
+                func.count(NewPoolsHistoryModel.id).label('count')
+            ).group_by(NewPoolsHistoryModel.network_id)
+            
+            if network_filter:
+                network_dist_query = network_dist_query.filter(NewPoolsHistoryModel.network_id == network_filter)
+            
+            for network_name, count in network_dist_query.all():
+                if network_name:  # Skip null network names
+                    stats['network_distribution'][network_name] = count
+            
+            # Get DEX distribution
+            dex_dist_query = session.query(
+                NewPoolsHistoryModel.dex_id,
+                func.count(NewPoolsHistoryModel.id).label('count')
+            ).group_by(NewPoolsHistoryModel.dex_id)
+            
+            if network_filter:
+                dex_dist_query = dex_dist_query.filter(NewPoolsHistoryModel.network_id == network_filter)
+            
+            for dex_name, count in dex_dist_query.all():
+                if dex_name:  # Skip null DEX names
+                    stats['dex_distribution'][dex_name] = count
+            
+            # Get collection activity for last 24 hours
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+            
+            activity_query = session.query(
+                func.strftime('%Y-%m-%d %H:00', NewPoolsHistoryModel.collected_at).label('hour'),
+                func.count(NewPoolsHistoryModel.id).label('records')
+            ).filter(
+                NewPoolsHistoryModel.collected_at >= twenty_four_hours_ago
+            ).group_by(
+                func.strftime('%Y-%m-%d %H:00', NewPoolsHistoryModel.collected_at)
+            ).order_by('hour')
+            
+            if network_filter:
+                activity_query = activity_query.filter(NewPoolsHistoryModel.network_id == network_filter)
+            
+            for hour, records in activity_query.all():
+                stats['collection_activity'].append({
+                    'hour': hour,
+                    'records': records
+                })
+            
+            # Get recent records with comprehensive information
+            recent_query = session.query(NewPoolsHistoryModel).order_by(desc(NewPoolsHistoryModel.collected_at))
+            
+            if network_filter:
+                recent_query = recent_query.filter(NewPoolsHistoryModel.network_id == network_filter)
+            
+            recent_query = recent_query.limit(limit)
+            
+            for record in recent_query.all():
+                stats['recent_records'].append({
+                    'pool_id': record.pool_id,
+                    'name': record.name,
+                    'address': record.address,
+                    'network_id': record.network_id,
+                    'dex_id': record.dex_id,
+                    'reserve_in_usd': float(record.reserve_in_usd) if record.reserve_in_usd else None,
+                    'volume_usd_h24': float(record.volume_usd_h24) if record.volume_usd_h24 else None,
+                    'price_change_percentage_h1': float(record.price_change_percentage_h1) if record.price_change_percentage_h1 else None,
+                    'price_change_percentage_h24': float(record.price_change_percentage_h24) if record.price_change_percentage_h24 else None,
+                    'transactions_h24_buys': record.transactions_h24_buys,
+                    'transactions_h24_sells': record.transactions_h24_sells,
+                    'pool_created_at': record.pool_created_at.strftime('%Y-%m-%d %H:%M:%S') if record.pool_created_at else None,
+                    'collected_at': record.collected_at.strftime('%Y-%m-%d %H:%M:%S') if record.collected_at else None,
+                    'fdv_usd': float(record.fdv_usd) if record.fdv_usd else None,
+                    'market_cap_usd': float(record.market_cap_usd) if record.market_cap_usd else None,
+                })
+        
+        except Exception as e:
+            logger.error(f"Error retrieving new pools statistics: {e}")
+            raise
+    
+    return stats
+
+
 class SchedulerCLI:
     """CLI wrapper for the collection scheduler with enhanced rate limiting."""
     
@@ -555,6 +676,107 @@ def collect_new_pools(config, network, mock):
             await scheduler_cli.shutdown()
     
     asyncio.run(run_collection())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--network', '-n', help='Filter by network (optional)')
+@click.option('--limit', '-l', default=10, help='Number of recent records to show')
+def new_pools_stats(config, network, limit):
+    """Display comprehensive statistics and recent data from new pools collection."""
+    async def show_stats():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=True)
+        
+        try:
+            # Get database statistics
+            stats = await _get_new_pools_statistics(scheduler_cli.db_manager, network, limit)
+            
+            # Display comprehensive statistics
+            print(f"\n=== New Pools Collection Statistics ===")
+            
+            # Database totals
+            print(f"\n=== Database Totals ===")
+            print(f"Total Pools: {stats['total_pools']:,}")
+            print(f"Total History Records: {stats['total_history_records']:,}")
+            
+            # Network distribution
+            if stats['network_distribution']:
+                print(f"\n=== Network Distribution ===")
+                for network_name, count in stats['network_distribution'].items():
+                    percentage = (count / stats['total_history_records'] * 100) if stats['total_history_records'] > 0 else 0
+                    print(f"{network_name}: {count:,} records ({percentage:.1f}%)")
+            
+            # DEX distribution
+            if stats['dex_distribution']:
+                print(f"\n=== DEX Distribution ===")
+                for dex_name, count in stats['dex_distribution'].items():
+                    percentage = (count / stats['total_history_records'] * 100) if stats['total_history_records'] > 0 else 0
+                    print(f"{dex_name}: {count:,} records ({percentage:.1f}%)")
+            
+            # Collection activity timeline
+            if stats['collection_activity']:
+                print(f"\n=== Collection Activity (Last 24 Hours) ===")
+                for activity in stats['collection_activity']:
+                    print(f"{activity['hour']}: {activity['records']} records")
+            
+            # Recent records
+            if stats['recent_records']:
+                print(f"\n=== Recent Records (Last {limit}) ===")
+                for record in stats['recent_records']:
+                    network_display = f"[{record['network_id']}]" if record['network_id'] else ""
+                    dex_display = f"({record['dex_id']})" if record['dex_id'] else ""
+                    reserve_display = f"${record['reserve_in_usd']:,.2f}" if record['reserve_in_usd'] else "N/A"
+                    volume_display = f"${record['volume_usd_h24']:,.2f}" if record['volume_usd_h24'] else "N/A"
+                    
+                    print(f"\n{record['name']} {network_display} {dex_display}")
+                    print(f"  Pool ID: {record['pool_id']}")
+                    print(f"  Address: {record['address']}")
+                    print(f"  Reserve: {reserve_display}")
+                    print(f"  24h Volume: {volume_display}")
+                    print(f"  Pool Created: {record['pool_created_at']}")
+                    print(f"  Collected: {record['collected_at']}")
+                    
+                    # Price changes
+                    if record['price_change_percentage_h1'] is not None:
+                        print(f"  1h Change: {record['price_change_percentage_h1']:+.2f}%")
+                    if record['price_change_percentage_h24'] is not None:
+                        print(f"  24h Change: {record['price_change_percentage_h24']:+.2f}%")
+                    
+                    # Transaction counts
+                    if record['transactions_h24_buys'] is not None or record['transactions_h24_sells'] is not None:
+                        buys = record['transactions_h24_buys'] or 0
+                        sells = record['transactions_h24_sells'] or 0
+                        print(f"  24h Transactions: {buys} buys, {sells} sells")
+            
+            # Summary
+            print(f"\n=== Summary ===")
+            if network:
+                print(f"Showing statistics for network: {network}")
+            else:
+                print("Showing statistics for all networks")
+            
+            if stats['total_history_records'] > 0:
+                latest_collection = stats['recent_records'][0]['collected_at'] if stats['recent_records'] else "Unknown"
+                print(f"Latest collection: {latest_collection}")
+                
+                # Calculate collection frequency
+                if len(stats['collection_activity']) > 1:
+                    total_hours_with_data = len([a for a in stats['collection_activity'] if a['records'] > 0])
+                    if total_hours_with_data > 0:
+                        avg_records_per_hour = sum(a['records'] for a in stats['collection_activity']) / total_hours_with_data
+                        print(f"Average records per active hour: {avg_records_per_hour:.1f}")
+            else:
+                print("No collection data found")
+        
+        except Exception as e:
+            logger.error(f"Failed to retrieve statistics: {e}")
+            print(f"Error retrieving statistics: {e}")
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(show_stats())
 
 
 @cli.command()

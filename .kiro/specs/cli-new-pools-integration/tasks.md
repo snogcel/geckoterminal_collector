@@ -24,7 +24,11 @@
   - Integrate rate limiting status display after collection execution
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 7.1, 7.2, 7.3_
 
-- [ ] 3. Implement new-pools-stats CLI command
+- [x] 3. Implement new-pools-stats CLI command
+
+
+
+
   - Create new CLI command function for displaying new pools collection statistics
   - Add command-line options for config file, network filtering, and record limit
   - Implement database statistics collection (total pools, history records, network distribution)
