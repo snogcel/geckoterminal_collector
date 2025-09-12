@@ -80,10 +80,10 @@ new_pools:
       enabled: true               # Enable new pools collection for Solana
       interval: "30m"             # Collection interval for Solana
       rate_limit_key: "new_pools_solana"  # Rate limiter key for Solana
-    ethereum:
-      enabled: false              # Enable new pools collection for Ethereum
-      interval: "30m"             # Collection interval for Ethereum
-      rate_limit_key: "new_pools_ethereum"  # Rate limiter key for Ethereum
+    #ethereum:
+    #  enabled: false              # Enable new pools collection for Ethereum
+    #  interval: "30m"             # Collection interval for Ethereum
+    #  rate_limit_key: "new_pools_ethereum"  # Rate limiter key for Ethereum
 
 # Environment Variable Overrides:
 # You can override any configuration value using environment variables:

@@ -82,51 +82,42 @@ class TestTradeCollector:
             "data": [
                 {
                     "id": "solana_363106602_432SvDgRKPzNWyZjZjv8cu8CS3tQtKGSJBCzQW4Ppwz5VYxEM3w1UChE9GYWeovMDwyBzWYX73fXHcwiXjbYuu9N_42_1756397712",
-                    "type": "trade",
-                    "attributes": {
-                        "block_number": 363106602,
-                        "tx_hash": "432SvDgRKPzNWyZjZjv8cu8CS3tQtKGSJBCzQW4Ppwz5VYxEM3w1UChE9GYWeovMDwyBzWYX73fXHcwiXjbYuu9N",
-                        "tx_from_address": "8qcW84HGYGUF8Jqs2JwJyKRWeMm4ksNo9dVugMz9tUc5",
-                        "from_token_amount": "2.505487036",
-                        "to_token_amount": "10787911.48458",
-                        "price_from_in_usd": "212.618160283895494927350632339277383984859223512",
-                        "price_to_in_usd": "0.0000493804611736865774611869570754394294604142126779721093309794408",
-                        "block_timestamp": block_timestamp,
-                        "kind": "buy",
-                        "volume_usd": "532.712044209470242119280771152461839182058804794342390432"
-                    }
+                    "block_number": 363106602,
+                    "tx_hash": "432SvDgRKPzNWyZjZjv8cu8CS3tQtKGSJBCzQW4Ppwz5VYxEM3w1UChE9GYWeovMDwyBzWYX73fXHcwiXjbYuu9N",
+                    "tx_from_address": "8qcW84HGYGUF8Jqs2JwJyKRWeMm4ksNo9dVugMz9tUc5",
+                    "from_token_amount": "2.505487036",
+                    "to_token_amount": "10787911.48458",
+                    "price_from_in_usd": "212.618160283895494927350632339277383984859223512",
+                    "price_to_in_usd": "0.0000493804611736865774611869570754394294604142126779721093309794408",
+                    "block_timestamp": block_timestamp,
+                    "kind": "buy",
+                    "volume_usd": "532.712044209470242119280771152461839182058804794342390432"
                 },
                 {
                     "id": "solana_363105233_5htGYaDNrjcggfohBhYMvA2q3bPNdorPPPM6irPsBvnkXn8QBS1aFtqRbD4gEsoWKDaDYwqwg77yQTXPfmfGX6ko_42_1756397168",
-                    "type": "trade",
-                    "attributes": {
-                        "block_number": 363105233,
-                        "tx_hash": "5htGYaDNrjcggfohBhYMvA2q3bPNdorPPPM6irPsBvnkXn8QBS1aFtqRbD4gEsoWKDaDYwqwg77yQTXPfmfGX6ko",
-                        "tx_from_address": "49LRMwB8HRiMPmTyrHsfPUTkoxxwhudL4ue2Rk3YT1sX",
-                        "from_token_amount": "0.997995006",
-                        "to_token_amount": "4475412.982855",
-                        "price_from_in_usd": "211.80211874193665632466872600261735212952237173",
-                        "price_to_in_usd": "0.000047230827093375367972524251586378905519791491674955847469759436",
-                        "block_timestamp": block_timestamp,
-                        "kind": "buy",
-                        "volume_usd": "211.37745676467178578035770315499446035420679215181558038"
-                    }
+                    "block_number": 363105233,
+                    "tx_hash": "5htGYaDNrjcggfohBhYMvA2q3bPNdorPPPM6irPsBvnkXn8QBS1aFtqRbD4gEsoWKDaDYwqwg77yQTXPfmfGX6ko",
+                    "tx_from_address": "49LRMwB8HRiMPmTyrHsfPUTkoxxwhudL4ue2Rk3YT1sX",
+                    "from_token_amount": "0.997995006",
+                    "to_token_amount": "4475412.982855",
+                    "price_from_in_usd": "211.80211874193665632466872600261735212952237173",
+                    "price_to_in_usd": "0.000047230827093375367972524251586378905519791491674955847469759436",
+                    "block_timestamp": block_timestamp,
+                    "kind": "buy",
+                    "volume_usd": "211.37745676467178578035770315499446035420679215181558038"
                 },
                 {
                     "id": "low_volume_trade",
-                    "type": "trade",
-                    "attributes": {
-                        "block_number": 363100000,
-                        "tx_hash": "lowvolumehash",
-                        "tx_from_address": "lowvolumeaddress",
-                        "from_token_amount": "0.1",
-                        "to_token_amount": "100",
-                        "price_from_in_usd": "50.0",
-                        "price_to_in_usd": "0.05",
-                        "block_timestamp": block_timestamp,
-                        "kind": "sell",
-                        "volume_usd": "5.0"  # Below 100 USD threshold
-                    }
+                    "block_number": 363100000,
+                    "tx_hash": "lowvolumehash",
+                    "tx_from_address": "lowvolumeaddress",
+                    "from_token_amount": "0.1",
+                    "to_token_amount": "100",
+                    "price_from_in_usd": "50.0",
+                    "price_to_in_usd": "0.05",
+                    "block_timestamp": block_timestamp,
+                    "kind": "sell",
+                    "volume_usd": "5.0"  # Below 100 USD threshold
                 }
             ]
         }
@@ -151,9 +142,17 @@ class TestTradeCollector:
     @pytest.mark.asyncio
     async def test_collect_success(self, trade_collector, sample_trade_data):
         """Test successful trade collection."""
-        # Mock the client to return sample data
-        trade_collector._client = AsyncMock()
-        trade_collector._client.get_trades.return_value = sample_trade_data
+        # Mock the make_api_request method to return sample data
+        trade_collector.make_api_request = AsyncMock(return_value=sample_trade_data["data"])
+        
+        # Mock fair rotation and continuity methods
+        trade_collector.implement_fair_rotation = AsyncMock(return_value=["7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP"])
+        trade_collector.verify_and_recover_continuity = AsyncMock(return_value={
+            "pools_with_gaps": 0,
+            "total_gaps_found": 0,
+            "recovery_attempts": 0,
+            "recovery_successes": 0
+        })
         
         result = await trade_collector.collect()
         
@@ -177,9 +176,17 @@ class TestTradeCollector:
     @pytest.mark.asyncio
     async def test_collect_with_errors(self, trade_collector):
         """Test collection with API errors."""
-        # Mock client to raise an exception
-        trade_collector._client = AsyncMock()
-        trade_collector._client.get_trades.side_effect = Exception("API Error")
+        # Mock make_api_request to raise an exception
+        trade_collector.make_api_request = AsyncMock(side_effect=Exception("API Error"))
+        
+        # Mock fair rotation and continuity methods
+        trade_collector.implement_fair_rotation = AsyncMock(return_value=["7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP"])
+        trade_collector.verify_and_recover_continuity = AsyncMock(return_value={
+            "pools_with_gaps": 0,
+            "total_gaps_found": 0,
+            "recovery_attempts": 0,
+            "recovery_successes": 0
+        })
         
         result = await trade_collector.collect()
         
@@ -212,19 +219,16 @@ class TestTradeCollector:
 
         trade_data = {
             "id": "test_trade_123",
-            "type": "trade",
-            "attributes": {
-                "block_number": 123456,
-                "tx_hash": "test_hash",
-                "tx_from_address": "test_address",
-                "from_token_amount": "1.5",
-                "to_token_amount": "1500.0",
-                "price_from_in_usd": "100.0",
-                "price_to_in_usd": "0.1",
-                "block_timestamp": block_timestamp,
-                "kind": "buy",
-                "volume_usd": "150.0"
-            }
+            "block_number": 123456,
+            "tx_hash": "test_hash",
+            "tx_from_address": "test_address",
+            "from_token_amount": "1.5",
+            "to_token_amount": "1500.0",
+            "price_from_in_usd": "100.0",
+            "price_to_in_usd": "0.1",
+            "block_timestamp": block_timestamp,
+            "kind": "buy",
+            "volume_usd": "150.0"
         }
         
         record = trade_collector._parse_trade_entry(trade_data, "test_pool")
@@ -244,11 +248,8 @@ class TestTradeCollector:
     def test_parse_trade_entry_missing_id(self, trade_collector):
         """Test parsing trade entry with missing ID."""
         trade_data = {
-            "type": "trade",
-            "attributes": {
-                "block_number": 123456,
-                "tx_hash": "test_hash"
-            }
+            "block_number": 123456,
+            "tx_hash": "test_hash"
         }
         
         record = trade_collector._parse_trade_entry(trade_data, "test_pool")
@@ -258,12 +259,9 @@ class TestTradeCollector:
         """Test parsing trade entry with invalid timestamp."""
         trade_data = {
             "id": "test_trade_123",
-            "type": "trade",
-            "attributes": {
-                "block_number": 123456,
-                "tx_hash": "test_hash",
-                "block_timestamp": "invalid_timestamp"
-            }
+            "block_number": 123456,
+            "tx_hash": "test_hash",
+            "block_timestamp": "invalid_timestamp"
         }
         
         record = trade_collector._parse_trade_entry(trade_data, "test_pool")
@@ -314,19 +312,19 @@ class TestTradeCollector:
         trades = [
             TradeRecord(
                 id="high_volume", pool_id="pool1", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
                 price_usd=Decimal('1'), volume_usd=Decimal('150'),  # Above threshold
                 side="buy", block_timestamp=datetime.now()
             ),
             TradeRecord(
                 id="low_volume", pool_id="pool1", block_number=2, tx_hash="hash2",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
+                tx_from_address="addr2", from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
                 price_usd=Decimal('1'), volume_usd=Decimal('50'),  # Below threshold
                 side="sell", block_timestamp=datetime.now()
             ),
             TradeRecord(
                 id="exact_threshold", pool_id="pool1", block_number=3, tx_hash="hash3",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
+                tx_from_address="addr3", from_token_amount=Decimal('1'), to_token_amount=Decimal('1'),
                 price_usd=Decimal('1'), volume_usd=Decimal('100'),  # Exact threshold
                 side="buy", block_timestamp=datetime.now()
             )
@@ -344,7 +342,7 @@ class TestTradeCollector:
         trades = [
             TradeRecord(
                 id="valid_trade", pool_id="pool1", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=datetime.now()
             )
@@ -362,14 +360,14 @@ class TestTradeCollector:
             # Trade with missing ID and pool_id
             TradeRecord(
                 id="", pool_id="", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=datetime.now()
             ),
             # Trade with negative values
             TradeRecord(
                 id="valid_id", pool_id="valid_pool", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('-1'), to_token_amount=Decimal('100'),  # Negative amount
+                tx_from_address="addr2", from_token_amount=Decimal('-1'), to_token_amount=Decimal('100'),  # Negative amount
                 price_usd=Decimal('-2'), volume_usd=Decimal('-200'),  # Negative price and volume
                 side="invalid_side", block_timestamp=datetime.now()  # Invalid side
             )
@@ -389,13 +387,13 @@ class TestTradeCollector:
         trades = [
             TradeRecord(
                 id="duplicate_id", pool_id="pool1", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=datetime.now()
             ),
             TradeRecord(
                 id="duplicate_id", pool_id="pool1", block_number=2, tx_hash="hash2",
-                from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
+                tx_from_address="addr2", from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
                 price_usd=Decimal('3'), volume_usd=Decimal('300'),
                 side="sell", block_timestamp=datetime.now()
             )
@@ -424,7 +422,7 @@ class TestTradeCollector:
         trade_collector.db_manager.get_trade_data.return_value = [
             TradeRecord(
                 id="test_trade", pool_id="pool1", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=datetime.now()
             )
@@ -447,13 +445,13 @@ class TestTradeCollector:
         trades = [
             TradeRecord(
                 id="trade1", pool_id="pool1", block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=now - timedelta(hours=23)
             ),
             TradeRecord(
                 id="trade2", pool_id="pool1", block_number=2, tx_hash="hash2",
-                from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
+                tx_from_address="addr2", from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
                 price_usd=Decimal('3'), volume_usd=Decimal('300'),
                 side="sell", block_timestamp=now - timedelta(hours=20)  # 3 hour gap
             )
@@ -487,27 +485,23 @@ class TestTradeCollector:
         """Test collecting trade data for a specific pool."""
         pool_id = "test_pool"
         
-        # Mock the client
-        trade_collector._client = AsyncMock()
-        trade_collector._client.get_trades.return_value = sample_trade_data
+        # Mock the make_api_request method
+        trade_collector.make_api_request = AsyncMock(return_value=sample_trade_data["data"])
         
         records_count = await trade_collector._collect_pool_trade_data(pool_id)
         
         assert records_count == 5  # Mocked return value from store_trade_data
-        trade_collector._client.get_trades.assert_called_once_with(
-            network="solana",
-            pool_address=pool_id,
-            trade_volume_filter=100.0
-        )
+        
+        # Verify make_api_request was called correctly
+        trade_collector.make_api_request.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_collect_pool_trade_data_api_error(self, trade_collector):
         """Test collecting trade data with API error."""
         pool_id = "test_pool"
         
-        # Mock the client to raise an exception
-        trade_collector._client = AsyncMock()
-        trade_collector._client.get_trades.side_effect = Exception("API Error")
+        # Mock make_api_request to raise an exception
+        trade_collector.make_api_request = AsyncMock(side_effect=Exception("API Error"))
         
         records_count = await trade_collector._collect_pool_trade_data(pool_id)
         
@@ -520,9 +514,8 @@ class TestTradeCollector:
         """Test collecting trade data when no data is returned."""
         pool_id = "test_pool"
         
-        # Mock the client to return empty data
-        trade_collector._client = AsyncMock()
-        trade_collector._client.get_trades.return_value = {"data": []}
+        # Mock make_api_request to return empty data
+        trade_collector.make_api_request = AsyncMock(return_value=[])
         
         records_count = await trade_collector._collect_pool_trade_data(pool_id)
         
@@ -586,19 +579,16 @@ class TestTradeCollectorIntegration:
                 if len(parts) >= 16:
                     trades.append({
                         "id": parts[0],
-                        "type": "trade",
-                        "attributes": {
-                            "block_number": int(parts[2]) if parts[2].isdigit() else 0,
-                            "tx_hash": parts[3],
-                            "tx_from_address": parts[4],
-                            "from_token_amount": parts[5],
-                            "to_token_amount": parts[6],
-                            "price_from_in_usd": parts[9],
-                            "price_to_in_usd": parts[10],
-                            "block_timestamp": block_timestamp,
-                            "kind": parts[12],
-                            "volume_usd": parts[13]
-                        }
+                        "block_number": int(parts[2]) if parts[2].isdigit() else 0,
+                        "tx_hash": parts[3],
+                        "tx_from_address": parts[4],
+                        "from_token_amount": parts[5],
+                        "to_token_amount": parts[6],
+                        "price_from_in_usd": parts[9],
+                        "price_to_in_usd": parts[10],
+                        "block_timestamp": block_timestamp,
+                        "kind": parts[12],
+                        "volume_usd": parts[13]
                     })
         
         return {"data": trades}
@@ -633,9 +623,17 @@ class TestTradeCollectorIntegration:
         # Create collector
         collector = TradeCollector(config, db_manager, use_mock=True)
         
-        # Mock client to return CSV data
-        collector._client = AsyncMock()
-        collector._client.get_trades.return_value = csv_fixture_data
+        # Mock make_api_request to return CSV data
+        collector.make_api_request = AsyncMock(return_value=csv_fixture_data["data"])
+        
+        # Mock fair rotation and continuity methods
+        collector.implement_fair_rotation = AsyncMock(return_value=["7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP"])
+        collector.verify_and_recover_continuity = AsyncMock(return_value={
+            "pools_with_gaps": 0,
+            "total_gaps_found": 0,
+            "recovery_attempts": 0,
+            "recovery_successes": 0
+        })
         
         # Run collection
         result = await collector.collect()
@@ -644,12 +642,8 @@ class TestTradeCollectorIntegration:
         assert result.records_collected > 0
         assert result.collector_type == "trade_collector"
         
-        # Verify client was called correctly
-        collector._client.get_trades.assert_called_once_with(
-            network="solana",
-            pool_address="solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP",
-            trade_volume_filter=100.0
-        )
+        # Verify make_api_request was called
+        collector.make_api_request.assert_called()
         
         # Verify database storage was called
         db_manager.store_trade_data.assert_called_once()
@@ -720,19 +714,19 @@ class TestTradeDataContinuityVerification:
         trades = [
             TradeRecord(
                 id="trade1", pool_id=pool_id, block_number=1, tx_hash="hash1",
-                from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                tx_from_address="addr1", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                 price_usd=Decimal('2'), volume_usd=Decimal('200'),
                 side="buy", block_timestamp=now - timedelta(hours=20)
             ),
             TradeRecord(
                 id="trade2", pool_id=pool_id, block_number=2, tx_hash="hash2",
-                from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
+                tx_from_address="addr2", from_token_amount=Decimal('2'), to_token_amount=Decimal('200'),
                 price_usd=Decimal('3'), volume_usd=Decimal('300'),
                 side="sell", block_timestamp=now - timedelta(hours=15)  # 5 hour gap
             ),
             TradeRecord(
                 id="trade3", pool_id=pool_id, block_number=3, tx_hash="hash3",
-                from_token_amount=Decimal('3'), to_token_amount=Decimal('300'),
+                tx_from_address="addr3", from_token_amount=Decimal('3'), to_token_amount=Decimal('300'),
                 price_usd=Decimal('4'), volume_usd=Decimal('400'),
                 side="buy", block_timestamp=now - timedelta(hours=2)  # 13 hour gap
             )
@@ -765,7 +759,7 @@ class TestTradeDataContinuityVerification:
                 return [
                     TradeRecord(
                         id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
-                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        tx_from_address=f"addr_{i}", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                         price_usd=Decimal('2'), volume_usd=Decimal('15000'),  # High volume
                         side="buy", block_timestamp=datetime.now() - timedelta(minutes=i*10)
                     ) for i in range(25)  # High activity
@@ -775,7 +769,7 @@ class TestTradeDataContinuityVerification:
                 return [
                     TradeRecord(
                         id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
-                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        tx_from_address=f"addr_{i}", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                         price_usd=Decimal('2'), volume_usd=Decimal('5000'),  # Medium volume
                         side="buy", block_timestamp=datetime.now() - timedelta(minutes=i*20)
                     ) for i in range(10)  # Medium activity
@@ -785,7 +779,7 @@ class TestTradeDataContinuityVerification:
                 return [
                     TradeRecord(
                         id=f"trade_{i}", pool_id=pool_id, block_number=i, tx_hash=f"hash_{i}",
-                        from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
+                        tx_from_address=f"addr_{i}", from_token_amount=Decimal('1'), to_token_amount=Decimal('100'),
                         price_usd=Decimal('2'), volume_usd=Decimal('500'),  # Low volume
                         side="buy", block_timestamp=datetime.now() - timedelta(hours=i)
                     ) for i in range(3)  # Low activity

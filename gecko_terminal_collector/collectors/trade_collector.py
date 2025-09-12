@@ -740,6 +740,9 @@ class TradeCollector(BaseDataCollector):
             end_time = datetime.now()
             start_time = end_time - timedelta(hours=24)
             
+            print("---TradeCollector---")
+            print(pool_id_)
+
             # Get existing trade data for the period
             trades = await self.db_manager.get_trade_data(
                 pool_id=pool_id,
@@ -833,10 +836,12 @@ class TradeCollector(BaseDataCollector):
         """
         pool_priorities = []
         
-        try:
+        try:                        
             # Calculate priority for each pool
             for pool_id in pool_ids:
-                priority_score = await self._calculate_pool_priority(pool_id)
+
+                normalized_pool_id = DataTypeNormalizer.remove_prefix(pool_id)
+                priority_score = await self._calculate_pool_priority(normalized_pool_id)
                 pool_priorities.append((pool_id, priority_score))
                 self._pool_priorities[pool_id] = priority_score
             
@@ -899,7 +904,9 @@ class TradeCollector(BaseDataCollector):
                 recency_score = min(hours_since / 2.0, 2.0)
             
             # Calculate data quality score (fewer gaps = higher priority)
-            gaps = await self.detect_trade_data_gaps(pool_id)
+            database_id = self.network+"_"+pool_id
+
+            gaps = await self.detect_trade_data_gaps(database_id)
             gap_penalty = len([g for g in gaps if g.severity in ['high', 'medium']]) * 0.2
             quality_score = max(1.0 - gap_penalty, 0.1)
             
@@ -1108,3 +1115,196 @@ class TradeCollector(BaseDataCollector):
         except Exception as e:
             logger.warning(f"Gap recovery attempt failed for pool {pool_id}: {e}")
             return False
+    
+    async def detect_trade_data_gaps(self, pool_id: str) -> List[Gap]:
+        """
+        Detect gaps in trade data for a specific pool.
+        
+        Args:
+            pool_id: Pool identifier to check for gaps
+            
+        Returns:
+            List of Gap objects representing data gaps
+        """
+        try:
+            # Get trade data for the last 24 hours
+            end_time = datetime.now()
+            start_time = end_time - timedelta(hours=24)
+            
+            trades = await self.db_manager.get_trade_data(
+                pool_id=pool_id,
+                start_time=start_time,
+                end_time=end_time,
+                min_volume_usd=self.min_trade_volume_usd
+            )
+            
+            gaps = []
+            
+            if not trades:
+                # No data gap
+                gaps.append(Gap(
+                    pool_id=pool_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration_hours=24.0,
+                    gap_type="no_data",
+                    severity="high"
+                ))
+                return gaps
+            
+            # Sort trades by timestamp
+            sorted_trades = sorted(trades, key=lambda t: t.block_timestamp)
+            
+            # Check for gaps between trades
+            for i in range(1, len(sorted_trades)):
+                gap_duration = sorted_trades[i].block_timestamp - sorted_trades[i-1].block_timestamp
+                gap_hours = gap_duration.total_seconds() / 3600
+                
+                if gap_hours > self.significant_gap_threshold_hours:
+                    gaps.append(Gap(
+                        pool_id=pool_id,
+                        start_time=sorted_trades[i-1].block_timestamp,
+                        end_time=sorted_trades[i].block_timestamp,
+                        duration_hours=gap_hours,
+                        gap_type="data_gap",
+                        severity="high" if gap_hours > 6 else "medium"
+                    ))
+            
+            return gaps
+            
+        except Exception as e:
+            logger.warning(f"Error detecting gaps for pool {pool_id}: {e}")
+            return []
+    
+    async def prioritize_pools_by_activity(self, pool_ids: List[str]) -> List[Tuple[str, float]]:
+        """
+        Prioritize pools based on trading activity and volume.
+        
+        Args:
+            pool_ids: List of pool identifiers to prioritize
+            
+        Returns:
+            List of tuples (pool_id, priority_score) sorted by priority
+        """
+        try:
+            pool_priorities = []
+            
+            for pool_id in pool_ids:
+                # Get recent trade data
+                recent_trades = await self.db_manager.get_trade_data(
+                    pool_id=pool_id,
+                    start_time=datetime.now() - timedelta(minutes=self.rotation_window_minutes),
+                    end_time=datetime.now(),
+                    min_volume_usd=self.min_trade_volume_usd
+                )
+                
+                # Calculate priority score based on activity and volume
+                trade_count = len(recent_trades)
+                total_volume = sum(trade.volume_usd for trade in recent_trades)
+                avg_volume = total_volume / trade_count if trade_count > 0 else Decimal('0')
+                
+                # Check for gaps
+                gaps = await self.detect_trade_data_gaps(pool_id)
+                gap_penalty = len([g for g in gaps if g.severity == "high"]) * 0.5
+                
+                # Calculate priority score
+                activity_score = min(trade_count / 50.0, 1.0)  # Normalize to 0-1
+                volume_score = min(float(avg_volume) / self.high_volume_threshold_usd, 1.0)
+                priority = (activity_score + volume_score) - gap_penalty
+                
+                pool_priorities.append((pool_id, max(priority, 0.1)))  # Minimum priority
+            
+            # Sort by priority (highest first)
+            return sorted(pool_priorities, key=lambda x: x[1], reverse=True)
+            
+        except Exception as e:
+            logger.warning(f"Error prioritizing pools: {e}")
+            return [(pool_id, 1.0) for pool_id in pool_ids]
+    
+    async def implement_fair_rotation(self, pool_ids: List[str]) -> List[str]:
+        """
+        Implement fair rotation for pool selection based on API rate limits.
+        
+        Args:
+            pool_ids: List of all available pool identifiers
+            
+        Returns:
+            List of selected pool identifiers for this collection cycle
+        """
+        try:
+            # Get pool priorities
+            prioritized_pools = await self.prioritize_pools_by_activity(pool_ids)
+            
+            # Calculate how many pools we can process based on rate limits
+            max_pools = min(len(pool_ids), 10)  # Conservative limit
+            
+            # Select top priority pools
+            selected_pools = [pool_id for pool_id, _ in prioritized_pools[:max_pools]]
+            
+            logger.debug(f"Fair rotation selected {len(selected_pools)} pools from {len(pool_ids)} total")
+            
+            return selected_pools
+            
+        except Exception as e:
+            logger.warning(f"Error in fair rotation: {e}")
+            return pool_ids[:5]  # Fallback to first 5 pools
+    
+    async def verify_and_recover_continuity(self, pool_ids: List[str]) -> Dict[str, any]:
+        """
+        Verify data continuity and attempt recovery for gaps.
+        
+        Args:
+            pool_ids: List of pool identifiers to verify
+            
+        Returns:
+            Dictionary with continuity verification results
+        """
+        try:
+            results = {
+                "pools_checked": len(pool_ids),
+                "pools_with_gaps": 0,
+                "total_gaps_found": 0,
+                "recovery_attempts": 0,
+                "recovery_successes": 0,
+                "pool_details": {}
+            }
+            
+            for pool_id in pool_ids:
+                # Detect gaps
+                gaps = await self.detect_trade_data_gaps(pool_id)
+                
+                pool_details = {
+                    "gaps_found": len(gaps),
+                    "recovery_attempted": False,
+                    "recovery_successful": False
+                }
+                
+                if gaps:
+                    results["pools_with_gaps"] += 1
+                    results["total_gaps_found"] += len(gaps)
+                    
+                    # Attempt recovery for significant gaps
+                    significant_gaps = [g for g in gaps if g.severity == "high"]
+                    if significant_gaps:
+                        results["recovery_attempts"] += 1
+                        pool_details["recovery_attempted"] = True
+                        
+                        recovery_success = await self._attempt_gap_recovery(pool_id, significant_gaps)
+                        if recovery_success:
+                            results["recovery_successes"] += 1
+                            pool_details["recovery_successful"] = True
+                
+                results["pool_details"][pool_id] = pool_details
+            
+            return results
+            
+        except Exception as e:
+            logger.warning(f"Error in continuity verification: {e}")
+            return {
+                "pools_checked": len(pool_ids),
+                "pools_with_gaps": 0,
+                "total_gaps_found": 0,
+                "recovery_attempts": 0,
+                "recovery_successes": 0,
+                "pool_details": {}
+            }
