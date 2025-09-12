@@ -163,6 +163,11 @@ class TestNewPoolsIntegration:
         
         # Verify pools were stored in database
         pool1 = await db_manager.get_pool_by_id("integration_pool_1")
+
+        print("-_test_end_to_end_collection_workflow--")
+        print(pool1)
+        print("---")
+
         assert pool1 is not None
         assert pool1.name == "Integration Test Pool 1"
         assert pool1.address == "0x1111111111111111111111111111111111111111"

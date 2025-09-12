@@ -1,14 +1,14 @@
 {
-  "instance_id": "new_pools_solana",
-  "daily_count": 22,
+  "instance_id": "top_pools",
+  "daily_count": 8,
   "last_reset": "2025-09-11",
   "metrics": {
-    "total_requests": 22,
-    "daily_requests": 22,
+    "total_requests": 8,
+    "daily_requests": 8,
     "rate_limit_hits": 0,
     "backoff_events": 0,
     "circuit_breaker_trips": 0,
-    "last_reset": "2025-09-11T08:35:25.317329"
+    "last_reset": "2025-09-11T19:25:01.504697"
   },
   "backoff_state": {
     "consecutive_failures": 0,

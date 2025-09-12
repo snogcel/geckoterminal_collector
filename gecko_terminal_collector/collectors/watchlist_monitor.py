@@ -81,9 +81,9 @@ class WatchlistMonitor(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
-        print("---")
-        print("- init watchlist monitor-")
-        print("---")
+        #print("---")
+        #print("- init watchlist monitor-")
+        #print("---")
 
         self.watchlist_file_path = Path(config.watchlist.file_path)
         self.auto_add_new_tokens = config.watchlist.auto_add_new_tokens

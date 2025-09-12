@@ -49,9 +49,9 @@ class WatchlistCollector(BaseDataCollector):
         """
         super().__init__(config, db_manager, metadata_tracker, use_mock)
         
-        print("---")
-        print("- init collector - ")
-        print("---")
+        #print("---")
+        #print("- init collector - ")
+        #print("---")
 
         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
         self.batch_size = getattr(config.watchlist, 'batch_size', 20)  # Max addresses per API call

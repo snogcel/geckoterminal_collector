@@ -1,14 +1,14 @@
 {
-  "instance_id": "new_pools_solana",
-  "daily_count": 22,
-  "last_reset": "2025-09-11",
+  "instance_id": "dex_monitoring",
+  "daily_count": 18,
+  "last_reset": "2025-09-12",
   "metrics": {
-    "total_requests": 22,
-    "daily_requests": 22,
+    "total_requests": 25,
+    "daily_requests": 18,
     "rate_limit_hits": 0,
     "backoff_events": 0,
     "circuit_breaker_trips": 0,
-    "last_reset": "2025-09-11T08:35:25.317329"
+    "last_reset": "2025-09-12T00:11:36.028895"
   },
   "backoff_state": {
     "consecutive_failures": 0,

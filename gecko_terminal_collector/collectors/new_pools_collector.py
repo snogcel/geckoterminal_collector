@@ -89,6 +89,10 @@ class NewPoolsCollector(BaseDataCollector):
             
             self.logger.info(f"Received {len(pools_data)} new pools from API")
             
+            #print("-_NewPoolsCollector--")
+            #print(pools_data)
+            #print("---")
+
             # Validate the response data
             validation_result = await self.validate_data(pools_data)
             if not validation_result.is_valid:
@@ -348,12 +352,12 @@ class NewPoolsCollector(BaseDataCollector):
             if 'id' not in pool_data:
                 errors.append(f"Pool {i}: Missing required 'id' field")
             
-            if 'attributes' not in pool_data:
-                errors.append(f"Pool {i}: Missing 'attributes' field")
+            if 'base_token_id' not in pool_data:
+                errors.append(f"Pool {i}: Missing 'base_token_id' field")
                 continue
             
-            attributes = pool_data['attributes']
-            if not isinstance(attributes, dict):
+            #attributes = pool_data['attributes']
+            if not isinstance(pool_data, dict):
                 errors.append(f"Pool {i}: 'attributes' must be a dict")
         
         return ValidationResult(

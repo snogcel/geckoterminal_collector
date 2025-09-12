@@ -124,6 +124,12 @@ class SchedulerCLI:
             ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
         ]
         
+        print("===_register_collectors: config===")
+        print(config)
+        print("===")
+
+        # raise SystemExit()
+
         # Add network-specific new pools collectors
         for network_name, network_config in config.new_pools.networks.items():
             collector_id = f"new_pools_{network_name}"
@@ -140,20 +146,39 @@ class SchedulerCLI:
             logger.info(f"Added new pools collector for network '{network_name}' "
                        f"(interval: {network_config.interval}, enabled: {network_config.enabled})")
         
-        # Register all collectors
+        print("==_collector_config_==")
+        print(collectors_config)
+        print("===")
+
+        # Register all collectors - bug: isn't differentiating between old collector / new collector
         for collector_config in collectors_config:
-            if len(collector_config) == 4:
+
+            print("--_collector_config: ", collector_config[0])
+            
+            if (collector_config[0] in ["trade","ohlcv","historical_ohlcv","watchlist_monitor","watchlist_collector"]):
                 # Legacy format without additional params
-                collector_id, collector_class, interval, enabled = collector_config
+                print("===_parsing_legacy_format: ")
+                print(collector_config)
+                print("===")
+                collector_id, collector_class, interval, enabled, additional_params = collector_config
                 additional_params = {}
             else:
                 # New format with additional params
                 collector_id, collector_class, interval, enabled, additional_params = collector_config
+                print("===_parsed_new_format: ")
+                print(collector_config)
+                print("===")
             
             try:
                 # Get rate limiter for this collector
                 rate_limiter = await self.rate_limit_coordinator.get_limiter(collector_id)
                 
+
+                # Rate Limited to avoid API calls not working
+                #print("-_register_rate_limiter--")
+                #print(rate_limiter)
+                #print("---")
+
                 # Create collector instance with additional parameters
                 collector_kwargs = {
                     "config": config,
@@ -341,13 +366,21 @@ def run_once(config, collector, mock):
         collectors = scheduler_cli.scheduler.list_collectors()
         target_job_id = None
         
+        print("===_list_collectors_===")
+        print(collectors)
+        print("===")        
+
         # First, try to find exact matches
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+
+            print("_-run_collector--")
+            print(job_id)
             
             if collector_status:
                 collector_key = collector_status['collector_key']
-                
+                collector = job_id.removeprefix("collector_")
+
                 # Exact match has highest priority
                 if collector == collector_key:
                     target_job_id = job_id
@@ -374,12 +407,11 @@ def run_once(config, collector, mock):
                 collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
                 
                 if collector_status:
-                    collector_key = collector_status['collector_key']
-                    
+                    collector_key = collector_status['collector_key']                    
+                    collector = job_id.removeprefix("collector_")
+
                     # Support partial matches for other collectors
-                    if (collector in collector_key or
-                        collector_key.endswith(f"_{collector}") or
-                        collector_key.startswith(f"{collector}_")):
+                    if (collector in collector_key or collector_key.endswith(f"_{collector}") or collector_key.startswith(f"{collector}_")):
                         target_job_id = job_id
                         logger.info(f"Found partial match: '{collector_key}' for '{collector}'")
                         break
@@ -516,7 +548,16 @@ def collect_new_pools(config, network, mock):
             
             # Get rate limiter for this network
             collector_id = f"new_pools_{network}"
-            rate_limiter = await scheduler_cli.rate_limit_coordinator.get_limiter(collector_id)
+
+            print("-_collect_new_pools--")
+            print(collector_id)
+            print("---")
+
+            rate_limiter = await scheduler_cli.rate_limit_coordinator.get_limiter(collector_id)            
+
+            print("-_should_this_have_a_api_request_limit_prevention_method:")
+            print(rate_limiter)
+            print("---")
             
             # Create metadata tracker
             metadata_tracker = MetadataTracker(db_manager=scheduler_cli.db_manager)
@@ -533,18 +574,21 @@ def collect_new_pools(config, network, mock):
             # Set rate limiter
             if hasattr(collector, 'set_rate_limiter'):
                 collector.set_rate_limiter(rate_limiter)
+
+            print("_-rate_limiter_set--")
             
-            logger.info(f"Starting new pools collection for network: {network}")
+            #logger.info(f"Starting new pools collection for network: {network}")
             
             # Check rate limiter status before execution
-            if rate_limiter:
+            """ if rate_limiter:
                 try:
+                    # limiter_status = await rate_limiter.get_status()
                     limiter_status = await rate_limiter.get_status()
                     if limiter_status.get('backoff_until'):
                         logger.warning(f"Rate limiter in backoff until: {limiter_status['backoff_until']}")
                         logger.warning("Collection may be delayed due to rate limiting")
                 except Exception as e:
-                    logger.warning(f"Could not check rate limiter status: {e}")
+                    logger.warning(f"Could not check rate limiter status: {e}") """
             
             # Execute collection
             result = await collector.collect()
@@ -568,7 +612,7 @@ def collect_new_pools(config, network, mock):
                     print(f"  • {error}")
             
             # Show rate limiting status after execution
-            if rate_limiter:
+            """ if rate_limiter:
                 try:
                     rate_status = await rate_limiter.get_status()
                     print(f"\n=== Rate Limiting Status ===")
@@ -586,7 +630,7 @@ def collect_new_pools(config, network, mock):
                         print(f"⚠️  Rate limiting detected during collection")
                 except Exception as e:
                     print(f"\n=== Rate Limiting Status ===")
-                    print(f"Could not retrieve rate limiter status: {e}")
+                    print(f"Could not retrieve rate limiter status: {e}") """
             
             # Show global rate limiting status
             global_status = await scheduler_cli.rate_limit_coordinator.get_global_status()

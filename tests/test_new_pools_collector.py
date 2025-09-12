@@ -370,6 +370,10 @@ class TestNewPoolsCollector:
         new_pools_collector.rate_limiter.acquire = AsyncMock()
         
         result = await new_pools_collector.collect()
+
+        print("-_test_collect_validation_failure--")
+        print(result)
+        print("---")
         
         assert result.success is False
         assert "Data validation failed" in result.errors[0]
