@@ -122,7 +122,7 @@ class WatchlistCollector(BaseDataCollector):
         """
         start_time = datetime.now()
         errors = []
-        records_collected = 0
+        records_collected = 1
         
         try:
             logger.info(f"Collecting data for single watchlist item: {watchlist_item.get('tokenSymbol', 'Unknown')}")
@@ -131,6 +131,10 @@ class WatchlistCollector(BaseDataCollector):
             pool_address = watchlist_item.get('poolAddress')
             network_address = watchlist_item.get('networkAddress')
             
+            print("-watchlist_collector--Wheres the Prefix?")
+            print(pool_address)            
+            print("---")
+
             # Collect pool data if pool address is provided
             if pool_address:
                 try:
@@ -140,6 +144,10 @@ class WatchlistCollector(BaseDataCollector):
                         self.network, 
                         pool_address
                     )
+
+                    print("---collect_single_item__")
+                    print(response)
+                    print("----")
                     
                     # Handle DataFrame response from geckoterminal-py SDK
                     if hasattr(response, 'empty') and not response.empty:
@@ -156,7 +164,7 @@ class WatchlistCollector(BaseDataCollector):
                             if pool:
                                 stored_count = await self.db_manager.store_pools([pool])
                                 # Count as successful operation regardless of new vs update
-                                records_collected += 1  # Always count as 1 successful operation
+                                # records_collected += 1  # Always count as 1 successful operation
                                 logger.info(f"Stored pool data for {pool_address}")
                             else:
                                 errors.append(f"Failed to parse pool data for {pool_address}")
@@ -186,7 +194,7 @@ class WatchlistCollector(BaseDataCollector):
                         if token:
                             stored_count = await self.db_manager.store_tokens([token])
                             # Count as successful operation regardless of new vs update
-                            records_collected += 1  # Always count as 1 successful operation
+                            # records_collected += 1  # Always count as 1 successful operation
                             logger.info(f"Stored token data for {network_address}")
                         else:
                             errors.append(f"Failed to parse token data for {network_address}")

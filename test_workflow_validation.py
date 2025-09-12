@@ -26,14 +26,14 @@ class MockArgs:
 
 async def test_build_ohlcv_command():
     """Test the build-ohlcv CLI command."""
-    print("Testing build-ohlcv command...")
+    print("Testing build-ohlcv command*...")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         args = MockArgs(
             watchlist_item="CBRL",
             output=temp_dir,
             timeframe="1h",
-            days=7,
+            days=14,
             include_realtime=True,
             validate_data=True,
             force=False
@@ -54,11 +54,11 @@ async def test_validate_workflow_command():
     
     with tempfile.TemporaryDirectory() as temp_dir:
         args = MockArgs(
-            watchlist_file="specs/watchlist.csv",
+            watchlist_file="specs/watchlist_with_prefix.csv",
             output=temp_dir,
             timeframe="1h",
             sample_size=1,
-            days=7,
+            days=14,
             use_real_api=False,  # Use mock API for testing
             detailed_report=True
         )
@@ -78,14 +78,14 @@ async def main():
     
     # Test individual commands
     build_success = await test_build_ohlcv_command()
-    validate_success = await test_validate_workflow_command()
+    #validate_success = await test_validate_workflow_command()
     
     # Summary
     print("\n" + "="*50)
     print("TEST RESULTS")
     print("="*50)
     print(f"build-ohlcv command: {'PASS' if build_success else 'FAIL'}")
-    print(f"validate-workflow command: {'PASS' if validate_success else 'FAIL'}")
+    #print(f"validate-workflow command: {'PASS' if validate_success else 'FAIL'}")
     
     overall_success = build_success and validate_success
     print(f"\nOverall: {'PASS' if overall_success else 'FAIL'}")

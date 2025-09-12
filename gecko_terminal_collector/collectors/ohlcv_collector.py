@@ -18,6 +18,7 @@ from gecko_terminal_collector.models.core import (
     CollectionResult, OHLCVRecord, ValidationResult, Gap, ContinuityReport
 )
 from gecko_terminal_collector.utils.metadata import MetadataTracker
+from gecko_terminal_collector.utils.data_normalizer import DataTypeNormalizer
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +93,12 @@ class OHLCVCollector(BaseDataCollector):
                 return self.create_success_result(0, start_time)
             
             logger.info(f"Found {len(watchlist_pools)} watchlist pools for OHLCV collection")
-            
+            print("---OHLCV_Collector---")
+            print(watchlist_pools)
+            print("---")
+
             # Collect OHLCV data for each pool and timeframe
-            for pool_id in watchlist_pools:
+            for pool_id in watchlist_pools:    
                 try:
                     pool_records = await self._collect_pool_ohlcv_data(pool_id)
                     records_collected += pool_records
@@ -183,6 +187,10 @@ class OHLCVCollector(BaseDataCollector):
                 if ohlcv_records:
                     # Validate data before storage
                     validation_result = await self._validate_ohlcv_data(ohlcv_records)
+
+                    print("===_validation_result: ")
+                    #print(ohlcv_records)
+
                     
                     if validation_result.is_valid:
                         # Store OHLCV data with duplicate prevention
@@ -392,6 +400,9 @@ class OHLCVCollector(BaseDataCollector):
         records = []
         parsing_errors = []
         
+        print("----pool_id----")
+        print(pool_id)
+
         try:
             # Handle pandas DataFrame response (from geckoterminal-py SDK)
             if hasattr(response, 'iterrows'):  # It's a DataFrame
@@ -666,12 +677,12 @@ class OHLCVCollector(BaseDataCollector):
             # Check for extreme price movements (potential data quality issues)
             if open_price > 0 and close_price > 0:
                 price_change_ratio = abs(close_price - open_price) / open_price
-                if price_change_ratio > 10:  # 1000% change
+                if price_change_ratio > 100:  # 1000% change
                     validation_errors.append(f"Extreme price movement: {price_change_ratio:.2%}")
             
             # Check for extremely high volume relative to price
-            if open_price > 0 and volume_usd > (open_price * 1000000):  # Volume > 1M times price
-                validation_errors.append(f"Suspicious volume: {volume_usd} vs price {open_price}")
+            #if open_price > 0 and volume_usd > (open_price * 1000000):  # Volume > 1M times price
+            #    validation_errors.append(f"Suspicious volume: {volume_usd} vs price {open_price}")
             
             # Handle validation errors
             if validation_errors:

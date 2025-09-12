@@ -225,11 +225,24 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                             elif end_date > latest_existing:
                                 start_date = max(start_date, latest_existing)
                     
+                    #print("=_HistoricalOHLCVCollector==")
+                    #print(pool_id)
+                    #print("===")
+
+                    print("--__pool_id for lookup in SQL db: ", pool_id)
+                    print("self.network context: ", self.network)
+
+                    database_id = self.network+"_"+pool_id
+
+                    print("database_id: ", database_id)
+
+                    # if no data exists, then this function will always error out
+
                     # Collect historical data for the specified range
-                    pool_records = await self._collect_pool_timeframe_data(
-                        pool_id, timeframe, start_date, end_date
+                    pool_records = await self._collect_historical_data_with_pagination(
+                        pool_id, database_id, timeframe, start_date, end_date
                     )
-                    records_collected = pool_records
+                    records_collected = len(pool_records) if pool_records else 0
                     
                     logger.info(
                         f"Historical collection completed for pool {pool_id}: "

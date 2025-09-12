@@ -1535,8 +1535,8 @@ async def build_ohlcv_command(args):
         from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
         from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
         from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
-        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor
-        
+        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor        
+
         # Load configuration
         manager = ConfigManager(args.config)
         config = manager.load_config()
@@ -1553,9 +1553,13 @@ async def build_ohlcv_command(args):
         print("=" * 50)
         
         # Step 1: Find the watchlist item
-        print("Step 1: Locating watchlist item...")
+        print("Step 1: Locating watchlist item (this could take awhile)...")
         watchlist_processor = WatchlistProcessor(config)
         watchlist_items = await watchlist_processor.load_watchlist()
+
+        print("--_build_ohlcv_command (from database)--")
+        print(watchlist_items)
+        print("--")
         
         target_item = None
         for item in watchlist_items:
@@ -1569,7 +1573,7 @@ async def build_ohlcv_command(args):
             print(f"✗ Watchlist item '{args.watchlist_item}' not found")
             return 1
         
-        print(f"✓ Found: {target_item.get('tokenSymbol', 'Unknown')} ({target_item.get('tokenName', 'Unknown')})")
+        print(f"  Found: {target_item.get('tokenSymbol', 'Unknown')} ({target_item.get('tokenName', 'Unknown')})")
         print(f"  Pool Address: {target_item.get('poolAddress', 'N/A')}")
         print(f"  Network Address: {target_item.get('networkAddress', 'N/A')}")
         
@@ -1580,6 +1584,11 @@ async def build_ohlcv_command(args):
         # Process this specific item
         collection_result = await watchlist_collector.collect_single_item(target_item)
         
+
+        #print("--_build_ohlcv_command: ")
+        #print(collection_result)
+        #print("-I DID NOT FIND THE PREFIX!!! lmao---")
+
         if not collection_result.success:
             print(f"✗ Failed to collect token information: {collection_result.errors}")
             return 1
@@ -1594,6 +1603,11 @@ async def build_ohlcv_command(args):
         
         # Step 3: Collect historical OHLCV data
         print(f"\nStep 3: Collecting historical OHLCV data ({args.days} days)...")
+        
+        #print("---collector_config---")        
+        print(config)
+        #print("---")
+        
         historical_collector = HistoricalOHLCVCollector(config, db_manager)
         
         from datetime import datetime, timedelta

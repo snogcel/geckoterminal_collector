@@ -323,9 +323,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 # Use batch upsert for better performance
                 for record in validated_data:
+                    
+                    database_id = "solana_"+record.pool_id
+                    
                     # Use SQLite's INSERT OR REPLACE for atomic upsert
                     stmt = sqlite_insert(OHLCVDataModel).values(
-                        pool_id=record.pool_id,
+                        pool_id=database_id,
                         timeframe=record.timeframe,
                         timestamp=record.timestamp,
                         open_price=record.open_price,
@@ -339,7 +342,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     # Check if record exists to determine if it's an insert or update
                     existing = session.query(OHLCVDataModel).filter(
                         and_(
-                            OHLCVDataModel.pool_id == record.pool_id,
+                            OHLCVDataModel.pool_id == database_id,
                             OHLCVDataModel.timeframe == record.timeframe,
                             OHLCVDataModel.timestamp == record.timestamp
                         )
