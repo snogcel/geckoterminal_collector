@@ -24,6 +24,17 @@ class DataTypeNormalizer:
     """
     
     @staticmethod
+    def remove_prefix(pool_id: str) -> str:        
+        # Split the string by the first underscore
+        parts = pool_id.split("_", 1)
+
+        # Assign the results
+        prefix = parts[0]
+        address_body = parts[1]
+
+        return address_body
+
+    @staticmethod
     def normalize_response_data(data: Any) -> List[Dict]:
         """
         Convert API response data to consistent List[Dict] format.
