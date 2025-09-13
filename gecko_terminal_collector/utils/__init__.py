@@ -5,6 +5,7 @@ Utility modules for the GeckoTerminal collector system.
 from .error_handling import ErrorHandler, CircuitBreaker, RetryConfig
 from .metadata import CollectionMetadata, MetadataTracker
 from .activity_scorer import ActivityScorer, CollectionPriority, ActivityMetrics, ScoringWeights
+from .bootstrap import SystemBootstrap, BootstrapResult, BootstrapProgress, BootstrapError
 
 __all__ = [
     "ErrorHandler",
@@ -15,5 +16,9 @@ __all__ = [
     "ActivityScorer",
     "CollectionPriority",
     "ActivityMetrics",
-    "ScoringWeights"
+    "ScoringWeights",
+    "SystemBootstrap",
+    "BootstrapResult",
+    "BootstrapProgress",
+    "BootstrapError"
 ]

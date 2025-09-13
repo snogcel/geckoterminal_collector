@@ -16,6 +16,34 @@ Prioritization:
 1. To avoid database corruption, have a look at the stop function that the LLM was recommending.
 
 
+Implement:
+
+[ ] 6. Implement system bootstrap process
+  - Create SystemBootstrap class in utils/bootstrap.py
+  - Implement complete bootstrap method following dependency order
+  - Add error handling and recovery for bootstrap failures
+  - Create bootstrap progress tracking and logging
+  - Add validation to ensure foreign key constraints are satisfied
+  - _Requirements: 2.2, 2.3, 2.4, 5.1, 5.3, 5.4_
+
+- [ ] 7. Update database manager for discovery operations
+  - Add bulk operations for efficient pool and token storage
+  - Implement upsert logic for discovery-based updates
+  - Add methods for querying pools by activity score and priority
+  - Create cleanup methods for inactive pools and old metadata
+  - Update foreign key handling to support discovery flow
+  - _Requirements: 2.4, 6.1, 6.2_
+
+- [ ] 8. Enhance pool and token models
+  - Add activity_score field to Pool model
+  - Add discovery_source field to track how pools were discovered
+  - Add collection_priority field for scheduling prioritization
+  - Add auto_discovered_at timestamp field
+  - Update model validation and serialization
+  - _Requirements: 3.3, 3.4_
+
+
+
 
 
 #######################
