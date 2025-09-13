@@ -78,7 +78,11 @@
   - Add validation to ensure foreign key constraints are satisfied
   - _Requirements: 2.2, 2.3, 2.4, 5.1, 5.3, 5.4_
 
-- [ ] 7. Update database manager for discovery operations
+- [x] 7. Update database manager for discovery operations
+
+
+
+
   - Add bulk operations for efficient pool and token storage
   - Implement upsert logic for discovery-based updates
   - Add methods for querying pools by activity score and priority

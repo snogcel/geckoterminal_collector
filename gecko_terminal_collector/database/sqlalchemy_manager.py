@@ -4,6 +4,7 @@ SQLAlchemy implementation of the DatabaseManager interface.
 
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Dict, List, Optional, Any
 
 from sqlalchemy import and_, desc, func, or_, select
@@ -1499,6 +1500,558 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 session.rollback()
                 logger.error(f"Error storing new pools history record: {e}")
                 raise
+
+    # Discovery-specific database operations
+    
+    async def bulk_store_pools(self, pools: List[PoolModel]) -> Dict[str, int]:
+        """
+        Bulk store pools with efficient upsert logic for discovery operations.
+        
+        Args:
+            pools: List of PoolModel instances to store
+            
+        Returns:
+            Dictionary with statistics: {'inserted': count, 'updated': count}
+        """
+        if not pools:
+            return {'inserted': 0, 'updated': 0}
+        
+        stats = {'inserted': 0, 'updated': 0}
+        
+        with self.connection.get_session() as session:
+            try:
+                # Get existing pool IDs in batch
+                pool_ids = [pool.id for pool in pools]
+                existing_pools = session.query(PoolModel.id).filter(
+                    PoolModel.id.in_(pool_ids)
+                ).all()
+                existing_ids = {pool_id[0] for pool_id in existing_pools}
+                
+                pools_to_insert = []
+                pools_to_update = []
+                
+                for pool in pools:
+                    if pool.id in existing_ids:
+                        pools_to_update.append(pool)
+                    else:
+                        pools_to_insert.append(pool)
+                
+                # Bulk insert new pools
+                if pools_to_insert:
+                    session.bulk_save_objects(pools_to_insert)
+                    stats['inserted'] = len(pools_to_insert)
+                
+                # Update existing pools
+                for pool in pools_to_update:
+                    session.merge(pool)
+                    stats['updated'] += 1
+                
+                session.commit()
+                logger.info(f"Bulk stored pools: {stats['inserted']} inserted, {stats['updated']} updated")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error in bulk pool storage: {e}")
+                raise
+        
+        return stats
+    
+    async def bulk_store_tokens(self, tokens: List[TokenModel]) -> Dict[str, int]:
+        """
+        Bulk store tokens with efficient upsert logic for discovery operations.
+        
+        Args:
+            tokens: List of TokenModel instances to store
+            
+        Returns:
+            Dictionary with statistics: {'inserted': count, 'updated': count}
+        """
+        if not tokens:
+            return {'inserted': 0, 'updated': 0}
+        
+        stats = {'inserted': 0, 'updated': 0}
+        
+        with self.connection.get_session() as session:
+            try:
+                # Get existing token IDs in batch
+                token_ids = [token.id for token in tokens]
+                existing_tokens = session.query(TokenModel.id).filter(
+                    TokenModel.id.in_(token_ids)
+                ).all()
+                existing_ids = {token_id[0] for token_id in existing_tokens}
+                
+                tokens_to_insert = []
+                tokens_to_update = []
+                
+                for token in tokens:
+                    if token.id in existing_ids:
+                        tokens_to_update.append(token)
+                    else:
+                        tokens_to_insert.append(token)
+                
+                # Bulk insert new tokens
+                if tokens_to_insert:
+                    session.bulk_save_objects(tokens_to_insert)
+                    stats['inserted'] = len(tokens_to_insert)
+                
+                # Update existing tokens
+                for token in tokens_to_update:
+                    session.merge(token)
+                    stats['updated'] += 1
+                
+                session.commit()
+                logger.info(f"Bulk stored tokens: {stats['inserted']} inserted, {stats['updated']} updated")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error in bulk token storage: {e}")
+                raise
+        
+        return stats
+    
+    async def bulk_upsert_pools_with_discovery_data(self, pools_data: List[Dict[str, Any]]) -> Dict[str, int]:
+        """
+        Bulk upsert pools with discovery-specific data handling.
+        
+        Args:
+            pools_data: List of dictionaries containing pool data with discovery fields
+            
+        Returns:
+            Dictionary with statistics: {'inserted': count, 'updated': count}
+        """
+        if not pools_data:
+            return {'inserted': 0, 'updated': 0}
+        
+        stats = {'inserted': 0, 'updated': 0}
+        
+        with self.connection.get_session() as session:
+            try:
+                for pool_data in pools_data:
+                    pool_id = pool_data['id']
+                    existing_pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    
+                    if existing_pool:
+                        # Update existing pool with discovery data
+                        for key, value in pool_data.items():
+                            if hasattr(existing_pool, key):
+                                setattr(existing_pool, key, value)
+                        existing_pool.last_updated = datetime.utcnow()
+                        stats['updated'] += 1
+                    else:
+                        # Create new pool with discovery data
+                        new_pool = PoolModel(**pool_data)
+                        if not hasattr(new_pool, 'created_at') or new_pool.created_at is None:
+                            new_pool.created_at = datetime.utcnow()
+                        session.add(new_pool)
+                        stats['inserted'] += 1
+                
+                session.commit()
+                logger.info(f"Bulk upserted pools with discovery data: {stats['inserted']} inserted, {stats['updated']} updated")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error in bulk pool upsert with discovery data: {e}")
+                raise
+        
+        return stats
+    
+    async def get_pools_by_activity_score(
+        self, 
+        min_score: Optional[Decimal] = None,
+        max_score: Optional[Decimal] = None,
+        limit: Optional[int] = None
+    ) -> List[PoolModel]:
+        """
+        Get pools filtered by activity score range.
+        
+        Args:
+            min_score: Minimum activity score (inclusive)
+            max_score: Maximum activity score (inclusive)
+            limit: Maximum number of pools to return
+            
+        Returns:
+            List of PoolModel instances matching criteria
+        """
+        with self.connection.get_session() as session:
+            query = session.query(PoolModel)
+            
+            if min_score is not None:
+                query = query.filter(PoolModel.activity_score >= min_score)
+            if max_score is not None:
+                query = query.filter(PoolModel.activity_score <= max_score)
+            
+            # Order by activity score descending (highest first)
+            query = query.order_by(desc(PoolModel.activity_score))
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+    
+    async def get_pools_by_priority(
+        self, 
+        priority: str,
+        limit: Optional[int] = None
+    ) -> List[PoolModel]:
+        """
+        Get pools by collection priority.
+        
+        Args:
+            priority: Collection priority ("high", "normal", "low", "paused")
+            limit: Maximum number of pools to return
+            
+        Returns:
+            List of PoolModel instances with specified priority
+        """
+        with self.connection.get_session() as session:
+            query = session.query(PoolModel).filter_by(collection_priority=priority)
+            
+            # Order by activity score descending within priority
+            query = query.order_by(desc(PoolModel.activity_score))
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+    
+    async def get_pools_by_discovery_source(
+        self, 
+        source: str,
+        limit: Optional[int] = None
+    ) -> List[PoolModel]:
+        """
+        Get pools by discovery source.
+        
+        Args:
+            source: Discovery source ("auto", "watchlist", "manual")
+            limit: Maximum number of pools to return
+            
+        Returns:
+            List of PoolModel instances from specified source
+        """
+        with self.connection.get_session() as session:
+            query = session.query(PoolModel).filter_by(discovery_source=source)
+            
+            # Order by discovery time descending (most recent first)
+            query = query.order_by(desc(PoolModel.auto_discovered_at))
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+    
+    async def update_pool_activity_scores(self, pool_scores: Dict[str, Decimal]) -> int:
+        """
+        Bulk update activity scores for multiple pools.
+        
+        Args:
+            pool_scores: Dictionary mapping pool_id to activity_score
+            
+        Returns:
+            Number of pools updated
+        """
+        if not pool_scores:
+            return 0
+        
+        updated_count = 0
+        
+        with self.connection.get_session() as session:
+            try:
+                for pool_id, score in pool_scores.items():
+                    pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    if pool:
+                        pool.activity_score = score
+                        pool.last_activity_check = datetime.utcnow()
+                        updated_count += 1
+                
+                session.commit()
+                logger.info(f"Updated activity scores for {updated_count} pools")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating pool activity scores: {e}")
+                raise
+        
+        return updated_count
+    
+    async def update_pool_priorities(self, pool_priorities: Dict[str, str]) -> int:
+        """
+        Bulk update collection priorities for multiple pools.
+        
+        Args:
+            pool_priorities: Dictionary mapping pool_id to collection_priority
+            
+        Returns:
+            Number of pools updated
+        """
+        if not pool_priorities:
+            return 0
+        
+        updated_count = 0
+        
+        with self.connection.get_session() as session:
+            try:
+                for pool_id, priority in pool_priorities.items():
+                    pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    if pool:
+                        pool.collection_priority = priority
+                        pool.last_updated = datetime.utcnow()
+                        updated_count += 1
+                
+                session.commit()
+                logger.info(f"Updated priorities for {updated_count} pools")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating pool priorities: {e}")
+                raise
+        
+        return updated_count
+    
+    async def cleanup_inactive_pools(
+        self, 
+        inactivity_threshold_days: int = 30,
+        min_activity_score: Decimal = Decimal("10")
+    ) -> Dict[str, int]:
+        """
+        Clean up inactive pools by pausing collection or removing them.
+        
+        Args:
+            inactivity_threshold_days: Days of inactivity before cleanup
+            min_activity_score: Minimum activity score to keep active
+            
+        Returns:
+            Dictionary with cleanup statistics
+        """
+        cutoff_date = datetime.utcnow() - timedelta(days=inactivity_threshold_days)
+        stats = {
+            'paused': 0,
+            'removed': 0,
+            'kept_active': 0
+        }
+        
+        with self.connection.get_session() as session:
+            try:
+                # Find pools that haven't been active recently
+                inactive_pools = session.query(PoolModel).filter(
+                    and_(
+                        PoolModel.discovery_source.in_(['auto', 'auto_new']),  # Only auto-discovered
+                        PoolModel.collection_priority != 'paused',  # Not already paused
+                        or_(
+                            PoolModel.last_activity_check < cutoff_date,
+                            and_(
+                                PoolModel.activity_score.isnot(None),
+                                PoolModel.activity_score < min_activity_score
+                            )
+                        )
+                    )
+                ).all()
+                
+                for pool in inactive_pools:
+                    if pool.activity_score is not None and pool.activity_score < min_activity_score / 2:
+                        # Very low activity - remove from active collection
+                        pool.collection_priority = 'paused'
+                        stats['paused'] += 1
+                    elif pool.last_activity_check and pool.last_activity_check < cutoff_date:
+                        # Haven't checked recently - pause for now
+                        pool.collection_priority = 'low'
+                        stats['paused'] += 1
+                    else:
+                        # Keep active but lower priority
+                        pool.collection_priority = 'low'
+                        stats['kept_active'] += 1
+                
+                session.commit()
+                logger.info(f"Cleaned up inactive pools: {stats['paused']} paused, {stats['removed']} removed, {stats['kept_active']} kept active")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error cleaning up inactive pools: {e}")
+                raise
+        
+        return stats
+    
+    async def cleanup_old_discovery_metadata(self, days_to_keep: int = 30) -> int:
+        """
+        Clean up old discovery metadata records.
+        
+        Args:
+            days_to_keep: Number of days of discovery metadata to retain
+            
+        Returns:
+            Number of records deleted
+        """
+        cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+        deleted_count = 0
+        
+        with self.connection.get_session() as session:
+            try:
+                deleted_count = session.query(DiscoveryMetadataModel).filter(
+                    DiscoveryMetadataModel.created_at < cutoff_date
+                ).delete()
+                
+                session.commit()
+                logger.info(f"Cleaned up {deleted_count} old discovery metadata records")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error cleaning up discovery metadata: {e}")
+                raise
+        
+        return deleted_count
+    
+    async def ensure_foreign_key_dependencies(self, pools: List[PoolModel]) -> Dict[str, int]:
+        """
+        Ensure all foreign key dependencies exist before storing pools.
+        Creates missing DEX records as needed to support discovery flow.
+        
+        Args:
+            pools: List of PoolModel instances to check dependencies for
+            
+        Returns:
+            Dictionary with statistics about created dependencies
+        """
+        stats = {'dexes_created': 0, 'existing_dexes': 0}
+        
+        if not pools:
+            return stats
+        
+        with self.connection.get_session() as session:
+            try:
+                # Get unique DEX IDs from pools
+                dex_ids = list(set(pool.dex_id for pool in pools if pool.dex_id))
+                
+                if not dex_ids:
+                    return stats
+                
+                # Check which DEXes already exist
+                existing_dexes = session.query(DEXModel.id).filter(
+                    DEXModel.id.in_(dex_ids)
+                ).all()
+                existing_dex_ids = {dex_id[0] for dex_id in existing_dexes}
+                
+                stats['existing_dexes'] = len(existing_dex_ids)
+                
+                # Create missing DEXes
+                missing_dex_ids = set(dex_ids) - existing_dex_ids
+                
+                for dex_id in missing_dex_ids:
+                    # Create basic DEX record - this should ideally be populated by discovery
+                    new_dex = DEXModel(
+                        id=dex_id,
+                        name=dex_id.replace('_', ' ').title(),  # Basic name from ID
+                        network=self._infer_network_from_dex_id(dex_id),
+                        last_updated=datetime.utcnow()
+                    )
+                    session.add(new_dex)
+                    stats['dexes_created'] += 1
+                
+                if stats['dexes_created'] > 0:
+                    session.commit()
+                    logger.info(f"Created {stats['dexes_created']} missing DEX records for foreign key dependencies")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error ensuring foreign key dependencies: {e}")
+                raise
+        
+        return stats
+    
+    def _infer_network_from_dex_id(self, dex_id: str) -> str:
+        """
+        Infer network from DEX ID based on common patterns.
+        
+        Args:
+            dex_id: DEX identifier
+            
+        Returns:
+            Inferred network name
+        """
+        # Common network patterns in DEX IDs
+        if any(pattern in dex_id.lower() for pattern in ['solana', 'sol_', 'raydium', 'orca', 'jupiter']):
+            return 'solana'
+        elif any(pattern in dex_id.lower() for pattern in ['ethereum', 'eth_', 'uniswap', 'sushiswap']):
+            return 'ethereum'
+        elif any(pattern in dex_id.lower() for pattern in ['bsc', 'binance', 'pancake']):
+            return 'bsc'
+        elif any(pattern in dex_id.lower() for pattern in ['polygon', 'matic', 'quickswap']):
+            return 'polygon'
+        else:
+            # Default to solana as it's the primary network in this system
+            return 'solana'
+    
+    async def store_discovery_metadata(self, metadata: DiscoveryMetadataModel) -> None:
+        """
+        Store discovery operation metadata.
+        
+        Args:
+            metadata: DiscoveryMetadata model instance to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(metadata)
+                session.commit()
+                logger.debug(f"Stored discovery metadata for {metadata.discovery_type}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing discovery metadata: {e}")
+                raise
+    
+    async def get_discovery_statistics(
+        self, 
+        discovery_type: Optional[str] = None,
+        days_back: int = 7
+    ) -> Dict[str, Any]:
+        """
+        Get discovery operation statistics.
+        
+        Args:
+            discovery_type: Filter by discovery type ("dex", "pool", "token")
+            days_back: Number of days to look back for statistics
+            
+        Returns:
+            Dictionary containing discovery statistics
+        """
+        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        
+        with self.connection.get_session() as session:
+            query = session.query(DiscoveryMetadataModel).filter(
+                DiscoveryMetadataModel.created_at >= cutoff_date
+            )
+            
+            if discovery_type:
+                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+            
+            records = query.all()
+            
+            if not records:
+                return {
+                    'total_operations': 0,
+                    'total_pools_discovered': 0,
+                    'total_pools_filtered': 0,
+                    'average_execution_time': 0,
+                    'total_api_calls': 0,
+                    'total_errors': 0,
+                    'success_rate': 0
+                }
+            
+            total_operations = len(records)
+            total_pools_discovered = sum(r.pools_discovered or 0 for r in records)
+            total_pools_filtered = sum(r.pools_filtered or 0 for r in records)
+            total_execution_time = sum(float(r.execution_time_seconds or 0) for r in records)
+            total_api_calls = sum(r.api_calls_made or 0 for r in records)
+            total_errors = sum(r.errors_encountered or 0 for r in records)
+            
+            return {
+                'total_operations': total_operations,
+                'total_pools_discovered': total_pools_discovered,
+                'total_pools_filtered': total_pools_filtered,
+                'average_execution_time': total_execution_time / total_operations if total_operations > 0 else 0,
+                'total_api_calls': total_api_calls,
+                'total_errors': total_errors,
+                'success_rate': ((total_operations - len([r for r in records if r.errors_encountered > 0])) / total_operations * 100) if total_operations > 0 else 0,
+                'discovery_efficiency': (total_pools_discovered / total_pools_filtered * 100) if total_pools_filtered > 0 else 0
+            }
     
     # Discovery metadata operations
     async def store_discovery_metadata(self, discovery_metadata: DiscoveryMetadataModel) -> None:

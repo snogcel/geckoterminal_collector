@@ -18,7 +18,7 @@ Prioritization:
 
 Implement:
 
-[ ] 6. Implement system bootstrap process
+[X] 6. Implement system bootstrap process
   - Create SystemBootstrap class in utils/bootstrap.py
   - Implement complete bootstrap method following dependency order
   - Add error handling and recovery for bootstrap failures
@@ -50,14 +50,6 @@ Implement:
 # TODO - identify why / how this new token is being added to watchlist 
 #
 
-2025-09-13 02:13:02,744 - gecko_terminal_collector.database.sqlalchemy_manager - WARNING - Watchlist entry already exists for pool B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
-[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, ?, ?)]
-[parameters: ('B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', 'FRIP', 'FRIP', 'B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', '2025-09-13 02:13:02.742186', 1)]
-(Background on this error at: https://sqlalche.me/e/20/gkpj)
-2025-09-13 02:13:02,744 - gecko_terminal_collector.collectors.watchlist_monitor - ERROR - Error processing new record WatchlistRecord(symbol=FRIP, pool=B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7): (sqlite3.IntegrityError) FOREIGN KEY constraint failed
-[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, ?, ?)]
-[parameters: ('B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', 'FRIP', 'FRIP', 'B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', '2025-09-13 02:13:02.742186', 1)]
-(Background on this error at: https://sqlalche.me/e/20/gkpj)
 
 #######################
 
@@ -130,7 +122,7 @@ python examples/cli_with_scheduler.py run-once (start works, just bugs)
 # trade address tagger for entry / exit signals
 
 # trade execution
-
+- might sell data, but never this architecture.
 
 ######################################
 
