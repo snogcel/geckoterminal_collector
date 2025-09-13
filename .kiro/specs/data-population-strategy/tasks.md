@@ -24,7 +24,9 @@
   - Write unit tests for scoring algorithms
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 3. Create discovery metadata database model
+- [x] 3. Create discovery metadata database model
+
+
 
 
 
