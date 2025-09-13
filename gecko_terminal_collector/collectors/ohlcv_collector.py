@@ -188,6 +188,8 @@ class OHLCVCollector(BaseDataCollector):
                     # Validate data before storage
                     validation_result = await self._validate_ohlcv_data(ohlcv_records)
 
+
+
                     print("===_validation_result: ")
                     #print(ohlcv_records)
 
@@ -340,12 +342,16 @@ class OHLCVCollector(BaseDataCollector):
             try:
                 logger.info(f"Performing bulk storage of {len(all_records_for_pool)} OHLCV records for pool {pool_id}")
                 
+                print("--------")
+                print()
+                print("-----")
+
                 # Final validation of the complete dataset
                 final_validation = await self._validate_ohlcv_data(all_records_for_pool)
                 
                 if final_validation.is_valid:
                     # Use enhanced bulk storage
-                    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool)
+                    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool)                    
                     total_records = stored_count
                     
                     logger.info(

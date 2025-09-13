@@ -123,6 +123,8 @@ class SchedulerCLI:
             ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
             ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
         ]
+
+
         
         print("===_register_collectors: config===")
         print(config)
@@ -366,16 +368,12 @@ def run_once(config, collector, mock):
         collectors = scheduler_cli.scheduler.list_collectors()
         target_job_id = None
         
-        print("===_list_collectors_===")
-        print(collectors)
-        print("===")        
-
         # First, try to find exact matches
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
 
-            print("_-run_collector--")
-            print(job_id)
+            # print("_-run_collector--")
+            # print(job_id)
             
             if collector_status:
                 collector_key = collector_status['collector_key']

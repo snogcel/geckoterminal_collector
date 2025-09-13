@@ -315,7 +315,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 if records:
                     # Validate data before storage
                     validation_result = await self._validate_ohlcv_data(records)
-                    
+                                        
                     if validation_result.is_valid:
                         # Store historical OHLCV data with duplicate prevention
 

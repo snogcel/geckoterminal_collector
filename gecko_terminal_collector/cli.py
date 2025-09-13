@@ -1058,6 +1058,10 @@ async def run_collector_command(args):
         from gecko_terminal_collector.config.manager import ConfigManager
         from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
         
+        print("_== run_collector_commands _==")
+        print(args)
+        print("---")
+
         # Load configuration
         manager = ConfigManager(args.config)
         config = manager.load_config()

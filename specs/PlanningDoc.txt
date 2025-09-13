@@ -3,18 +3,766 @@
 TODO: 
 Finish QA Testing
 
+
+#######################
+
+
+1. Figure out how to call ohlcv_data function directly, without waiting for CLI scheduler.
+
+# Research:
+
+build_ohlcv_command
+
+
+2. 
+
+#build_ohlcv_command 
+
+accepts arguments (arguments, in this case mean commands or options)
+ - test arguments to see how they work.
+ 
+ 
+ 
+
+
+
+
+
+
+***************
+Note to self: talking out loud and taking notes while I'm trying to troubleshoot makes it much easier in distracting and self-imposed deadline situations (solopreneurship! good and bad). And, perhaps even in serene ones.
+***************
+
+
+1. Tinker with this error:
+
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+
+vs
+
+solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+
+
+
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+
+
+
+
+## Selected Task - 2025-09-13
+
+
+# Identify how to trigger .collect() function in TradeCollector Class:
+
+class TradeCollector(BaseDataCollector):
+
+	async def collect(self) -> CollectionResult:
+		"""
+		Collect trade data for watchlist tokens with continuity verification and fair rotation.
+
+		Returns:
+			CollectionResult with details about the collection operation
+		"""
+		start_time = datetime.now()
+		errors = []
+		records_collected = 0
+		self._collection_errors = []  # Reset error tracking
+
+		try:
+			# Get active watchlist pool IDs
+			logger.info("Retrieving active watchlist pools for trade collection")
+			watchlist_pools = await self.db_manager.get_watchlist_pools()
+
+
+
+TODO - integrate this function call into testing script:
+
+python -m test_workflow_validation
+
+
+
+Examples:
+  gecko-cli init --force                    # Initialize with default config
+  gecko-cli validate                        # Validate current configuration
+  gecko-cli start --daemon                  # Start collection as daemon
+  gecko-cli status                          # Show system status
+  gecko-cli run-collector ohlcv            # Run specific collector once
+  gecko-cli backfill --days 30             # Backfill 30 days of data
+  gecko-cli export --format qlib           # Export data for QLib
+  gecko-cli db-setup                        # Initialize database schema
+
+
+
+
+
+
+
+
+########################
+
+Prioritization: 
+
+2. Research why new_pools_history database table is not populating.
+
+
+
+
+
+
+# Planning Time!!
+
+## Identify how to use functionalities 6, 7, 8 and other new features.
+
+- Logs feature not Populating
+- Execution History not Populating
+
+
+
+
+____ # Think about what my Therapist mentioned earlier in the week
+
+
+Personal Goals:
+1. Use Music to express Anger or any other feeling. - In Progress
+2. Improve your living environment. - In Progress
+
+
+Notes and stuff to think about between appointments:
+
+Do many people have the ability to think without using words to describe their thought process? It's hard to describe, especially in writing lmao.
+- Abstract Thought when reviewing difficult tasks.
+
+I've noticed that uncompleted tasks just linger in my brain until they are completed. It's great (definitely not virtuous) in certain ways, but kind of hides things from me.
+
+So grateful for a quiet environment to gather my thoughts.
+
+###################################### - the multi tasking zone ##########
+
+# While I wait for the scheduler to run (which will confirm if the data collectors work)...
+#
+
+TODO - adjust script to capture different timeframes (1h is default / hard-coded) -- the scheduler-cli module currently captures multiple timeframes.
+- Backfill using selectable timeframes.
+
+
+
 Remember how to pull OHLCV records (6 months of data coverage)
 python -m test_workflow_validation -- --days 14
 
 # works, but should support up to 6 months (depending on token)
 # works, but should support multiple time aggregations (it does already)
 
+##################################### 
+
+
+
+
+"Much too much"
+
+
+
+If I ask you for the antonym of the word "fragile," what would you say? Maybe something strong, robust... well, actually, it’s not quite like that.
+
+The opposite is Antifragile. But what's the difference?
+
+The term "anti-fragile" was coined by Nassim Nicholas Taleb in his 2012 book Antifragile: Things That Gain from Disorder. Taleb, a statistician, risk analyst, and former trader, developed the concept while studying systems that not only withstand stress and volatility but actually benefit from them.
+
+Taleb introduced the term to describe a category of systems that thrive and grow stronger when exposed to uncertainty and chaos. He observed that traditional categories of fragility and robustness were insufficient to explain how certain entities react positively to stressors.
+
+The idea came from Taleb's extensive work in risk management and his observations of financial markets, biological systems, and technological innovations. He noted that while some things break (fragile) and others endure (robust), some entities actually improve and evolve in response to stress.
+
+Taleb constructed the term by adding the prefix "anti-" to "fragile," explicitly creating a word that conveys the opposite of fragility. Unlike "robust" or "resilient," which suggest resistance to damage, "anti-fragile" indicates a system that gains from disruptions.
+
+    Fragility: Breaks under stress (e.g., glass).
+
+    Robustness: Resists stress but doesn’t improve (e.g., steel).
+
+    Anti-Fragility: Improves with stress (e.g., muscle growth from exercise).
+
+Hope you learned something new today. ;)
+
+
+
+examples/cli_with_scheduler.python
+
+Commands:
+  collect-new-pools   Run new pools collection for a specific network...
+  new-pools-errors    Display comprehensive error analysis for new pools...
+  new-pools-stats     Display comprehensive statistics and recent data...
+  rate-limit-status   Show detailed rate limiting status.
+  reset-rate-limiter  Reset rate limiter state (use with caution).
+  run-once            Run a specific collector once.
+  start               Start the collection scheduler.
+  status              Show scheduler status.
+
+
+cli.py
+
+# Route to appropriate command handler
+command_handlers = {
+	"init": init_command,
+	"validate": validate_command,
+	"db-setup": db_setup_command,
+	"start": start_command,
+	"stop": stop_command,
+	"status": status_command,
+	"run-collector": run_collector_command,
+	"backfill": backfill_command,
+	"export": export_command,
+	"cleanup": cleanup_command,
+	"health-check": health_check_command,
+	"metrics": metrics_command,
+	"logs": logs_command,
+	"backup": backup_command,
+	"restore": restore_command,
+	"build-ohlcv": build_ohlcv_command,
+	"validate-workflow": validate_workflow_command,
+}
+
+
+
+The question - how does the collector argument get passed into the CLI, that's what I love doing. I like to sort out information from chaos.
+
+
+
+##### 
+
+or, bypass that example route with- yay!
+
+python -m gecko_terminal_collector.cli run-collector trades
+
+
+(C:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli run-collector ohlcv 
+_== run_collector_commands _==
+Namespace(config='config.yaml', verbose=False, quiet=False, command='run-collector', collector_type='ohlcv', dry_run=False)
+---
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Running ohlcv collector...
+INFO: Retrieving active watchlist pools for OHLCV collection
+INFO: Found 1 watchlist pools for OHLCV collection
+---OHLCV_Collector---
+['solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama']
+---
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 2 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=5&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 999 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 999 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=15&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=4&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 877 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 877 records, 0 errors, 1 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=12&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 293 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 293 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/day?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 147 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 147 records, 0 errors, 0 warnings
+INFO: Performing bulk storage of 5316 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 5316 records, 0 errors, 1 warnings
+
+
+#########
+
+## WOOHOO!!
+
+
+(C:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli run-collector ohlcv
+_== run_collector_commands _==
+Namespace(config='config.yaml', verbose=False, quiet=False, command='run-collector', collector_type='ohlcv', dry_run=False)
+---
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Running ohlcv collector...
+INFO: Retrieving active watchlist pools for OHLCV collection
+INFO: Found 1 watchlist pools for OHLCV collection
+---OHLCV_Collector---
+['solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama']
+---
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 2 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=5&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=15&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=4&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 877 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 877 records, 0 errors, 1 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=12&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 293 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 293 records, 0 errors, 0 warnings
+INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/day?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 147 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 147 records, 0 errors, 0 warnings
+INFO: Performing bulk storage of 5317 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+--------
+
+-----
+INFO: OHLCV validation completed: 5317 records, 0 errors, 1 warnings
+INFO: Stored 4317 new OHLCV records, updated 1000 existing records
+INFO: Successfully bulk stored 5317 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama across 7 timeframes
+INFO: OHLCV collection completed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: 5317 records stored, 7 timeframes succeeded, 0 timeframes failed, 7 API calls made
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: 328 gaps, quality score: 0.05
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: score 0.05 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: 33 gaps, quality score: 0.27
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: score 0.27 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: 2 gaps, quality score: 0.82
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
+INFO: OHLCV collection completed: 5317 records collected for 1 pools
+✓ Collection completed successfully
+  Records collected: 5317
+  Collection time: 2025-09-13 11:46:50.357752
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+
+##
+
+
+----pool_id----
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: Successfully parsed 147 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+INFO: OHLCV validation completed: 147 records, 0 errors, 0 warnings
+INFO: Performing bulk storage of 5316 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+--------
+
+-----
+INFO: OHLCV validation completed: 5316 records, 0 errors, 1 warnings
+ERROR: Bulk storage failed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: OHLCVCollector._bulk_store_ohlcv_data() takes 2 positional arguments but 3 were given
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 354, in _collect_pool_ohlcv_data
+    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool, pool_id)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: OHLCVCollector._bulk_store_ohlcv_data() takes 2 positional arguments but 3 were given
+INFO: OHLCV collection completed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: 0 records stored, 7 timeframes succeeded, 0 timeframes failed, 7 API calls made
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: score 0.00 < threshold 0.8
+INFO: OHLCV collection completed: 0 records collected for 1 pools
+✓ Collection completed successfully
+  Records collected: 0
+  Collection time: 2025-09-13 11:45:23.544723
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+####
+
+#####
+#
+
+# Use batch upsert for better performance
+                for record in validated_data:
+                    
+					# TODO - check if record already contains underscore, if not add prefix, and if so 
+					
+					# Or, just see if removing this works now with enhanced data collector -- fixed, bubbled up one additional error
+                    database_id = "solana_"+record.pool_id
+                    
+                    # Use SQLite's INSERT OR REPLACE for atomic upsert
+                    stmt = sqlite_insert(OHLCVDataModel).values(
+                        pool_id=record.pool_id,
+                        timeframe=record.timeframe,
+                        timestamp=record.timestamp,
+                        open_price=record.open_price,
+                        high_price=record.high_price,
+                        low_price=record.low_price,
+                        close_price=record.close_price,
+                        volume_usd=record.volume_usd,
+                        datetime=record.datetime,
+                    )
+
+#
+
+
+
+# Parse OHLCV data with enhanced error tracking
+	parsing_errors_before = len(self._collection_errors)
+	ohlcv_records = self._parse_ohlcv_response(response, pool_id, timeframe) # verified correct pool_id here
+	parsing_errors_after = len(self._collection_errors)
+	collection_metadata['parsing_errors'] += (parsing_errors_after - parsing_errors_before)
+
+
+
+
+
+##
+
+Line 988
+async def _bulk_store_ohlcv_data(self, records: List[OHLCVRecord]) -> int:
+        """
+        Enhanced bulk storage for OHLCV data with optimized performance.
+        
+        Args:
+            records: List of OHLCV records to store
+            
+        Returns:
+            Number of records successfully stored
+        """
+        if not records:
+            return 0
+        
+        try:
+            # Sort records by timestamp for better database performance
+            sorted_records = sorted(records, key=lambda r: (r.pool_id, r.timeframe, r.timestamp))
+            
+            # Use the database manager's bulk storage method
+            stored_count = await self.db_manager.store_ohlcv_data(sorted_records) # error pop up here, but doesn't actually tell you where it is.
+            
+            logger.debug(f"Bulk stored {stored_count} OHLCV records")
+            return stored_count
+            
+        except Exception as e:
+            logger.error(f"Error in bulk OHLCV storage: {e}", exc_info=True)
+            raise
+
+
+
+Line: 340
+
+if all_records_for_pool:
+            try:
+                logger.info(f"Performing bulk storage of {len(all_records_for_pool)} OHLCV records for pool {pool_id}")
+                
+                print("--------")
+                print()
+                print("-----")
+
+                # Final validation of the complete dataset
+                final_validation = await self._validate_ohlcv_data(all_records_for_pool)
+                
+                if final_validation.is_valid:
+                    # Use enhanced bulk storage
+                    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool) # to pass in pool_id directly, or parse into all_records_for_pool
+                    total_records = stored_count
+                    
+                    logger.info(
+                        f"Successfully bulk stored {stored_count} OHLCV records for pool {pool_id} "
+                        f"across {len(collection_metadata['timeframes_processed'])} timeframes"
+                    )
+                else:
+                    logger.error(
+                        f"Final validation failed for pool {pool_id}: "
+                        f"{len(final_validation.errors)} errors, {len(final_validation.warnings)} warnings"
+                    )
+                    # Store valid records only
+                    valid_records = [r for r in all_records_for_pool if self._is_record_valid(r)]
+                    if valid_records:
+                        stored_count = await self._bulk_store_ohlcv_data(valid_records)
+                        total_records = stored_count
+                        logger.info(f"Stored {stored_count} valid records out of {len(all_records_for_pool)} for pool {pool_id}")
+                
+            except Exception as storage_error:
+                error_msg = f"Bulk storage failed for pool {pool_id}: {storage_error}"
+                logger.error(error_msg, exc_info=True)
+                self._collection_errors.append(error_msg)
+				
+				
+##				
+
+
+
+
+
+
+
+
+###
+async def _bulk_store_ohlcv_data(self, records: List[OHLCVRecord]) -> int:
+        """
+        Enhanced bulk storage for OHLCV data with optimized performance.
+        
+        Args:
+            records: List of OHLCV records to store
+            
+        Returns:
+            Number of records successfully stored
+        """
+        if not records:
+            return 0
+        
+        try:
+            # Sort records by timestamp for better database performance
+            sorted_records = sorted(records, key=lambda r: (r.pool_id, r.timeframe, r.timestamp))
+            
+            # Use the database manager's bulk storage method
+            stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
+            
+            logger.debug(f"Bulk stored {stored_count} OHLCV records")
+            return stored_count
+            
+        except Exception as e:
+            logger.error(f"Error in bulk OHLCV storage: {e}", exc_info=True)
+            raise
+			
+			
+			
+Thinking back....
+
+
+"The request "Dashify Bitcore" refers to configuring a Bitcore-based application to work with the Dash cryptocurrency
+. The term "dashify" is not a standard procedure but rather a descriptive way of referring to the process of adapting a Bitcore project for the Dash network. 
+Bitcore is a software stack and framework for Bitcoin and its derivatives that allows developers to build blockchain applications. In contrast, Dashcore is the specific fork of this framework developed by the Dash project. 
+Here is how you would "Dashify" a Bitcore application:
+
+    Use the Dash-specific Bitcore library. Instead of the general Bitcore library, you must use bitcore-dash or dashcore-lib, which is maintained by the Dash community. This version includes all the necessary configurations and functionalities for interacting with the Dash blockchain.
+    Point to the Dash network. When initializing your application, you must configure it to connect to the Dash network. Dashcore nodes automatically download and interface with Dash Core.
+    Utilize Dash-specific features. If your application uses specialized Dash features like InstantSend, ChainLocks, or masternodes, you will use the specific extensions and APIs provided by bitcore-dash. For example, the bitcore-wallet-client-dash library connects to the Dash wallet service for creating and managing wallets.
+    Reference Dash network data. If you are building a block explorer or a service that reads blockchain data, you will interact with the Dash Insight API, which provides access to Dash-specific data points. 
+
+The dashcore-node project is a prime example of a "dashified" Bitcore application, providing a fully functional Dash node for building custom applications"
+
+
+
+
+Bitcore is a suite of tools for building Bitcoin and blockchain-based applications, originally created by BitPay
+. While it functions as an extensible full node, its core principles focus on modularity, robust infrastructure, and developer-centric tools to interface with the Bitcoin network. 
+The core principles of Bitcore for a Node.js environment are:
+
+    Modularity: The project is broken down into separate npm modules, allowing developers to include only the necessary functionality for their application. This provides flexibility and keeps the project lightweight. Key modules include bitcore-lib (core Bitcoin features), bitcore-p2p (peer-to-peer networking), and bitcore-node (the full node functionality).
+    Reliable API: Bitcore provides a stable and powerful JavaScript API for interacting with the Bitcoin protocol. This allows developers to work with high-level functions for creating and managing transactions, addresses, and keys, abstracting away the low-level complexities of the Bitcoin protocol.
+    Full Node Capabilities: A Bitcore Node.js instance can run a full Bitcoin node, including the C++ code from Bitcoin Core. This means it can independently validate every transaction and block against the Bitcoin consensus rules, giving developers access to verified blockchain data without relying on a third-party API.
+    Peer-to-Peer (P2P) Interaction: The bitcore-p2p module enables Node.js applications to communicate directly with the Bitcoin network. This allows for the broadcasting of transactions and the syncing of blockchain data, enhancing an application's resilience and decentralization.
+    Developer Empowerment: The project is designed to lower the barrier to entry for Bitcoin development. By providing a comprehensive set of JavaScript tools and libraries, Bitcore allows developers to build robust applications and services like wallets, block explorers, and payment processors.
+    Decentralization and Trust-Minimization: By allowing applications to run a full node and directly query blockchain data, Bitcore minimizes the need to trust external, centralized services. This aligns with Bitcoin's core principle of decentralization and provides a more secure, resilient infrastructure for applications.
+    Performance: A Bitcore node can offer significant performance advantages over relying on third-party JSON-RPC APIs. The direct, native access to blockchain data provides a much faster and more efficient way for services to access network informatio
+
+
+Ahhh I think back to when I ported this entire stack from Bitcoin to Dash.
+
+
+	
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 1002, in _bulk_store_ohlcv_data
+    stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 495, in store_ohlcv_data
+    session.execute(stmt)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute    
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2251, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py", line 1306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute    
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+ERROR: Bulk storage failed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 350, in _collect_pool_ohlcv_data
+    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 1002, in _bulk_store_ohlcv_data
+    stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 495, in store_ohlcv_data
+    session.execute(stmt)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute    
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2251, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py", line 1306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute    
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
+[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+hold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: score 0.00 < threshold 0.8
+WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: 1 gaps, quality score: 0.00
+WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: score 0.00 < threshold 0.8
+INFO: OHLCV collection completed: 0 records collected for 1 pools
+✓ Collection completed successfully
+  Records collected: 0
+  Collection time: 2025-09-13 11:20:03.317744
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+
+
+
+
+#####
+
+(C:\Projects\geckoterminal_collector\.conda) PS C:\Projects\geckoterminal_collector> python examples/cli_with_scheduler.py run-once olhcv
+Usage: cli_with_scheduler.py run-once [OPTIONS]
+Try 'cli_with_scheduler.py run-once --help' for help.
+
+Error: Got unexpected extra argument (olhcv)
+
+
+config
+
+def run_once(config, collector, mock):
+    """Run a specific collector once."""
+    async def run_collector():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=mock)
+        
+        # Find the collector job ID
+        collectors = scheduler_cli.scheduler.list_collectors()
+        target_job_id = None
+        
+        print("===run_once: find the collector jobID_===")
+        print(target_job_id)
+        print("===")        
+
+        # First, try to find exact matches
+        for job_id in collectors:
+            collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+
+            print("_-run_collector--")
+            print(job_id)
+            
+            if collector_status:
+                collector_key = collector_status['collector_key']
+                collector = job_id.removeprefix("collector_")
+
+                # Exact match has highest priority
+                if collector == collector_key:
+                    target_job_id = job_id # job_id is assigned to target_job_id here
+                    logger.info(f"Found exact match: '{collector_key}'")
+                    break  
+
+#####
+
+
+
+
+
+
+
+
+
+
 #######################
 
-Prioritization: 
 
-1. To avoid database corruption, have a look at the stop function that the LLM was recommending.
 
+# COMPLETED TODAY
 
 Implement:
 
@@ -26,7 +774,7 @@ Implement:
   - Add validation to ensure foreign key constraints are satisfied
   - _Requirements: 2.2, 2.3, 2.4, 5.1, 5.3, 5.4_
 
-- [ ] 7. Update database manager for discovery operations
+- [X] 7. Update database manager for discovery operations
   - Add bulk operations for efficient pool and token storage
   - Implement upsert logic for discovery-based updates
   - Add methods for querying pools by activity score and priority
@@ -34,25 +782,13 @@ Implement:
   - Update foreign key handling to support discovery flow
   - _Requirements: 2.4, 6.1, 6.2_
 
-- [ ] 8. Enhance pool and token models
+- [X] 8. Enhance pool and token models
   - Add activity_score field to Pool model
   - Add discovery_source field to track how pools were discovered
   - Add collection_priority field for scheduling prioritization
   - Add auto_discovered_at timestamp field
   - Update model validation and serialization
   - _Requirements: 3.3, 3.4_
-
-
-
-
-
-#######################
-# TODO - identify why / how this new token is being added to watchlist 
-#
-
-
-#######################
-
 
 
 
@@ -69,6 +805,12 @@ New Features:
 
 
 
+#######################
+
+
+
+
+
 
 
 
@@ -76,6 +818,8 @@ New Features:
 
 
 ################################################################
+# Thinking Zone #####
+
 Maybe just integrate QLib into gecko_terminal_collector\utils\statistics_engine
 
 Review:
@@ -114,6 +858,10 @@ python examples/cli_with_scheduler.py run-once (start works, just bugs)
 
 # gecko_terminal_collector for backfilling data
 
+
+
+
+
 # qlib for generating features
 # QLib or QLib-Server first?
 
@@ -142,47 +890,7 @@ system_alerts:
 - no entries are being displayed
 
 
-
-- then fold that into the other CLI script
-
-# Definitely Fixable
-new_pools_history:
-- I notice that only pool_id, type are being populated -- need to identify why mock test coverage works, but actual API responses do not.
-
-pools:
-- I notice that test coverage successfully populates data, but live data responses only include partial information.
-#
-
-
-
-
-
-
 ######################################
-
-
-# While I wait for the scheduler to run (which will confirm if the data collectors work)...
-
-
-TODO - adjust script to capture different timeframes (1h is default / hard-coded) -- the scheduler-cli module currently captures multiple timeframes.
-- Backfill using selectable timeframes.
-
-
-
-
-
-
-
-
-##################################### 
-
-
-
-
-
-
-
-
 
 
 
@@ -200,56 +908,3 @@ TODO - adjust script to capture different timeframes (1h is default / hard-coded
 trades:
 - not seeing any data here, I know that API response contains the last 300 trades (will need to think on this).
 
-
-
-## Task 1:
-
-2025-09-12 14:06:17,970 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 14:06:17.969277', '2025-09-12 14:06:17.969277', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-
-
-- waiting for test script to trigger and see if this fix worked.
-
--- find a faster way to iterate on this bug.
-
-2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '2025-09-11 22:59:44.645686', '2025-09-12 22:59:44.645686', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - INFO - Trade collection completed: 14 records collected for 2 pools. Continuity: 0 pools with gaps, 0 recoveries successful
-
-#######################
-
-
-
-
-
-
-
-
-1. Identify the best way to stub out initial database state.
-
-2. Primary / Foregin Key constraint -- populate Pools, then Tokens, then Watchlist which leads to OHLCV and then Trades.
-
-
-
-
-
-
-#########################
-Caused by incorrect shutdown of collector scripts:
-python -m gecko_terminal_collector.cli stop
-
-2025-09-12 22:59:44,645 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 22:59:44.644664', '2025-09-12 22:59:44.644664', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-#########################

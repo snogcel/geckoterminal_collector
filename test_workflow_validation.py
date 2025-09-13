@@ -33,7 +33,7 @@ async def test_build_ohlcv_command():
             watchlist_item="TROLL",
             output=temp_dir,
             timeframe="1h",
-            days=180,
+            days=7,
             include_realtime=True,
             validate_data=True,
             force=False

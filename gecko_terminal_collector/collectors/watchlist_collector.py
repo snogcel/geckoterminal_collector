@@ -131,7 +131,7 @@ class WatchlistCollector(BaseDataCollector):
             pool_address = watchlist_item.get('poolAddress')
             network_address = watchlist_item.get('networkAddress')
             
-            print("-watchlist_collector--Wheres the Prefix?")
+            print("-watchlist_collector--Wheres the Prefix? prefix bug resolved.")
             print(pool_address)            
             print("---")
 
