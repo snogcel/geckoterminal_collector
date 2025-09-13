@@ -55,6 +55,13 @@ class Pool(Base):
     created_at = Column(DateTime)
     last_updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
     
+    # Discovery-related fields
+    activity_score = Column(Numeric(5, 2))  # Activity score 0-100
+    discovery_source = Column(String(20), default="auto")  # "auto", "watchlist", "manual"
+    collection_priority = Column(String(10), default="normal")  # "high", "normal", "low", "paused"
+    auto_discovered_at = Column(DateTime)  # When pool was auto-discovered
+    last_activity_check = Column(DateTime)  # Last time activity was checked
+    
     # Relationships
     dex = relationship("DEX", back_populates="pools")
     ohlcv_data = relationship("OHLCVData", back_populates="pool", cascade="all, delete-orphan")

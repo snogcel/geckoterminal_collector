@@ -197,6 +197,10 @@ pools:
 # While I wait for the scheduler to run (which will confirm if the data collectors work)...
 
 
+TODO - adjust script to capture different timeframes (1h is default / hard-coded) -- the scheduler-cli module currently captures multiple timeframes.
+- Backfill using selectable timeframes.
+
+
 
 
 

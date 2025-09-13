@@ -9,6 +9,7 @@ from .watchlist_monitor import WatchlistMonitor
 from .watchlist_collector import WatchlistCollector
 from .ohlcv_collector import OHLCVCollector
 from .trade_collector import TradeCollector
+from .discovery_engine import DiscoveryEngine
 
 __all__ = [
     "BaseDataCollector",
@@ -18,5 +19,6 @@ __all__ = [
     "WatchlistMonitor",
     "WatchlistCollector",
     "OHLCVCollector",
-    "TradeCollector"
+    "TradeCollector",
+    "DiscoveryEngine"
 ]

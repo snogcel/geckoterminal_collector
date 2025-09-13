@@ -88,6 +88,16 @@ class DatabaseManager(ABC):
         """Get a token by ID."""        
         pass
     
+    @abstractmethod
+    async def get_token_by_id(self, token_id: str) -> Optional[Any]:
+        """Get a token by ID (database model)."""
+        pass
+    
+    @abstractmethod
+    async def store_token(self, token: Any) -> None:
+        """Store a single token record."""
+        pass
+    
     # OHLCV operations
     @abstractmethod
     async def store_ohlcv_data(self, data: List[OHLCVRecord]) -> int:
@@ -205,6 +215,11 @@ class DatabaseManager(ABC):
     @abstractmethod
     async def get_dex_by_id(self, dex_id: str) -> Optional[Any]:
         """Get a DEX by ID."""
+        pass
+    
+    @abstractmethod
+    async def store_dex(self, dex: Any) -> None:
+        """Store a single DEX record."""
         pass
     
     @abstractmethod

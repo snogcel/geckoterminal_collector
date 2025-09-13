@@ -38,7 +38,12 @@
   - Update database manager with discovery metadata operations
   - _Requirements: 6.1, 6.2_
 
-- [ ] 4. Implement core discovery engine
+- [x] 4. Implement core discovery engine
+
+
+
+
+
   - Create DiscoveryEngine class in collectors/discovery_engine.py
   - Implement bootstrap_system method for initial system population
   - Add discover_dexes method using GeckoTerminal networks API

@@ -255,6 +255,53 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 )
         return None
     
+    async def get_token_by_id(self, token_id: str) -> Optional[TokenModel]:
+        """
+        Get a token by ID (database model).
+        
+        Args:
+            token_id: Token identifier
+            
+        Returns:
+            Token model instance or None if not found
+        """
+        try:
+            with self.connection.get_session() as session:
+                return session.query(TokenModel).filter_by(id=token_id).first()
+        except Exception as e:
+            logger.error(f"Error getting token by ID {token_id}: {e}")
+            return None
+    
+    async def store_token(self, token: TokenModel) -> None:
+        """
+        Store a single token record.
+        
+        Args:
+            token: Token model instance to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(token)
+                session.commit()
+                logger.debug(f"Stored token {token.id}")
+            except IntegrityError:
+                session.rollback()
+                # Token already exists, update it
+                existing = session.query(TokenModel).filter_by(id=token.id).first()
+                if existing:
+                    existing.address = token.address
+                    existing.name = token.name
+                    existing.symbol = token.symbol
+                    existing.decimals = token.decimals
+                    existing.network = token.network
+                    existing.last_updated = token.last_updated
+                    session.commit()
+                    logger.debug(f"Updated existing token {token.id}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing token {token.id}: {e}")
+                raise
+    
     # DEX operations
     async def store_dex_data(self, dexes: List[DEXModel]) -> int:
         """Store DEX data with upsert logic."""
@@ -291,6 +338,33 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """Get a DEX by ID."""
         with self.connection.get_session() as session:
             return session.query(DEXModel).filter_by(id=dex_id).first()
+    
+    async def store_dex(self, dex: DEXModel) -> None:
+        """
+        Store a single DEX record.
+        
+        Args:
+            dex: DEX model instance to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(dex)
+                session.commit()
+                logger.debug(f"Stored DEX {dex.id}")
+            except IntegrityError:
+                session.rollback()
+                # DEX already exists, update it
+                existing = session.query(DEXModel).filter_by(id=dex.id).first()
+                if existing:
+                    existing.name = dex.name
+                    existing.network = dex.network
+                    existing.last_updated = dex.last_updated
+                    session.commit()
+                    logger.debug(f"Updated existing DEX {dex.id}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing DEX {dex.id}: {e}")
+                raise
     
     async def get_dexes_by_network(self, network: str) -> List[DEXModel]:
         """Get all DEXes for a specific network."""
