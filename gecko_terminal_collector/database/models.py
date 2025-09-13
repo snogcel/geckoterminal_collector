@@ -240,6 +240,29 @@ class NewPoolsHistory(Base):
     )
 
 
+class DiscoveryMetadata(Base):
+    """Track discovery operations and statistics."""
+    
+    __tablename__ = "discovery_metadata"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    discovery_type = Column(String(50), nullable=False)  # "dex", "pool", "token"
+    target_dex = Column(String(50))
+    pools_discovered = Column(Integer, default=0)
+    pools_filtered = Column(Integer, default=0)
+    discovery_time = Column(DateTime, nullable=False)
+    execution_time_seconds = Column(Numeric(10, 3))
+    api_calls_made = Column(Integer, default=0)
+    errors_encountered = Column(Integer, default=0)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    # Indexes for efficient querying
+    __table_args__ = (
+        # Index for querying by discovery type and time
+        # Note: SQLAlchemy will create these as separate indexes
+    )
+
+
 class SystemAlerts(Base):
     """System alerts for monitoring and failure notification."""
     

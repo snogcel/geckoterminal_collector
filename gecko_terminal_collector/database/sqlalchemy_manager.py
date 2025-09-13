@@ -18,6 +18,7 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.database.models import (
     CollectionMetadata as CollectionMetadataModel,
     DEX as DEXModel,
+    DiscoveryMetadata as DiscoveryMetadataModel,
     NewPoolsHistory as NewPoolsHistoryModel,
     OHLCVData as OHLCVDataModel,
     Pool as PoolModel,
@@ -1377,4 +1378,179 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error storing new pools history record: {e}")
+                raise
+    
+    # Discovery metadata operations
+    async def store_discovery_metadata(self, discovery_metadata: DiscoveryMetadataModel) -> None:
+        """
+        Store discovery metadata record.
+        
+        Args:
+            discovery_metadata: DiscoveryMetadata model instance to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(discovery_metadata)
+                session.commit()
+                logger.debug(f"Stored discovery metadata record: {discovery_metadata.discovery_type} for {discovery_metadata.target_dex}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing discovery metadata: {e}")
+                raise
+    
+    async def get_discovery_metadata(
+        self,
+        discovery_type: Optional[str] = None,
+        target_dex: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: Optional[int] = None
+    ) -> List[DiscoveryMetadataModel]:
+        """
+        Get discovery metadata records with optional filtering.
+        
+        Args:
+            discovery_type: Filter by discovery type ("dex", "pool", "token")
+            target_dex: Filter by target DEX ID
+            start_time: Filter records after this time
+            end_time: Filter records before this time
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of DiscoveryMetadata records
+        """
+        with self.connection.get_session() as session:
+            query = session.query(DiscoveryMetadataModel)
+            
+            if discovery_type:
+                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+            
+            if target_dex:
+                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+            
+            if start_time:
+                query = query.filter(DiscoveryMetadataModel.discovery_time >= start_time)
+            
+            if end_time:
+                query = query.filter(DiscoveryMetadataModel.discovery_time <= end_time)
+            
+            query = query.order_by(desc(DiscoveryMetadataModel.discovery_time))
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+    
+    async def get_latest_discovery_metadata(self, discovery_type: str, target_dex: Optional[str] = None) -> Optional[DiscoveryMetadataModel]:
+        """
+        Get the most recent discovery metadata record for a specific type and optional DEX.
+        
+        Args:
+            discovery_type: Type of discovery ("dex", "pool", "token")
+            target_dex: Optional DEX ID to filter by
+            
+        Returns:
+            Most recent DiscoveryMetadata record or None
+        """
+        with self.connection.get_session() as session:
+            query = session.query(DiscoveryMetadataModel).filter(
+                DiscoveryMetadataModel.discovery_type == discovery_type
+            )
+            
+            if target_dex:
+                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+            
+            return query.order_by(desc(DiscoveryMetadataModel.discovery_time)).first()
+    
+    async def get_discovery_statistics(
+        self,
+        discovery_type: Optional[str] = None,
+        target_dex: Optional[str] = None,
+        days: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Get discovery statistics for the specified period.
+        
+        Args:
+            discovery_type: Filter by discovery type
+            target_dex: Filter by target DEX
+            days: Number of days to look back
+            
+        Returns:
+            Dictionary with discovery statistics
+        """
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(days=days)
+        
+        with self.connection.get_session() as session:
+            query = session.query(DiscoveryMetadataModel).filter(
+                DiscoveryMetadataModel.discovery_time >= start_time
+            )
+            
+            if discovery_type:
+                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+            
+            if target_dex:
+                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+            
+            records = query.all()
+            
+            if not records:
+                return {
+                    "total_discoveries": 0,
+                    "total_pools_discovered": 0,
+                    "total_pools_filtered": 0,
+                    "total_api_calls": 0,
+                    "total_errors": 0,
+                    "average_execution_time": 0.0,
+                    "success_rate": 0.0,
+                }
+            
+            total_discoveries = len(records)
+            total_pools_discovered = sum(r.pools_discovered or 0 for r in records)
+            total_pools_filtered = sum(r.pools_filtered or 0 for r in records)
+            total_api_calls = sum(r.api_calls_made or 0 for r in records)
+            total_errors = sum(r.errors_encountered or 0 for r in records)
+            
+            execution_times = [r.execution_time_seconds for r in records if r.execution_time_seconds]
+            average_execution_time = sum(execution_times) / len(execution_times) if execution_times else 0.0
+            
+            successful_discoveries = sum(1 for r in records if (r.errors_encountered or 0) == 0)
+            success_rate = (successful_discoveries / total_discoveries * 100) if total_discoveries > 0 else 0.0
+            
+            return {
+                "total_discoveries": total_discoveries,
+                "total_pools_discovered": total_pools_discovered,
+                "total_pools_filtered": total_pools_filtered,
+                "total_api_calls": total_api_calls,
+                "total_errors": total_errors,
+                "average_execution_time": float(average_execution_time),
+                "success_rate": float(success_rate),
+            }
+    
+    async def cleanup_old_discovery_metadata(self, days_to_keep: int = 90) -> int:
+        """
+        Clean up old discovery metadata records.
+        
+        Args:
+            days_to_keep: Number of days of records to keep
+            
+        Returns:
+            Number of records deleted
+        """
+        cutoff_time = datetime.utcnow() - timedelta(days=days_to_keep)
+        
+        with self.connection.get_session() as session:
+            try:
+                deleted_count = session.query(DiscoveryMetadataModel).filter(
+                    DiscoveryMetadataModel.created_at < cutoff_time
+                ).delete()
+                
+                session.commit()
+                logger.info(f"Cleaned up {deleted_count} old discovery metadata records")
+                return deleted_count
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error cleaning up discovery metadata: {e}")
                 raise
