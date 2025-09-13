@@ -1,6 +1,7 @@
 # Implementation Plan
 
-- [-] 1. Create discovery configuration models and validation
+- [x] 1. Create discovery configuration models and validation
+
 
 
 
@@ -10,7 +11,10 @@
   - Create default discovery configuration values
   - _Requirements: 1.1, 7.1, 7.2, 7.3_
 
-- [ ] 2. Implement activity scoring system
+- [-] 2. Implement activity scoring system
+
+
+
   - Create ActivityScorer class in utils/activity_scorer.py
   - Implement calculate_activity_score method using volume, transactions, and liquidity metrics
   - Add should_include_pool method with configurable thresholds

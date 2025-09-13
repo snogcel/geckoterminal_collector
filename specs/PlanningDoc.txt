@@ -19,6 +19,48 @@ Prioritization: what component from backlog to look at next, to, you know - fini
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #########################
 Caused by incorrect shutdown of collector scripts:
 python -m gecko_terminal_collector.cli stop
