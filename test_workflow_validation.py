@@ -30,10 +30,10 @@ async def test_build_ohlcv_command():
     
     with tempfile.TemporaryDirectory() as temp_dir:
         args = MockArgs(
-            watchlist_item="CBRL",
+            watchlist_item="TROLL",
             output=temp_dir,
             timeframe="1h",
-            days=14,
+            days=180,
             include_realtime=True,
             validate_data=True,
             force=False

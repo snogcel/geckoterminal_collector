@@ -741,11 +741,12 @@ class TradeCollector(BaseDataCollector):
             start_time = end_time - timedelta(hours=24)
             
             print("---TradeCollector---")
-            print(pool_id_)
+
+            database_id = "solana_"+pool_id
 
             # Get existing trade data for the period
             trades = await self.db_manager.get_trade_data(
-                pool_id=pool_id,
+                pool_id=database_id,
                 start_time=start_time,
                 end_time=end_time,
                 min_volume_usd=self.min_trade_volume_usd
@@ -758,7 +759,7 @@ class TradeCollector(BaseDataCollector):
                 gaps.append(Gap(
                     start_time=start_time,
                     end_time=end_time,
-                    pool_id=pool_id,
+                    pool_id=database_id,
                     timeframe="trade_data",
                     duration_hours=24.0,
                     gap_type="no_data",
@@ -776,7 +777,7 @@ class TradeCollector(BaseDataCollector):
                 gaps.append(Gap(
                     start_time=start_time,
                     end_time=first_trade_time,
-                    pool_id=pool_id,
+                    pool_id=database_id,
                     timeframe="trade_data",
                     duration_hours=gap_duration,
                     gap_type="beginning_gap",
@@ -796,7 +797,7 @@ class TradeCollector(BaseDataCollector):
                     gaps.append(Gap(
                         start_time=prev_trade.block_timestamp,
                         end_time=curr_trade.block_timestamp,
-                        pool_id=pool_id,
+                        pool_id=database_id,
                         timeframe="trade_data",
                         duration_hours=gap_hours,
                         gap_type="data_gap",
@@ -810,7 +811,7 @@ class TradeCollector(BaseDataCollector):
                 gaps.append(Gap(
                     start_time=last_trade_time,
                     end_time=end_time,
-                    pool_id=pool_id,
+                    pool_id=database_id,
                     timeframe="trade_data",
                     duration_hours=gap_duration,
                     gap_type="ending_gap",

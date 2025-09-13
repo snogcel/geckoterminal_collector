@@ -1,0 +1,40 @@
+
+
+######################################
+# Task 1 -- fixed bug that was causing it to not correctly register.
+('ohlcv', <class 'gecko_terminal_collector.collectors.ohlcv_collector.OHLCVCollector'>, '1h', True, {}), # fixed bug that was causing it to not correctly register.
+('trade', <class 'gecko_terminal_collector.collectors.trade_collector.TradeCollector'>, '30m', True, {}), # fixed bug that was causing it to not correctly register, still #bugged
+
+# Task 2 -- fixed bug that was causing it to not correctly register
+('historical_ohlcv', <class 'gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector'>, '1d', False, {}), # fixed bug that was causing it to not correctly register
+
+('new_pools_solana', <class 'gecko_terminal_collector.collectors.new_pools_collector.NewPoolsCollector'>, '30m', True, {'network': 'solana'}), # this one works, but incomplete data storage
+('new_pools_ethereum', <class 'gecko_terminal_collector.collectors.new_pools_collector.NewPoolsCollector'>, '30m', False, {'network': 'ethereum'}) # this one works, but incomplete data storage
+]
+
+# Task 3 -- #fixed bug that was caused by prefix, added utility method to resolve easier in the future.
+2025-09-12 02:42:52,470 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 02:42:52.470069', '2025-09-12 02:42:52.470069', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+
+# Task 4 -- in this case, need to remove the prefix.
+
+2025-09-12 08:22:33,072 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 08:22:33.072927', '2025-09-12 08:22:33.072927', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+
+# Task 5:
+
+⚠ Historical collection had issues: ["Error collecting historical data for pool 7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: 'HistoricalOHLCVCollector' object has no attribute '_collect_pool_timeframe_data'"]
+
+This is failing because the lookup by id requires a prefix "solana_"
+
+in this case, that prefix is not included in the response I am looking at currently.
+
+# noticed that solana is hard coded everywhere, just going with it.

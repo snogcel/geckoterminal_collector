@@ -1,0 +1,110 @@
+(C:\Projects\geckoterminal_collector\.conda) PS C:\Projects\geckoterminal_collector> python -m test_workflow_validation
+Starting workflow validation tests...
+Testing build-ohlcv command*...
+===build_ohlcv_command:  <__main__.MockArgs object at 0x00000217A3B1DC90>
+Building OHLCV dataset for: CBRL
+Timeframe: 1h
+Historical days: 14
+Output directory: C:\Users\ledni\AppData\Local\Temp\tmp7t3_l58b
+Include real-time: True
+==================================================
+Task 1: Locating watchlist item (this could take awhile)...
+--_build_ohlcv_command (from database)--
+[{'tokenSymbol': 'CBRL', 'tokenName': 'Cracker Barrel Old Country Store', 'chain': 'SOL', 'dex': 'PumpSwap', 'poolAddress': '7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', 'networkAddress': '5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump'}]
+--
+  Found: CBRL (Cracker Barrel Old Country Store)
+  Pool Address: 7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP
+  Network Address: 5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump
+
+Task 2: Collecting token and pool information...
+-watchlist_collector--Wheres the Prefix?
+7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP
+---
+-store_tokens--
+2025-09-12 14:05:38.207136
+---
+-token_id--
+solana_5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump
+---
+---
+existing_token:  {'_sa_instance_state': <sqlalchemy.orm.state.InstanceState object at 0x00000217A62E8950>, 'symbol': 'CBRL', 'id': 'solana_5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump', 'network': 'solana', 'name': 'Cracker Barrel Old Country Store', 'decimals': 6, 'address': '5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump', 'last_updated': datetime.datetime(2025, 9, 12, 14, 1, 48, 203360)}
+---
+---
+updated_token:  {'_sa_instance_state': <sqlalchemy.orm.state.InstanceState object at 0x00000217A62E8950>, 'symbol': 'CBRL', 'id': 'solana_5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump', 'network': 'solana', 'name': 'Cracker Barrel Old Country Store', 'decimals': 6, 'address': '5LKHMd2rMSRaG9y4iHwSLRtrJ3dCrJ2CytvBeak8pump', 'last_updated': datetime.datetime(2025, 9, 12, 14, 5, 38, 211154)}
+---
+✓ Token information collected successfully
+
+Task 3: Collecting historical OHLCV data (14 days)...
+=_HistoricalOHLCVCollector==
+7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP
+===
+Error collecting historical data for pool 7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: 'HistoricalOHLCVCollector' object has no attribute '_collect_pool_timeframe_data'
+⚠ Historical collection had issues: ["Error collecting historical data for pool 7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: 'HistoricalOHLCVCollector' object has no attribute '_collect_pool_timeframe_data'"]
+
+Task 4: Collecting real-time OHLCV data...
+===
+7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP
+===
+
+
+
+
+
+
+The API expects just the clean address: A3i3o286qRtG2XgC4qdnou5xCXNHqZyk1FT15Z3RmrZr
+
+Fix applied:
+- Added network prefix stripping to the trade collector's _collect_pool_trade_data method
+- Follows the same pattern as the OHLCV collector (which was already working correctly)
+- Added comprehensive test to verify the fix works properly
+---
+
+
+
+
+
+
+===============
+Apply same fix to Task 5 as Task 4: (search "solana" in codebase to identify the total number of places this bug impacts)
+
+
+Way too vast of a code issue -- just keep it simple for now, but note for later.
+
+
+enhanced_manager.py:605
+
+# Get all DEXes first
+dexes = await self.get_dexes_by_network("solana")  # Assuming solana network
+
+______________
+
+historical_collector = HistoricalOHLCVCollector(config, db_manager)
+
+
+cli.py --> historical_ohlcv_collector.py
+
+
+
+
+
+file_path='watchlist.csv'
+
+
+CollectionConfig(
+dexes=DEXConfig(targets=['heaven', 'pumpswap'], network='solana'), intervals=IntervalConfig(top_pools_monitoring='1h', ohlcv_collection='1h', trade_collection='30m', watchlist_check='1h'), thresholds=ThresholdConfig(min_trade_volume_usd=Decimal('100'), max_retries=3, rate_limit_delay=1.0, backoff_factor=2.0), timeframes=TimeframeConfig(ohlcv_default='1h', supported=['1m', '5m', '15m', '1h', '4h', '12h', '1d']),
+ database=DatabaseConfig(url='sqlite:///gecko_data.db', async_url=None, pool_size=10, max_overflow=20, echo=False, timeout=30), api=APIConfig(base_url='https://api.geckoterminal.com/api/v2', timeout=30, max_concurrent=5, rate_limit_delay=1.0), error_handling=ErrorConfig(max_retries=3, backoff_factor=2.0, circuit_breaker_threshold=5, circuit_breaker_timeout=300), rate_limiting=RateLimitConfig(requests_per_minute=30, daily_limit=10000, circuit_breaker_threshold=5, circuit_breaker_timeout=300, backoff_base_delay=1.0, backoff_max_delay=300.0, backoff_jitter_factor=0.3, state_file_dir='.rate_limiter_state'),
+ watchlist=WatchlistConfig(file_path='watchlist.csv', check_interval='1h', auto_add_new_tokens=True, remove_inactive_tokens=False), new_pools=NewPoolsConfig(networks={'solana':NetworkConfig(enabled=True, interval='30m', rate_limit_key='new_pools_solana'), 'ethereum':NetworkConfig(enabled=False, interval='30m', rate_limit_key='new_pools_ethereum')}))
+ 
+ 
+ 
+ 
+ ##########
+ 
+ 
+ 2025-09-12 13:11:00,498 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error calculating priority for pool 7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-12 09:11:00.498131', '2025-09-12 13:11:00.498131', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+

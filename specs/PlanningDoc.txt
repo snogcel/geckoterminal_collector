@@ -1,0 +1,186 @@
+
+#######################
+TODO: 
+Finish QA Testing
+
+Remember how to pull OHLCV records (6 months of data coverage)
+python -m test_workflow_validation -- --days 14
+
+
+# works, but should support up to 6 months
+#######################
+
+
+Prioritization: what component from backlog to look at next, to, you know - finish and accomplish things.
+
+1. Identify the best way to stub out initial database state.
+
+2. Primary / Foregin Key constraint -- populate Pools, then Tokens, then Watchlist which leads to OHLCV and then Trades.
+
+
+
+#########################
+Caused by incorrect shutdown of collector scripts:
+python -m gecko_terminal_collector.cli stop
+
+2025-09-12 22:59:44,645 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 22:59:44.644664', '2025-09-12 22:59:44.644664', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+#########################
+
+
+################################################################
+Maybe just integrate QLib into gecko_terminal_collector\utils\statistics_engine
+
+Review:
+
+  - Create database statistics collection functions for pools and history record counts
+  - Implement network and DEX distribution analysis functions
+  - Create recent records retrieval with proper formatting and filtering
+  - Add collection activity timeline tracking for the last 24 hours
+
+Catch data quality issues on system load?
+
+ohlcv_collector.py:665-676 
+
+            # Check for extreme price movements (potential data quality issues)
+            if open_price > 0 and close_price > 0:
+                price_change_ratio = abs(close_price - open_price) / open_price
+                if price_change_ratio > 10:  # 1000% change
+                    validation_errors.append(f"Extreme price movement: {price_change_ratio:.2%}")
+            
+            # Check for extremely high volume relative to price
+            if open_price > 0 and volume_usd > (open_price * 1000000):  # Volume > 1M times price
+                validation_errors.append(f"Suspicious volume: {volume_usd} vs price {open_price}")
+            
+################################################################
+			
+
+
+
+#################################### Big Picture:
+
+
+# Scheduler Completed (almost)
+python examples/cli_with_scheduler.py run-once (start works, just bugs)
+
+# Test Coverage...
+
+# gecko_terminal_collector for backfilling data
+
+# qlib for generating features
+# QLib or QLib-Server first?
+
+# dexscreener for scraping rankings
+
+# trade address tagger for entry / exit signals
+
+# trade execution
+
+
+######################################
+
+
+
+
+#######################
+# Is the cli-scheduler calling this API route? # fixed bug that was causing it to not correctly register
+trades:
+- not seeing any data here, I know that API response contains the last 300 trades (will need to think on this).
+
+
+
+## Task 1:
+
+2025-09-12 14:06:17,970 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 14:06:17.969277', '2025-09-12 14:06:17.969277', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+
+
+- waiting for test script to trigger and see if this fix worked.
+
+-- find a faster way to iterate on this bug.
+
+2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '2025-09-11 22:59:44.645686', '2025-09-12 22:59:44.645686', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - INFO - Trade collection completed: 14 records collected for 2 pools. Continuity: 0 pools with gaps, 0 recoveries successful
+
+#######################
+
+
+
+## Backlog:
+
+TODO - maybe use example github for strategic fixing or exploring?
+
+- Review statistics module
+- Logs feature not working
+
+execution_history:
+- no entries are being displayed
+
+system_alerts:
+- no entries are being displayed
+
+
+
+- then fold that into the other CLI script
+
+# Definitely Fixable
+new_pools_history:
+- I notice that only pool_id, type are being populated -- need to identify why mock test coverage works, but actual API responses do not.
+
+pools:
+- I notice that test coverage successfully populates data, but live data responses only include partial information.
+#
+
+
+
+
+
+
+######################################
+
+
+# While I wait for the scheduler to run (which will confirm if the data collectors work)...
+
+
+
+
+
+
+
+
+##################################### 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
