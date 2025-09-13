@@ -110,6 +110,23 @@ class NewPoolsConfig:
 
 
 @dataclass
+class DiscoveryConfig:
+    """Pool discovery configuration."""
+    enabled: bool = True
+    min_volume_usd: Decimal = Decimal("1000")  # Minimum 24h volume
+    max_pools_per_dex: int = 100  # Limit pools per DEX
+    discovery_interval: str = "6h"  # How often to discover new pools
+    activity_threshold: Decimal = Decimal("100")  # Minimum activity score
+    new_pool_lookback_hours: int = 24  # Look for pools created in last N hours
+    max_total_pools: int = 1000  # Maximum total pools to monitor
+    volume_check_interval: str = "1h"  # How often to check pool volumes
+    cleanup_inactive_pools: bool = True  # Remove inactive pools automatically
+    cleanup_threshold_days: int = 7  # Days of inactivity before cleanup
+    bootstrap_on_startup: bool = True  # Run bootstrap process on startup
+    target_networks: List[str] = field(default_factory=lambda: ["solana"])  # Networks to discover from
+
+
+@dataclass
 class CollectionConfig:
     """Main collection configuration container."""
     dexes: DEXConfig = field(default_factory=DEXConfig)
@@ -120,8 +137,9 @@ class CollectionConfig:
     api: APIConfig = field(default_factory=APIConfig)
     error_handling: ErrorConfig = field(default_factory=ErrorConfig)
     rate_limiting: RateLimitConfig = field(default_factory=RateLimitConfig)
-    watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
+    watchlist: Optional[WatchlistConfig] = field(default_factory=WatchlistConfig)  # Make watchlist optional
     new_pools: NewPoolsConfig = field(default_factory=NewPoolsConfig)
+    discovery: DiscoveryConfig = field(default_factory=DiscoveryConfig)
     
     def validate(self) -> List[str]:
         """
@@ -169,6 +187,42 @@ class CollectionConfig:
             
             if not self._is_valid_interval(network_config.interval):
                 errors.append(f"Invalid interval format for network '{network_name}': {network_config.interval}")
+        
+        # Validate discovery configuration
+        if self.discovery.enabled:
+            # Validate discovery intervals
+            if not self._is_valid_interval(self.discovery.discovery_interval):
+                errors.append(f"Invalid discovery interval format: {self.discovery.discovery_interval}")
+            
+            if not self._is_valid_interval(self.discovery.volume_check_interval):
+                errors.append(f"Invalid volume check interval format: {self.discovery.volume_check_interval}")
+            
+            # Validate discovery thresholds
+            if self.discovery.min_volume_usd < 0:
+                errors.append("Discovery minimum volume must be non-negative")
+            
+            if self.discovery.activity_threshold < 0:
+                errors.append("Discovery activity threshold must be non-negative")
+            
+            if self.discovery.max_pools_per_dex <= 0:
+                errors.append("Max pools per DEX must be positive")
+            
+            if self.discovery.max_total_pools <= 0:
+                errors.append("Max total pools must be positive")
+            
+            if self.discovery.new_pool_lookback_hours <= 0:
+                errors.append("New pool lookback hours must be positive")
+            
+            if self.discovery.cleanup_threshold_days <= 0:
+                errors.append("Cleanup threshold days must be positive")
+            
+            # Validate target networks
+            if not self.discovery.target_networks:
+                errors.append("At least one target network must be specified for discovery")
+            
+            for network in self.discovery.target_networks:
+                if not network or not isinstance(network, str):
+                    errors.append(f"Invalid target network: {network}")
         
         return errors
     

@@ -1,6 +1,9 @@
 # Implementation Plan
 
-- [ ] 1. Create discovery configuration models and validation
+- [-] 1. Create discovery configuration models and validation
+
+
+
   - Add DiscoveryConfig dataclass to config/models.py
   - Update CollectionConfig to include discovery settings
   - Add configuration validation for discovery parameters
