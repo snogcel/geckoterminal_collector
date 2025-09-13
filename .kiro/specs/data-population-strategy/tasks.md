@@ -90,7 +90,11 @@
   - Update foreign key handling to support discovery flow
   - _Requirements: 2.4, 6.1, 6.2_
 
-- [ ] 8. Enhance pool and token models
+- [x] 8. Enhance pool and token models
+
+
+
+
   - Add activity_score field to Pool model
   - Add discovery_source field to track how pools were discovered
   - Add collection_priority field for scheduling prioritization

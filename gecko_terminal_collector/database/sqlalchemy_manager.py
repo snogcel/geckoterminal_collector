@@ -141,6 +141,11 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     quote_token_id=pool_model.quote_token_id,
                     reserve_usd=pool_model.reserve_usd,
                     created_at=pool_model.created_at,
+                    activity_score=pool_model.activity_score,
+                    discovery_source=pool_model.discovery_source,
+                    collection_priority=pool_model.collection_priority,
+                    auto_discovered_at=pool_model.auto_discovered_at,
+                    last_activity_check=pool_model.last_activity_check
                 )
         return None
     

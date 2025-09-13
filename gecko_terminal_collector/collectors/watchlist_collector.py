@@ -600,7 +600,8 @@ class WatchlistCollector(BaseDataCollector):
                 base_token_id=base_token_id,
                 quote_token_id=quote_token_id,
                 reserve_usd=reserve_usd,
-                created_at=created_at or datetime.now()
+                created_at=created_at or datetime.now(),
+                discovery_source="watchlist"  # Mark as watchlist-discovered
             )
             
         except Exception as e:
@@ -799,7 +800,8 @@ class WatchlistCollector(BaseDataCollector):
                 base_token_id=base_token_id,
                 quote_token_id=quote_token_id,
                 reserve_usd=reserve_usd,
-                created_at=created_at or datetime.now()
+                created_at=created_at or datetime.now(),
+                discovery_source="watchlist"  # Mark as watchlist-discovered
             )
             
         except Exception as e:

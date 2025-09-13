@@ -19,6 +19,12 @@ class Pool:
     quote_token_id: str
     reserve_usd: Decimal
     created_at: datetime
+    # Discovery-related fields
+    activity_score: Optional[Decimal] = None
+    discovery_source: str = "auto"  # "auto", "watchlist", "manual"
+    collection_priority: str = "normal"  # "high", "normal", "low", "paused"
+    auto_discovered_at: Optional[datetime] = None
+    last_activity_check: Optional[datetime] = None
 
 
 @dataclass
