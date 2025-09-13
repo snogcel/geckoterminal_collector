@@ -52,7 +52,11 @@
   - Add apply_filters method using ActivityScorer
   - _Requirements: 1.1, 2.1, 2.2, 2.3, 5.1, 5.2_
 
-- [ ] 5. Create pool discovery collector
+- [x] 5. Create pool discovery collector
+
+
+
+
   - Implement PoolDiscoveryCollector class in collectors/pool_discovery_collector.py
   - Add collect method that orchestrates pool discovery process
   - Implement discover_top_pools method using top pools API

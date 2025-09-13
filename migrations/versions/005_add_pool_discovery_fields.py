@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import sqlite
 
 # revision identifiers, used by Alembic.
-revision = '005_add_pool_discovery_fields'
-down_revision = '004_discovery_metadata_table'
+revision = '005'
+down_revision = '004'
 branch_labels = None
 depends_on = None
 

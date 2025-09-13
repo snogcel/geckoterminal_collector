@@ -164,6 +164,52 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return pools
     
+    async def get_pools_needing_activity_update(self, cutoff_time: datetime) -> List[PoolModel]:
+        """
+        Get pools that need activity score updates.
+        
+        Returns pools that:
+        - Are auto-discovered (discovery_source = 'auto' or 'auto_new')
+        - Haven't been checked since cutoff_time
+        - Are not paused
+        
+        Args:
+            cutoff_time: Only return pools not checked since this time
+            
+        Returns:
+            List of PoolModel objects needing updates
+        """
+        pools = []
+        
+        with self.connection.get_session() as session:
+            try:
+                # Query for pools needing activity updates
+                query = session.query(PoolModel).filter(
+                    and_(
+                        # Only auto-discovered pools
+                        or_(
+                            PoolModel.discovery_source == 'auto',
+                            PoolModel.discovery_source == 'auto_new'
+                        ),
+                        # Not paused
+                        PoolModel.collection_priority != 'paused',
+                        # Not checked recently or never checked
+                        or_(
+                            PoolModel.last_activity_check.is_(None),
+                            PoolModel.last_activity_check < cutoff_time
+                        )
+                    )
+                ).limit(100)  # Limit to prevent overwhelming the system
+                
+                pools = query.all()
+                
+                logger.debug(f"Found {len(pools)} pools needing activity updates")
+                
+            except Exception as e:
+                logger.error(f"Error querying pools needing activity update: {e}")
+                
+        return pools
+    
     # Token operations
     async def store_tokens(self, tokens: List[Token]) -> int:
         """Store token data with upsert logic."""

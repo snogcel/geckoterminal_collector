@@ -77,6 +77,11 @@ class DatabaseManager(ABC):
         """Get all pools for a specific DEX."""
         pass
     
+    @abstractmethod
+    async def get_pools_needing_activity_update(self, cutoff_time: datetime) -> List[Any]:
+        """Get pools that need activity score updates."""
+        pass
+    
     # Token operations
     @abstractmethod
     async def store_tokens(self, tokens: List[Token]) -> int:

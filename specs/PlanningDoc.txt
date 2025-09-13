@@ -6,23 +6,44 @@ Finish QA Testing
 Remember how to pull OHLCV records (6 months of data coverage)
 python -m test_workflow_validation -- --days 14
 
+# works, but should support up to 6 months (depending on token)
+# works, but should support multiple time aggregations (it does already)
 
-# works, but should support up to 6 months
+#######################
+
+Prioritization: 
+
+1. To avoid database corruption, have a look at the stop function that the LLM was recommending.
+
+
+
+
+#######################
+# TODO - identify why / how this new token is being added to watchlist 
+#
+
+2025-09-13 02:13:02,744 - gecko_terminal_collector.database.sqlalchemy_manager - WARNING - Watchlist entry already exists for pool B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', 'FRIP', 'FRIP', 'B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', '2025-09-13 02:13:02.742186', 1)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-09-13 02:13:02,744 - gecko_terminal_collector.collectors.watchlist_monitor - ERROR - Error processing new record WatchlistRecord(symbol=FRIP, pool=B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7): (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', 'FRIP', 'FRIP', 'B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7', '2025-09-13 02:13:02.742186', 1)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
 #######################
 
 
-Prioritization: what component from backlog to look at next, to, you know - finish and accomplish things.
-
-1. Identify the best way to stub out initial database state.
-
-2. Primary / Foregin Key constraint -- populate Pools, then Tokens, then Watchlist which leads to OHLCV and then Trades.
 
 
+New Features:
 
-
-
-
-
+- Create DiscoveryEngine class in collectors/discovery_engine.py
+- Implement bootstrap_system method for initial system population
+- Add discover_dexes method using GeckoTerminal networks API
+- Create discover_pools method with batch processing and filtering
+- Implement extract_tokens method to populate token data from pools
+- Add apply_filters method using ActivityScorer
 
 
 
@@ -32,46 +53,6 @@ Prioritization: what component from backlog to look at next, to, you know - fini
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#########################
-Caused by incorrect shutdown of collector scripts:
-python -m gecko_terminal_collector.cli stop
-
-2025-09-12 22:59:44,645 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 22:59:44.644664', '2025-09-12 22:59:44.644664', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-#########################
 
 
 ################################################################
@@ -124,40 +105,6 @@ python examples/cli_with_scheduler.py run-once (start works, just bugs)
 
 
 ######################################
-
-
-
-
-#######################
-# Is the cli-scheduler calling this API route? # fixed bug that was causing it to not correctly register
-trades:
-- not seeing any data here, I know that API response contains the last 300 trades (will need to think on this).
-
-
-
-## Task 1:
-
-2025-09-12 14:06:17,970 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 14:06:17.969277', '2025-09-12 14:06:17.969277', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-
-
-- waiting for test script to trigger and see if this fix worked.
-
--- find a faster way to iterate on this bug.
-
-2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.DatabaseError) database disk image is malformed
-[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
-FROM trades
-WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
-[parameters: ('solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '2025-09-11 22:59:44.645686', '2025-09-12 22:59:44.645686', 100.0)]
-(Background on this error at: https://sqlalche.me/e/20/4xp6)
-2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - INFO - Trade collection completed: 14 records collected for 2 pools. Continuity: 0 pools with gaps, 0 recoveries successful
-
-#######################
 
 
 
@@ -228,5 +175,61 @@ TODO - adjust script to capture different timeframes (1h is default / hard-coded
 
 
 
+#######################
+# Is the cli-scheduler calling this API route? # fixed bug that was causing it to not correctly register
+trades:
+- not seeing any data here, I know that API response contains the last 300 trades (will need to think on this).
 
 
+
+## Task 1:
+
+2025-09-12 14:06:17,970 - gecko_terminal_collector.collectors.trade_collector - ERROR - Error detecting trade data gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 14:06:17.969277', '2025-09-12 14:06:17.969277', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+
+
+- waiting for test script to trigger and see if this fix worked.
+
+-- find a faster way to iterate on this bug.
+
+2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '2025-09-11 22:59:44.645686', '2025-09-12 22:59:44.645686', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+2025-09-12 22:59:44,646 - gecko_terminal_collector.collectors.trade_collector - INFO - Trade collection completed: 14 records collected for 2 pools. Continuity: 0 pools with gaps, 0 recoveries successful
+
+#######################
+
+
+
+
+
+
+
+
+1. Identify the best way to stub out initial database state.
+
+2. Primary / Foregin Key constraint -- populate Pools, then Tokens, then Watchlist which leads to OHLCV and then Trades.
+
+
+
+
+
+
+#########################
+Caused by incorrect shutdown of collector scripts:
+python -m gecko_terminal_collector.cli stop
+
+2025-09-12 22:59:44,645 - gecko_terminal_collector.collectors.trade_collector - WARNING - Error detecting gaps for pool solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT trades.id AS trades_id, trades.pool_id AS trades_pool_id, trades.block_number AS trades_block_number, trades.tx_hash AS trades_tx_hash, trades.tx_from_address AS trades_tx_from_address, trades.from_token_amount AS trades_from_token_amount, trades.to_token_amount AS trades_to_token_amount, trades.price_usd AS trades_price_usd, trades.volume_usd AS trades_volume_usd, trades.side AS trades_side, trades.block_timestamp AS trades_block_timestamp, trades.created_at AS trades_created_at
+FROM trades
+WHERE trades.pool_id = ? AND trades.block_timestamp >= ? AND trades.block_timestamp <= ? AND trades.volume_usd >= ? ORDER BY trades.block_timestamp DESC]
+[parameters: ('solana_7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP', '2025-09-11 22:59:44.644664', '2025-09-12 22:59:44.644664', 100.0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+#########################
