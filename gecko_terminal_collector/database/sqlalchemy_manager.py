@@ -1378,6 +1378,9 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     return session.query(WatchlistEntryModel).count()
                 elif table_name == 'dexes':
                     return session.query(DEXModel).count()
+                elif table_name == 'new_pools_history':
+                    from gecko_terminal_collector.database.models import NewPoolsHistory
+                    return session.query(NewPoolsHistory).count()
                 else:
                     logger.warning(f"Unknown table name: {table_name}")
                     return 0
