@@ -1,0 +1,83 @@
+# Custom config with modified intervals
+# Copy of config.yaml with custom historical interval
+
+# DEX Configuration
+dexes:
+  targets:
+    - heaven
+    - pumpswap
+  network: solana
+
+# Collection Intervals
+intervals:
+  top_pools_monitoring: "1h"
+  ohlcv_collection: "1h"
+  trade_collection: "30m"
+  watchlist_check: "1h"
+  historical_ohlcv_collection: "1h"  # Custom interval for historical
+
+# Thresholds and Limits
+thresholds:
+  min_trade_volume_usd: 100
+  max_retries: 3
+  rate_limit_delay: 1.0
+  backoff_factor: 2.0
+
+# OHLCV Timeframe Configuration
+timeframes:
+  ohlcv_default: "1h"
+  supported:
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "12h"
+    - "1d"
+
+# Database Configuration
+database:
+  url: "sqlite:///gecko_data.db"
+  pool_size: 10
+  echo: false
+  timeout: 30
+
+# API Configuration
+api:
+  base_url: "https://api.geckoterminal.com/api/v2"
+  timeout: 30
+  max_concurrent: 5
+  rate_limit_delay: 1.0
+
+# Error Handling Configuration
+error_handling:
+  max_retries: 3
+  backoff_factor: 2.0
+  circuit_breaker_threshold: 5
+  circuit_breaker_timeout: 300
+
+# Rate Limiting Configuration
+rate_limiting:
+  requests_per_minute: 30
+  daily_limit: 10000
+  circuit_breaker_threshold: 5
+  circuit_breaker_timeout: 300
+  backoff_base_delay: 1.0
+  backoff_max_delay: 300.0
+  backoff_jitter_factor: 0.3
+  state_file_dir: ".rate_limiter_state"
+
+# Watchlist Configuration
+watchlist:
+  file_path: "watchlist.csv"
+  check_interval: "1h"
+  auto_add_new_tokens: true
+  remove_inactive_tokens: false
+
+# New Pools Collection Configuration
+new_pools:
+  networks:
+    solana:
+      enabled: true
+      interval: "30m"
+      rate_limit_key: "new_pools_solana"

@@ -332,7 +332,6 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                         # overloading SQLite Database, also known as a Race Condition
                         stored_count = await self.db_manager.store_ohlcv_data(records)
 
-
                         total_records += stored_count
                         self._collection_stats['total_records'] += stored_count
                         
@@ -425,24 +424,18 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     pool_id, timeframe, current_before_timestamp
                 )
 
-                print("-_collect_historical_data_with_pagination--")
-                print(pool_id)
-                print(watchlist_pool_id)
-                print("---")
-                
+                print("-_collect_historical_data_with_pagination: ", timeframe)
+
+                print("pool_id: ", pool_id)
+                print("timeframe:", timeframe)
+                print("current_before_timestamp: ", current_before_timestamp)
+                                
                 if not response_data:
                     logger.debug(f"No more data available for pool {pool_id}, timeframe {timeframe}")
                     break
                 
                 # Parse OHLCV data from response
                 records = self._parse_direct_ohlcv_response(response_data, watchlist_pool_id, timeframe)
-
-                # maybe swap out pool_id with watchlist_pool_id here?
-                print("-_collect_historical_data_with_pagination--")
-                #print(records)
-                print("---")
-
-                # raise SystemExit()
                 
                 if not records:
                     logger.debug(f"No records parsed from response for pool {pool_id}, timeframe {timeframe}")

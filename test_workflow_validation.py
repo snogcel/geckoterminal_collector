@@ -39,6 +39,8 @@ async def test_build_ohlcv_command():
             force=False
         )
         
+        print("=====")        
+
         try:
             result = await build_ohlcv_command(args)
             print(f"build-ohlcv command result: {result}")

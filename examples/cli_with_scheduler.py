@@ -121,14 +121,17 @@ class SchedulerCLI:
             ("watchlist_collector", WatchlistCollector, config.intervals.watchlist_check, True, {}),
             ("ohlcv", OHLCVCollector, config.intervals.ohlcv_collection, True, {}),
             ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
-            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
+            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", True, {})
         ]
+
+        
+
 
 
         
-        print("===_register_collectors: config===")
-        print(config)
-        print("===")
+        #print("===_register_collectors: config===")
+        #print(config)
+        #print("===")
 
         # raise SystemExit()
 
@@ -175,11 +178,18 @@ class SchedulerCLI:
                 # Get rate limiter for this collector
                 rate_limiter = await self.rate_limit_coordinator.get_limiter(collector_id)
                 
-
                 # Rate Limited to avoid API calls not working
                 #print("-_register_rate_limiter--")
                 #print(rate_limiter)
                 #print("---")
+
+
+
+
+
+
+
+
 
                 # Create collector instance with additional parameters
                 collector_kwargs = {
@@ -367,20 +377,31 @@ def run_once(config, collector, mock):
         # Find the collector job ID
         collectors = scheduler_cli.scheduler.list_collectors()
         target_job_id = None
+
+        print("registered_collectors: ", collectors)
+        print("registered_collectors_length: ", len(collectors))
         
         # First, try to find exact matches
         for job_id in collectors:
             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
 
-            # print("_-run_collector--")
-            # print(job_id)
+            print("collector_status: ", collector_status)
+            print("job_id: ", job_id)
+
+            
+
+
+
+            
+
             
             if collector_status:
                 collector_key = collector_status['collector_key']
-                collector = job_id.removeprefix("collector_")
 
-                # Exact match has highest priority
-                if collector == collector_key:
+                # Exact match has highest priority - check both collector key and simplified names
+                if (collector == collector_key or 
+                    collector == collector_key.replace('_collector', '') or
+                    f"{collector}_collector" == collector_key):
                     target_job_id = job_id
                     logger.info(f"Found exact match: '{collector_key}'")
                     break
@@ -399,17 +420,22 @@ def run_once(config, collector, mock):
                         logger.info(f"Found new pools collector for network '{collector}': '{collector_key}'")
                         break
         
+
+        print("--NO MATCH FOUND--")
+
         # If still no match, try partial matches
         if not target_job_id:
             for job_id in collectors:
                 collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
                 
                 if collector_status:
-                    collector_key = collector_status['collector_key']                    
-                    collector = job_id.removeprefix("collector_")
+                    collector_key = collector_status['collector_key']
 
                     # Support partial matches for other collectors
-                    if (collector in collector_key or collector_key.endswith(f"_{collector}") or collector_key.startswith(f"{collector}_")):
+                    if (collector in collector_key or 
+                        collector_key.endswith(f"_{collector}") or 
+                        collector_key.startswith(f"{collector}_") or
+                        collector_key.replace('_collector', '') == collector):
                         target_job_id = job_id
                         logger.info(f"Found partial match: '{collector_key}' for '{collector}'")
                         break

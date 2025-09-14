@@ -636,9 +636,13 @@ class CollectionScheduler:
         Returns:
             Collector status dictionary or None if not found
         """
-        if job_id not in self._scheduled_collectors:
-            return None
+        print("get_collector_status for job_id: ", job_id)
         
+        print("self._scheduled_collectors: ", self._scheduled_collectors)
+
+        if job_id not in self._scheduled_collectors:
+            return None        
+
         scheduled_collector = self._scheduled_collectors[job_id]
         return {
             "job_id": job_id,

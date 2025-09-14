@@ -6,49 +6,519 @@ Finish QA Testing
 
 #######################
 
+Prioritization: 
+
+1. Research why new_pools_history database table is not populating.
+
+- document Kiro / Troubleshooting Process and apply to above item.
+
+
+
+
+
+
+2. historical_ohlcv issue [resolved]:
+
+######################___CONTEXT_ENGINEERING_ZONE___################################
+Kiro:
+Now I understand the issue! Here's what's happening:
+
+The CLI registers the collector with ID "historical_ohlcv"
+The scheduler calls collector.get_collection_key() which returns "historical_ohlcv_collector"
+The scheduler creates a job_id as f"collector_{collector_key}" = "collector_historical_ohlcv_collector"
+But the CLI is looking for "collector_historical_ohlcv" (without the _collector suffix)
+The problem is in the CLI's collector matching logic. Let me fix this by updating the CLI to handle the correct collector keys:
+
+The problem is in the CLI's collector matching logic. Let me fix this by updating the CLI to handle the correct collector keys:
+
+Perfect! The fix worked! 🎉
+
+The command now successfully finds and runs the historical OHLCV collector. I can see from the output:
+
+The collector was found: "Found exact match: 'historical_ohlcv_collector'"
+It's running correctly: The collector is making API requests and collecting historical data
+Rate limiting is working: It hit a 429 rate limit, which shows the rate limiting system is functioning
+
+Summary of the fix:
+The issue was in the collector matching logic in the CLI. The problem was:
+
+CLI was looking for collector name "historical_ohlcv"
+But the actual collector key was "historical_ohlcv_collector" (with _collector suffix)
+The job_id was "collector_historical_ohlcv_collector"
+I fixed the matching logic to handle these naming variations by:
+
+Exact matching: Now checks if the input matches the collector key directly OR if adding _collector to the input matches the collector key
+Partial matching: Enhanced to also check if removing _collector from the collector key matches the input
+The fix handles these collector name patterns:
+
+historical_ohlcv → matches historical_ohlcv_collector
+ohlcv → matches ohlcv_collector
+trade → matches trade_collector
+etc.
+Now you can use either the short name (historical_ohlcv) or the full name (historical_ohlcv_collector) and it will work correctly!
+
+To configure the interval, you still need to modify the config.yaml file or use environment variables as I mentioned earlier, since the CLI uses the configured intervals rather than accepting them as command-line parameters.
+
+######################################################
+
+
+# Planning Time!!
+
+## Identify how to use functionalities 6, 7, 8 and other new features.
+
+- Logs feature not Populating
+- Execution History not Populating
+
+
+#######################
+
+
 
 1. Figure out how to call ohlcv_data function directly, without waiting for CLI scheduler.
 
-# Research:
-
-build_ohlcv_command
 
 
-2. 
 
-#build_ohlcv_command 
+# confirmed CLI routes
+python -m gecko_terminal_collector.cli run-collector ohlcv
+python -m gecko_terminal_collector.cli run-collector trades
 
-accepts arguments (arguments, in this case mean commands or options)
- - test arguments to see how they work.
+historical_ohlcv
+
+
+or:
+
+python -m gecko_terminal_collector.cli --config config_custom.yaml run-collector historical
+
+
+Recommended approach:
+I'd suggest using the scheduler CLI since it has better collector management:
+
+# Run historical OHLCV collector once (uses config interval)
+python examples/cli_with_scheduler.py run-once -col historical_ohlcv
+
+# Or modify the config.yaml to set your desired interval permanently
+The interval configuration is handled at the system level rather than per-command because the collectors are designed to run on schedules, and the run-collector command is meant for one-off executions using the configured intervals.
+
+
+
+
+
+
+
+
+##############
+(C:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli --config config_custom.yaml run-collector historical
+_== run_collector_commands _==
+Namespace(config='config_custom.yaml', verbose=False, quiet=False, command='run-collector', collector_type='historical', dry_run=False)
+---
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Running historical collector...
+INFO: Retrieving active watchlist pools for historical OHLCV collection
+INFO: Found 1 watchlist pools for historical OHLCV collection
+-_make_direct_ohlcv_request--
+https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1
+
+
+
+
+## TODO -- review scheduler script, Kiro recommended approach
+"There goes my Kiro, watch him as he goes!"
+
+
+
+## historical_ohlcv troubleshooting notes
+
+# This uses the interval from config but runs once
+python examples/cli_with_scheduler.py run-once -col historical_ohlcv
+
+
+# Standard collectors configuration (collector_id, collector_class, interval, enabled, additional_params)
+        collectors_config = [
+            ("dex_monitoring", DEXMonitoringCollector, "1h", True, {}),
+            ("top_pools", TopPoolsCollector, config.intervals.top_pools_monitoring, True, {}),
+            ("watchlist_monitor", WatchlistMonitor, config.intervals.watchlist_check, True, {}),
+            ("watchlist_collector", WatchlistCollector, config.intervals.watchlist_check, True, {}),
+            ("ohlcv", OHLCVCollector, config.intervals.ohlcv_collection, True, {}),
+            ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
+            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
+        ]
+
+# is intended to match: historical_ohlcv = historical_ohlcv
+
+and if so,
+
+create the collector
+
+execute the selected collectors
+
+
+Current theory: that an additional prefix is being added to the above keyword (historical_ohlcv)
+
+
+# Register all collectors - bug: isn't differentiating between old collector / new collector
+	for collector_config in collectors_config:
+
+		print("--_collector_config: ", collector_config[0])
+		
+		if (collector_config[0] in ["trade","ohlcv","historical_ohlcv","watchlist_monitor","watchlist_collector"]):
+			# Legacy format without additional params
+			print("===_parsing_legacy_format: ")
+			print(collector_config)
+			print("===")
+			collector_id, collector_class, interval, enabled, additional_params = collector_config
+			additional_params = {}
+		else:
+			# New format with additional params
+			collector_id, collector_class, interval, enabled, additional_params = collector_config
+			print("===_parsed_new_format: ")
+			print(collector_config)
+			print("===")
+
+
+# current output:
+
+--_collector_config:  historical_ohlcv
+===_parsing_legacy_format:
+('historical_ohlcv', <class 'gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector'>, '1d', False, {})
+===
+2025-09-13 15:36:41,956 - __main__ - INFO - Rate limiter configured for historical_ohlcv
+2025-09-13 15:36:41,956 - gecko_terminal_collector.collectors.base - INFO - Registered collector: historical_ohlcv_collector
+2025-09-13 15:36:41,956 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector historical_ohlcv_collector with interval 1d
+2025-09-13 15:36:41,956 - __main__ - INFO - Registered historical_ohlcv collector (interval: 1d, enabled: False)
+
+
+['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+
+collector_status:  {'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+job_id:  collector_dex_monitoring_solana
+
+
+2025-09-13 15:40:54,898 - __main__ - INFO - Found exact match: 'dex_monitoring_solana'
+
+--NO MATCH FOUND--
+
+
+
+
+Line 385
+print("collector_status: ", collector_status)
+print("job_id: ", job_id)
+
+
+########################
+
+
+registered_collectors:  ['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+get_collector_status for job_id:  collector_dex_monitoring_solana
+
+collector_status:  {'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+job_id:  collector_dex_monitoring_solana
+
+2025-09-13 20:33:35,619 - __main__ - INFO - Found exact match: 'dex_monitoring_solana'
+
+--NO MATCH FOUND--
+
+
+# Find the collector job ID
+	collectors = scheduler_cli.scheduler.list_collectors()
+	target_job_id = None
+
+	print("registered_collectors: ", collectors)
+	
+	# First, try to find exact matches
+	for job_id in collectors:
+		collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+
+		print("collector_status: ", collector_status)
+		print("job_id: ", job_id)
+
+
+
+def get_collector_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+	"""
+	Get status for a specific collector.
+	
+	Args:
+		job_id: Job ID of the collector
+		
+	Returns:
+		Collector status dictionary or None if not found
+	"""
+	print("get_collector_status for job_id: ", job_id)
+	
+	if job_id not in self._scheduled_collectors:
+		return None        
+
+
+
+# find scheduled_collectors:
+
+_scheduled_collectors
+
+# issue appears to be that only one collector is being scheduled when run_once is called?
+
+self._scheduled_collectors:  
+{'collector_dex_monitoring_solana': ScheduledCollector(collector=<gecko_terminal_collector.collectors.dex_monitoring.DEXMonitoringCollector object at 0x00000167455B6FD0>, interval='1h', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_dex_monitoring_solana', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_top_pools_solana': ScheduledCollector(collector=<gecko_terminal_collector.collectors.top_pools.TopPoolsCollector object at 0x0000016746085250>, interval='1h', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_top_pools_solana', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_watchlist_monitor': ScheduledCollector(collector=<gecko_terminal_collector.collectors.watchlist_monitor.WatchlistMonitor object at 0x00000167460904D0>, interval='1h', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_watchlist_monitor', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_watchlist_collector': ScheduledCollector(collector=<gecko_terminal_collector.collectors.watchlist_collector.WatchlistCollector object at 0x0000016746091690>, interval='1h', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_watchlist_collector', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_ohlcv_collector': ScheduledCollector(collector=<gecko_terminal_collector.collectors.ohlcv_collector.OHLCVCollector object at 0x0000016746092390>, interval='1h', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_ohlcv_collector', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_trade_collector': ScheduledCollector(collector=<gecko_terminal_collector.collectors.trade_collector.TradeCollector object at 0x0000016746092D50>, interval='30m', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_trade_collector', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_historical_ohlcv_collector': ScheduledCollector(collector=<gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector object at 0x0000016746093350>, interval='1d', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_historical_ohlcv_collector', last_run=None, last_success=None, error_count=0, consecutive_errors=0), 'collector_new_pools_solana': ScheduledCollector(collector=<gecko_terminal_collector.collectors.new_pools_collector.NewPoolsCollector object at 0x0000016746093F50>, interval='30m', enabled=True, max_instances=1, coalesce=True, misfire_grace_time=300, job_id='collector_new_pools_solana', last_run=None, last_success=None, error_count=0, consecutive_errors=0)}
+
+collector_status:  {'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+
+
+
+
+
+## Context Engineering ##
+
+# takeaway -- define logic issue with software, then delegate to Kiro, see below an example:
+
+Hey Kiro, can you help me troubleshoot this problem? When I run the following command:
+
+python examples/cli_with_scheduler.py run-once -col historical_ohlcv
+
+I see that the job_id for "collector_ohlcv_collector" doesn't get registered, and as a result it defaults to a default configuration.
+
+2025-09-13 20:35:59,052 - __main__ - INFO - Rate limiter configured for new_pools_solana
+2025-09-13 20:35:59,053 - gecko_terminal_collector.collectors.base - INFO - Registered collector: new_pools_solana
+2025-09-13 20:35:59,053 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector new_pools_solana with interval 30m
+
+
+# collectors are being added to array, but not appearing in this function:
+
+registered_collectors:  ['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+
+# Find the collector job ID
+	collectors = scheduler_cli.scheduler.list_collectors()
+	target_job_id = None
+
+	print("registered_collectors: ", collectors)
+	
+	# First, try to find exact matches
+	for job_id in collectors:
+		collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+
+		print("collector_status: ", collector_status)
+		print("job_id: ", job_id)
+
+
+def get_collector_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+	"""
+	Get status for a specific collector.
+	
+	Args:
+		job_id: Job ID of the collector
+		
+	Returns:
+		Collector status dictionary or None if not found
+	"""
+	print("get_collector_status for job_id: ", job_id)
+	
+	if job_id not in self._scheduled_collectors:
+		return None  
+
+
+collector_status:  
+{'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+
+# First, try to find exact matches
+for job_id in collectors:
+	collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+	
+	# this function is returning None
+
+	print("collector_status: ", collector_status)
+	print("job_id: ", job_id)
+
+
+
+# Identify where scheduled_collectors are stored.
+
+###################################################################
+
+
+
+
+
+
+
+
+2025-09-13 20:17:20,422 - __main__ - INFO - Initialization completed
+
+registered_collectors:  ['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+collector_status:  {'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+job_id:  collector_dex_monitoring_solana
+
+
+
+(C:\Projects\geckoterminal_collector\.conda) PS C:\Projects\geckoterminal_collector> python examples/cli_with_scheduler.py run-once -col historical_ohlcv
+
+2025-09-13 20:18:48,513 - __main__ - INFO - Registering collectors with enhanced rate limiting...
+2025-09-13 20:18:48,513 - __main__ - INFO - Added new pools collector for network 'solana' (interval: 30m, enabled: True)
+
+==_collector_config_==
+[('dex_monitoring', <class 'gecko_terminal_collector.collectors.dex_monitoring.DEXMonitoringCollector'>, '1h', True, {}), ('top_pools', <class 'gecko_terminal_collector.collectors.top_pools.TopPoolsCollector'>, '1h', True, {}), ('watchlist_monitor', <class 'gecko_terminal_collector.collectors.watchlist_monitor.WatchlistMonitor'>, '1h', True, {}), ('watchlist_collector', <class 'gecko_terminal_collector.collectors.watchlist_collector.WatchlistCollector'>, '1h', True, {}), ('ohlcv', <class 'gecko_terminal_collector.collectors.ohlcv_collector.OHLCVCollector'>, '1h', True, {}), ('trade', <class 'gecko_terminal_collector.collectors.trade_collector.TradeCollector'>, '30m', True, {}), ('historical_ohlcv', <class 'gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector'>, '1d', True, {}), ('new_pools_solana', <class 'gecko_terminal_collector.collectors.new_pools_collector.NewPoolsCollector'>, '30m', True, {'network': 'solana'})]
+===
+--_collector_config:  dex_monitoring
+===_parsed_new_format:
+('dex_monitoring', <class 'gecko_terminal_collector.collectors.dex_monitoring.DEXMonitoringCollector'>, '1h', True, {})
+===
+
+2025-09-13 20:18:48,524 - gecko_terminal_collector.utils.enhanced_rate_limiter - INFO - Loaded rate limiter state from .rate_limiter_state\dex_monitoring_rate_limiter.json
+2025-09-13 20:18:48,524 - __main__ - INFO - Rate limiter configured for dex_monitoring
+2025-09-13 20:18:48,527 - gecko_terminal_collector.collectors.base - INFO - Registered collector: dex_monitoring_solana
+2025-09-13 20:18:48,527 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector dex_monitoring_solana with interval 1h
+
+2025-09-13 20:18:48,527 - __main__ - INFO - Registered dex_monitoring collector (interval: 1h, enabled: True)
+
+--_collector_config:  ohlcv
+===_parsing_legacy_format:
+('ohlcv', <class 'gecko_terminal_collector.collectors.ohlcv_collector.OHLCVCollector'>, '1h', True, {})
+===
+2025-09-13 20:18:48,527 - gecko_terminal_collector.utils.enhanced_rate_limiter - INFO - Loaded rate limiter state from .rate_limiter_state\ohlcv_rate_limiter.json
+2025-09-13 20:18:48,531 - __main__ - INFO - Rate limiter configured for ohlcv
+2025-09-13 20:18:48,531 - gecko_terminal_collector.collectors.base - INFO - Registered collector: ohlcv_collector
+2025-09-13 20:18:48,531 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector ohlcv_collector with interval 1h
+2025-09-13 20:18:48,531 - __main__ - INFO - Registered ohlcv collector (interval: 1h, enabled: True)
+
+--_collector_config:  historical_ohlcv
+===_parsing_legacy_format:
+('historical_ohlcv', <class 'gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector'>, '1d', True, {})
+===
+2025-09-13 20:18:48,531 - __main__ - INFO - Rate limiter configured for historical_ohlcv
+2025-09-13 20:18:48,531 - gecko_terminal_collector.collectors.base - INFO - Registered collector: historical_ohlcv_collector
+2025-09-13 20:18:48,531 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector historical_ohlcv_collector with interval 1d
+2025-09-13 20:18:48,531 - __main__ - INFO - Registered historical_ohlcv collector (interval: 1d, enabled: True)
+
+
+2025-09-13 20:18:48,533 - gecko_terminal_collector.utils.enhanced_rate_limiter - INFO - Loaded rate limiter state from .rate_limiter_state\new_pools_solana_rate_limiter.json
+
+2025-09-13 20:18:48,533 - __main__ - INFO - Rate limiter configured for new_pools_solana
+
+2025-09-13 20:18:48,534 - __main__ - INFO - Successfully registered 8 collectors
+
+2025-09-13 20:18:48,534 - __main__ - INFO - Initialization completed
+
+
+
+
+
+
+#
+
+registered_collectors:  ['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+collector_status:  {'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+job_id:  collector_dex_monitoring_solana
+
+2025-09-13 20:18:48,534 - __main__ - INFO - Found exact match: 'dex_monitoring_solana'
+
+--NO MATCH FOUND--
+
+2025-09-13 20:18:48,534 - __main__ - INFO - Running collector 'dex_monitoring_solana' once with rate limiting...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===_parsing_legacy_format:
+('historical_ohlcv', <class 'gecko_terminal_collector.collectors.historical_ohlcv_collector.HistoricalOHLCVCollector'>, '1d', True, {})
+===
+2025-09-13 15:50:33,201 - __main__ - INFO - Rate limiter configured for historical_ohlcv
+2025-09-13 15:50:33,201 - gecko_terminal_collector.collectors.base - INFO - Registered collector: historical_ohlcv_collector
+2025-09-13 15:50:33,201 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector historical_ohlcv_collector with interval 1d
+2025-09-13 15:50:33,201 - __main__ - INFO - Registered historical_ohlcv collector (interval: 1d, enabled: True)
+
+
+
+
+“How To Learn”
+1.	Memory Palaces:
+a.	Proof: https://www.youtube.com/watch?v=mh9B5UJbbRg 
+
+2.	Take Breaks Frequently & HAVE FUN
+a.	Proof: https://www.youtube.com/watch?v=aV2RB_LiW4Y 
+
+3.	Use Eisenhower Method
+a.	Proof: https://www.youtube.com/watch?v=tT89OZ7TNwc 
+
+
+
+
+
+
+python -m gecko_terminal_collector.cli run-collector historical   #this one seems to be stuck in a loop
  
- 
- 
+(C:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli run-collector historical
+_== run_collector_commands _==
+Namespace(config='config.yaml', verbose=False, quiet=False, command='run-collector', collector_type='historical', dry_run=False)
+---
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Running historical collector...
+INFO: Retrieving active watchlist pools for historical OHLCV collection
+INFO: Found 1 watchlist pools for historical OHLCV collection
+-_make_direct_ohlcv_request--
+https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1
+---
+-_collect_historical_data_with_pagination--
+4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
+---
+-_collect_historical_data_with_pagination--
+---
+-_make_direct_ohlcv_request--
+https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1
 
 
 
 
+############
 
 
 ***************
 Note to self: talking out loud and taking notes while I'm trying to troubleshoot makes it much easier in distracting and self-imposed deadline situations (solopreneurship! good and bad). And, perhaps even in serene ones.
 ***************
 
-
-1. Tinker with this error:
-
-[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
-[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
-
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-
-vs
-
-solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-
-
-
-[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
-[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
+###############
+Note to self: document logic flow, then pass to Kiro for troubleshooting - way way easier and less mentally exhausting.
+##############
 
 
 
@@ -104,25 +574,6 @@ Examples:
 
 ########################
 
-Prioritization: 
-
-2. Research why new_pools_history database table is not populating.
-
-
-
-
-
-
-# Planning Time!!
-
-## Identify how to use functionalities 6, 7, 8 and other new features.
-
-- Logs feature not Populating
-- Execution History not Populating
-
-
-
-
 ____ # Think about what my Therapist mentioned earlier in the week
 
 
@@ -140,6 +591,24 @@ I've noticed that uncompleted tasks just linger in my brain until they are compl
 
 So grateful for a quiet environment to gather my thoughts.
 
+listening to songs from the year 2007, and just reflecting how self-centered the world is these days that it could possibly be construed to relate to current events. Fucking ridiculous.
+
+"You should probably get that checked out" - said my Mom as she slowly died of Hashimoto's Thyroiditis, wayyyyy back in 2005.
+
+Feels like my opinions have been instantly discounted my entire fucking life. I made a decision a few days ago to fight off a summer cold, and here we are asgain. The third day of being sick.
+
+# listening to songs from the year 2007, and just reflecting how self-centered the world is these days that it could possibly be construed to relate to current events. Fucking ridiculous.
+
+"You should probably get that checked out" -- decision making involves making a decision (three days ago), to fight off what was formerly known as a summer cold. It sucks, but so does life sometimes.
+
+
+
+
+#################
+
+
+
+
 ###################################### - the multi tasking zone ##########
 
 # While I wait for the scheduler to run (which will confirm if the data collectors work)...
@@ -156,10 +625,13 @@ python -m test_workflow_validation -- --days 14
 # works, but should support up to 6 months (depending on token)
 # works, but should support multiple time aggregations (it does already)
 
+############################################################################
+
+
+
+
+
 ##################################### 
-
-
-
 
 "Much too much"
 
@@ -291,269 +763,66 @@ INFO: OHLCV validation completed: 5316 records, 0 errors, 1 warnings
 
 #########
 
-## WOOHOO!!
+## WOOHOO!! (Accomplishment!!)
 
+From cc3c60e4cf94c72f291a8925c6b5d3cabbf3743b Mon Sep 17 00:00:00 2001
+From: Jon Kindel <ledniknoj@gmail.com>
+Date: Sat, 13 Sep 2025 11:47:39 -0600
+Subject: [PATCH] Fix OHLCV Collector
 
-(C:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli run-collector ohlcv
-_== run_collector_commands _==
-Namespace(config='config.yaml', verbose=False, quiet=False, command='run-collector', collector_type='ohlcv', dry_run=False)
 ---
-INFO: Database connection initialized
-INFO: Creating database tables
-INFO: Database tables created successfully
-INFO: SQLAlchemy database manager initialized
-Running ohlcv collector...
-INFO: Retrieving active watchlist pools for OHLCV collection
-INFO: Found 1 watchlist pools for OHLCV collection
----OHLCV_Collector---
-['solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama']
----
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 1000 records, 0 errors, 2 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=5&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/minute?aggregate=15&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 1000 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 1000 records, 0 errors, 0 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=4&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 877 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 877 records, 0 errors, 1 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/hour?aggregate=12&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 293 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 293 records, 0 errors, 0 warnings
-INFO: HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/pools/4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama/ohlcv/day?aggregate=1&limit=1000&currency=usd&token=base "HTTP/1.1 200 OK"
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 147 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 147 records, 0 errors, 0 warnings
-INFO: Performing bulk storage of 5317 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
---------
+ examples/cli_with_scheduler.py                |  10 +-
+ gecko_data.db-shm                             | Bin 0 -> 32768 bytes
+ gecko_data.db-wal                             | Bin 0 -> 3514392 bytes
+ gecko_terminal_collector/cli.py               |   4 +
+ .../collectors/historical_ohlcv_collector.py  |   2 +-
+ .../collectors/ohlcv_collector.py             |   8 +-
+ .../collectors/watchlist_collector.py         |   2 +-
+ .../database/sqlalchemy_manager.py            |   4 +-
+ specs/PlanningDoc.txt                         | 873 +++++++++++++++---
+ test_workflow_validation.py                   |   2 +-
+ 10 files changed, 784 insertions(+), 121 deletions(-)
+ create mode 100644 gecko_data.db-shm
+ create mode 100644 gecko_data.db-wal
 
------
-INFO: OHLCV validation completed: 5317 records, 0 errors, 1 warnings
-INFO: Stored 4317 new OHLCV records, updated 1000 existing records
-INFO: Successfully bulk stored 5317 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama across 7 timeframes
-INFO: OHLCV collection completed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: 5317 records stored, 7 timeframes succeeded, 0 timeframes failed, 7 API calls made
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: 328 gaps, quality score: 0.05
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: score 0.05 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: 33 gaps, quality score: 0.27
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: score 0.27 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: 2 gaps, quality score: 0.82
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
-INFO: OHLCV collection completed: 5317 records collected for 1 pools
-✓ Collection completed successfully
-  Records collected: 5317
-  Collection time: 2025-09-13 11:46:50.357752
-INFO: Synchronous database engine disposed
-INFO: SQLAlchemy database manager closed
-
-
-##
-
-
-----pool_id----
-solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: Successfully parsed 147 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
-INFO: OHLCV validation completed: 147 records, 0 errors, 0 warnings
-INFO: Performing bulk storage of 5316 OHLCV records for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama
---------
-
------
-INFO: OHLCV validation completed: 5316 records, 0 errors, 1 warnings
-ERROR: Bulk storage failed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: OHLCVCollector._bulk_store_ohlcv_data() takes 2 positional arguments but 3 were given
-Traceback (most recent call last):
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 354, in _collect_pool_ohlcv_data
-    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool, pool_id)
-     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: OHLCVCollector._bulk_store_ohlcv_data() takes 2 positional arguments but 3 were given
-INFO: OHLCV collection completed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: 0 records stored, 7 timeframes succeeded, 0 timeframes failed, 7 API calls made
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1m: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 5m: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 15m: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: score 0.00 < threshold 0.8
-INFO: OHLCV collection completed: 0 records collected for 1 pools
-✓ Collection completed successfully
-  Records collected: 0
-  Collection time: 2025-09-13 11:45:23.544723
-INFO: Synchronous database engine disposed
-INFO: SQLAlchemy database manager closed
+diff --git a/examples/cli_with_scheduler.py b/examples/cli_with_scheduler.py
+index 095a0e0..c97559c 100644
+--- a/examples/cli_with_scheduler.py
++++ b/examples/cli_with_scheduler.py
+@@ -123,6 +123,8 @@ async def _register_collectors(self, config: CollectionConfig, metadata_tracker:
+             ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
+             ("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {})
+         ]
++
++
+         
+         print("===_register_collectors: config===")
+         print(config)
+@@ -366,16 +368,12 @@ async def run_collector():
+         collectors = scheduler_cli.scheduler.list_collectors()
+         target_job_id = None
+         
+-        print("===_list_collectors_===")
+-        print(collectors)
+-        print("===")        
+-
+         # First, try to find exact matches
+         for job_id in collectors:
+             collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+ 
+-            print("_-run_collector--")
+-            print(job_id)
++            # print("_-run_collector--")
++            # print(job_id)
+             
+             if collector_status:
+                 collector_key = collector_status['collector_key']
+diff --git a/gecko_data.db-shm b/gecko_data.db-shm
+new file mode 100644
 
 ####
 
-#####
-#
-
-# Use batch upsert for better performance
-                for record in validated_data:
-                    
-					# TODO - check if record already contains underscore, if not add prefix, and if so 
-					
-					# Or, just see if removing this works now with enhanced data collector -- fixed, bubbled up one additional error
-                    database_id = "solana_"+record.pool_id
-                    
-                    # Use SQLite's INSERT OR REPLACE for atomic upsert
-                    stmt = sqlite_insert(OHLCVDataModel).values(
-                        pool_id=record.pool_id,
-                        timeframe=record.timeframe,
-                        timestamp=record.timestamp,
-                        open_price=record.open_price,
-                        high_price=record.high_price,
-                        low_price=record.low_price,
-                        close_price=record.close_price,
-                        volume_usd=record.volume_usd,
-                        datetime=record.datetime,
-                    )
-
-#
-
-
-
-# Parse OHLCV data with enhanced error tracking
-	parsing_errors_before = len(self._collection_errors)
-	ohlcv_records = self._parse_ohlcv_response(response, pool_id, timeframe) # verified correct pool_id here
-	parsing_errors_after = len(self._collection_errors)
-	collection_metadata['parsing_errors'] += (parsing_errors_after - parsing_errors_before)
-
-
-
-
-
-##
-
-Line 988
-async def _bulk_store_ohlcv_data(self, records: List[OHLCVRecord]) -> int:
-        """
-        Enhanced bulk storage for OHLCV data with optimized performance.
-        
-        Args:
-            records: List of OHLCV records to store
-            
-        Returns:
-            Number of records successfully stored
-        """
-        if not records:
-            return 0
-        
-        try:
-            # Sort records by timestamp for better database performance
-            sorted_records = sorted(records, key=lambda r: (r.pool_id, r.timeframe, r.timestamp))
-            
-            # Use the database manager's bulk storage method
-            stored_count = await self.db_manager.store_ohlcv_data(sorted_records) # error pop up here, but doesn't actually tell you where it is.
-            
-            logger.debug(f"Bulk stored {stored_count} OHLCV records")
-            return stored_count
-            
-        except Exception as e:
-            logger.error(f"Error in bulk OHLCV storage: {e}", exc_info=True)
-            raise
-
-
-
-Line: 340
-
-if all_records_for_pool:
-            try:
-                logger.info(f"Performing bulk storage of {len(all_records_for_pool)} OHLCV records for pool {pool_id}")
-                
-                print("--------")
-                print()
-                print("-----")
-
-                # Final validation of the complete dataset
-                final_validation = await self._validate_ohlcv_data(all_records_for_pool)
-                
-                if final_validation.is_valid:
-                    # Use enhanced bulk storage
-                    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool) # to pass in pool_id directly, or parse into all_records_for_pool
-                    total_records = stored_count
-                    
-                    logger.info(
-                        f"Successfully bulk stored {stored_count} OHLCV records for pool {pool_id} "
-                        f"across {len(collection_metadata['timeframes_processed'])} timeframes"
-                    )
-                else:
-                    logger.error(
-                        f"Final validation failed for pool {pool_id}: "
-                        f"{len(final_validation.errors)} errors, {len(final_validation.warnings)} warnings"
-                    )
-                    # Store valid records only
-                    valid_records = [r for r in all_records_for_pool if self._is_record_valid(r)]
-                    if valid_records:
-                        stored_count = await self._bulk_store_ohlcv_data(valid_records)
-                        total_records = stored_count
-                        logger.info(f"Stored {stored_count} valid records out of {len(all_records_for_pool)} for pool {pool_id}")
-                
-            except Exception as storage_error:
-                error_msg = f"Bulk storage failed for pool {pool_id}: {storage_error}"
-                logger.error(error_msg, exc_info=True)
-                self._collection_errors.append(error_msg)
-				
-				
-##				
-
-
-
-
-
-
-
-
-###
-async def _bulk_store_ohlcv_data(self, records: List[OHLCVRecord]) -> int:
-        """
-        Enhanced bulk storage for OHLCV data with optimized performance.
-        
-        Args:
-            records: List of OHLCV records to store
-            
-        Returns:
-            Number of records successfully stored
-        """
-        if not records:
-            return 0
-        
-        try:
-            # Sort records by timestamp for better database performance
-            sorted_records = sorted(records, key=lambda r: (r.pool_id, r.timeframe, r.timestamp))
-            
-            # Use the database manager's bulk storage method
-            stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
-            
-            logger.debug(f"Bulk stored {stored_count} OHLCV records")
-            return stored_count
-            
-        except Exception as e:
-            logger.error(f"Error in bulk OHLCV storage: {e}", exc_info=True)
-            raise
-			
-			
+##### Personal Journals:				
 			
 Thinking back....
 
@@ -589,180 +858,10 @@ The core principles of Bitcore for a Node.js environment are:
 Ahhh I think back to when I ported this entire stack from Bitcoin to Dash.
 
 
-	
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 1002, in _bulk_store_ohlcv_data
-    stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 495, in store_ohlcv_data
-    session.execute(stmt)
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute    
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py", line 1306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute    
-    return meth(
-           ^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
-[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
-[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
-(Background on this error at: https://sqlalche.me/e/20/gkpj)
-ERROR: Bulk storage failed for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
-[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
-[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
-(Background on this error at: https://sqlalche.me/e/20/gkpj)
-Traceback (most recent call last):
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.IntegrityError: FOREIGN KEY constraint failed
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 350, in _collect_pool_ohlcv_data
-    stored_count = await self._bulk_store_ohlcv_data(all_records_for_pool)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\collectors\ohlcv_collector.py", line 1002, in _bulk_store_ohlcv_data
-    stored_count = await self.db_manager.store_ohlcv_data(sorted_records)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 495, in store_ohlcv_data
-    session.execute(stmt)
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute    
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py", line 1306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute    
-    return meth(
-           ^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
-[SQL: INSERT INTO ohlcv_data (pool_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume_usd, datetime, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)]
-[parameters: ('solana_solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama', '12h', 1745150400, 9.54691622868998e-05, 0.00272198266501991, 3.4329130126024e-05, 0.0027158362766237, 3489250.044440182, '2025-04-20 06:00:00.000000')]
-hold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1h: 1 gaps, quality score: 0.98
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 4h: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 12h: score 0.00 < threshold 0.8
-WARNING: Data gaps detected for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: 1 gaps, quality score: 0.00
-WARNING: Poor data quality for pool solana_4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama, timeframe 1d: score 0.00 < threshold 0.8
-INFO: OHLCV collection completed: 0 records collected for 1 pools
-✓ Collection completed successfully
-  Records collected: 0
-  Collection time: 2025-09-13 11:20:03.317744
-INFO: Synchronous database engine disposed
-INFO: SQLAlchemy database manager closed
-
-
-
-
-
-#####
-
-(C:\Projects\geckoterminal_collector\.conda) PS C:\Projects\geckoterminal_collector> python examples/cli_with_scheduler.py run-once olhcv
-Usage: cli_with_scheduler.py run-once [OPTIONS]
-Try 'cli_with_scheduler.py run-once --help' for help.
-
-Error: Got unexpected extra argument (olhcv)
-
-
-config
-
-def run_once(config, collector, mock):
-    """Run a specific collector once."""
-    async def run_collector():
-        scheduler_cli = SchedulerCLI(config)
-        await scheduler_cli.initialize(use_mock=mock)
-        
-        # Find the collector job ID
-        collectors = scheduler_cli.scheduler.list_collectors()
-        target_job_id = None
-        
-        print("===run_once: find the collector jobID_===")
-        print(target_job_id)
-        print("===")        
-
-        # First, try to find exact matches
-        for job_id in collectors:
-            collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
-
-            print("_-run_collector--")
-            print(job_id)
-            
-            if collector_status:
-                collector_key = collector_status['collector_key']
-                collector = job_id.removeprefix("collector_")
-
-                # Exact match has highest priority
-                if collector == collector_key:
-                    target_job_id = job_id # job_id is assigned to target_job_id here
-                    logger.info(f"Found exact match: '{collector_key}'")
-                    break  
-
-#####
-
-
-
-
-
-
-
-
 
 
 #######################
-
-
-
-# COMPLETED TODAY
+# COMPLETED YESTERDAY
 
 Implement:
 
@@ -893,18 +992,73 @@ system_alerts:
 ######################################
 
 
+## Takeaways:
+
+## Context Engineering ##
+
+# takeaway -- define logic issue with software, then delegate to Kiro.
+
+Hey Kiro, can you help me troubleshoot this problem? When I run the following command:
+
+python examples/cli_with_scheduler.py run-once -col historical_ohlcv
+
+I see that the job_id for "collector_ohlcv_collector" doesn't get registered, and as a result it defaults to a default configuration.
+
+2025-09-13 20:35:59,052 - __main__ - INFO - Rate limiter configured for new_pools_solana
+2025-09-13 20:35:59,053 - gecko_terminal_collector.collectors.base - INFO - Registered collector: new_pools_solana
+2025-09-13 20:35:59,053 - gecko_terminal_collector.scheduling.scheduler - INFO - Registered collector new_pools_solana with interval 30m
+
+
+# collectors are being added to array, but not appearing in this function:
+
+registered_collectors:  ['collector_dex_monitoring_solana', 'collector_top_pools_solana', 'collector_watchlist_monitor', 'collector_watchlist_collector', 'collector_ohlcv_collector', 'collector_trade_collector', 'collector_historical_ohlcv_collector', 'collector_new_pools_solana']
+
+
+# Find the collector job ID
+	collectors = scheduler_cli.scheduler.list_collectors()
+	target_job_id = None
+
+	print("registered_collectors: ", collectors)
+	
+	# First, try to find exact matches
+	for job_id in collectors:
+		collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+
+		print("collector_status: ", collector_status)
+		print("job_id: ", job_id)
+
+
+def get_collector_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+	"""
+	Get status for a specific collector.
+	
+	Args:
+		job_id: Job ID of the collector
+		
+	Returns:
+		Collector status dictionary or None if not found
+	"""
+	print("get_collector_status for job_id: ", job_id)
+	
+	if job_id not in self._scheduled_collectors:
+		return None  
+
+
+collector_status:  
+{'job_id': 'collector_dex_monitoring_solana', 'collector_key': 'dex_monitoring_solana', 'interval': '1h', 'enabled': True, 'last_run': None, 'last_success': None, 'error_count': 0, 'consecutive_errors': 0, 'metadata': CollectionMetadata(collector_type='dex_monitoring_solana', last_run=None, last_success=None, total_runs=0, successful_runs=0, failed_runs=0, total_records_collected=0, last_error=None, error_history=[])}
+
+
+# First, try to find exact matches
+for job_id in collectors:
+	collector_status = scheduler_cli.scheduler.get_collector_status(job_id)
+	
+	# this function is returning None
+
+	print("collector_status: ", collector_status)
+	print("job_id: ", job_id)
 
 
 
+# Identify where scheduled_collectors are stored.
 
-
-
-
-
-
-
-#######################
-# Is the cli-scheduler calling this API route? # fixed bug that was causing it to not correctly register
-trades:
-- not seeing any data here, I know that API response contains the last 300 trades (will need to think on this).
-
+##
