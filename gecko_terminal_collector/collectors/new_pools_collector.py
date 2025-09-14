@@ -352,13 +352,18 @@ class NewPoolsCollector(BaseDataCollector):
             if 'id' not in pool_data:
                 errors.append(f"Pool {i}: Missing required 'id' field")
             
-            if 'base_token_id' not in pool_data:
-                errors.append(f"Pool {i}: Missing 'base_token_id' field")
+            if 'attributes' not in pool_data:
+                errors.append(f"Pool {i}: Missing 'attributes' field")
                 continue
             
-            #attributes = pool_data['attributes']
-            if not isinstance(pool_data, dict):
+            attributes = pool_data['attributes']
+            if not isinstance(attributes, dict):
                 errors.append(f"Pool {i}: 'attributes' must be a dict")
+                continue
+            
+            # Check for required fields in attributes
+            if 'base_token_id' not in attributes:
+                errors.append(f"Pool {i}: Missing 'base_token_id' field in attributes")
         
         return ValidationResult(
             is_valid=len(errors) == 0,

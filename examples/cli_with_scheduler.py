@@ -387,13 +387,6 @@ def run_once(config, collector, mock):
 
             print("collector_status: ", collector_status)
             print("job_id: ", job_id)
-
-            
-
-
-
-            
-
             
             if collector_status:
                 collector_key = collector_status['collector_key']

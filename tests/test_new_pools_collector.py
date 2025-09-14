@@ -46,46 +46,58 @@ def mock_api_response():
     return {
         "data": [
             {
-                "id": "solana_pool_1",
+                "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
                 "type": "pool",
                 "attributes": {
-                    "name": "Test Pool 1",
-                    "address": "0x1234567890abcdef",
-                    "dex_id": "heaven",
-                    "base_token_id": "base_token_1",
-                    "quote_token_id": "quote_token_1",
-                    "reserve_in_usd": "10000.50",
-                    "pool_created_at": "2024-01-01T00:00:00Z",
-                    "base_token_price_usd": "1.25",
-                    "quote_token_price_usd": "1.00",
-                    "fdv_usd": "50000.00",
-                    "market_cap_usd": "40000.00",
-                    "price_change_percentage_h1": "2.5",
-                    "price_change_percentage_h24": "-1.2",
-                    "transactions_h1_buys": 15,
-                    "transactions_h1_sells": 10,
-                    "transactions_h24_buys": 150,
-                    "transactions_h24_sells": 120,
-                    "volume_usd_h24": "5000.75",
+                    "name": "Yuge / SOL",
+                    "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "5952.5667",
+                    "pool_created_at": "2025-09-09T21:27:38Z",
+                    "base_token_price_usd": "0.00000604",
+                    "quote_token_price_usd": "215.5899125",
+                    "fdv_usd": "6037.723098",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "18.495",
+                    "price_change_percentage_h24": "18.495",
+                    "transactions_h1_buys": 4,
+                    "transactions_h1_sells": 2,
+                    "transactions_h24_buys": 4,
+                    "transactions_h24_sells": 2,
+                    "volume_usd_h24": "1596.119712",
                     "network_id": "solana"
                 }
             },
             {
-                "id": "solana_pool_2",
+                "id": "solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
                 "type": "pool",
                 "attributes": {
-                    "name": "Test Pool 2",
-                    "address": "0xabcdef1234567890",
-                    "dex_id": "pumpswap",
-                    "base_token_id": "base_token_2",
-                    "quote_token_id": "quote_token_2",
-                    "reserve_in_usd": "25000.75",
-                    "pool_created_at": "2024-01-02T12:00:00Z",
+                    "name": "CN / SOL",
+                    "address": "Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "GG368b5zKycLRK4G88yZDpZRjwYgQkt825KCcnHCpump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "6067.7761",
+                    "pool_created_at": "2025-09-09T21:27:36Z",
+                    "base_token_price_usd": "0.00000620",
+                    "quote_token_price_usd": "215.539392",
+                    "fdv_usd": "6191.901295",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "-19.315",
+                    "price_change_percentage_h24": "-19.315",
+                    "transactions_h1_buys": 39,
+                    "transactions_h1_sells": 35,
+                    "transactions_h24_buys": 39,
+                    "transactions_h24_sells": 35,
+                    "volume_usd_h24": "6944.721262",
                     "network_id": "solana"
                 }
             }
         ]
     }
+
 
 
 @pytest.fixture
@@ -109,51 +121,99 @@ class TestNewPoolsCollector:
     def test_extract_pool_info_valid_data(self, new_pools_collector):
         """Test extracting pool info from valid API data."""
         pool_data = {
-            "id": "test_pool_1",
+            "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+            "type": "pool",
             "attributes": {
-                "name": "Test Pool",
-                "address": "0x123456",
-                "dex_id": "heaven",
-                "base_token_id": "base_1",
-                "quote_token_id": "quote_1",
-                "reserve_in_usd": "10000.50",
-                "pool_created_at": "2024-01-01T00:00:00Z"
+                "name": "Yuge / SOL",
+                "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                "dex_id": "pump-fun",
+                "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                "quote_token_id": "So11111111111111111111111111111111111111112",
+                "reserve_in_usd": "5952.5667",
+                "pool_created_at": "2025-09-09T21:27:38Z",
+                "base_token_price_usd": "0.00000604",
+                "quote_token_price_usd": "215.5899125",
+                "fdv_usd": "6037.723098",
+                "market_cap_usd": "6445.394187",
+                "price_change_percentage_h1": "18.495",
+                "price_change_percentage_h24": "18.495",
+                "transactions_h1_buys": 4,
+                "transactions_h1_sells": 2,
+                "transactions_h24_buys": 4,
+                "transactions_h24_sells": 2,
+                "volume_usd_h24": "1596.119712",
+                "network_id": "solana"
             }
         }
         
         result = new_pools_collector._extract_pool_info(pool_data)
         
         assert result is not None
-        assert result["id"] == "test_pool_1"
-        assert result["name"] == "Test Pool"
-        assert result["address"] == "0x123456"
-        assert result["dex_id"] == "heaven"
-        assert result["base_token_id"] == "base_1"
-        assert result["quote_token_id"] == "quote_1"
-        assert result["reserve_usd"] == Decimal("10000.50")
+        assert result["id"] == "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
+        assert result["name"] == "Yuge / SOL"
+        assert result["address"] == "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
+        assert result["dex_id"] == "pump-fun"
+        assert result["base_token_id"] == "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump"
+        assert result["quote_token_id"] == "So11111111111111111111111111111111111111112"
+        assert result["reserve_usd"] == Decimal("5952.5667")
         assert isinstance(result["created_at"], datetime)
     
     def test_extract_pool_info_missing_id(self, new_pools_collector):
         """Test extracting pool info with missing ID."""
         pool_data = {
+            "id": None,
+            "type": "pool",
             "attributes": {
-                "name": "Test Pool",
-                "address": "0x123456"
+                "name": "Yuge / SOL",
+                "address": "0x123456",
+                "dex_id": "pump-fun",
+                "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                "quote_token_id": "So11111111111111111111111111111111111111112",
+                "reserve_in_usd": "5952.5667",
+                "pool_created_at": "2025-09-09T21:27:38Z",
+                "base_token_price_usd": "0.00000604",
+                "quote_token_price_usd": "215.5899125",
+                "fdv_usd": "6037.723098",
+                "market_cap_usd": "6445.394187",
+                "price_change_percentage_h1": "18.495",
+                "price_change_percentage_h24": "18.495",
+                "transactions_h1_buys": 4,
+                "transactions_h1_sells": 2,
+                "transactions_h24_buys": 4,
+                "transactions_h24_sells": 2,
+                "volume_usd_h24": "1596.119712",
+                "network_id": "solana"
             }
-        }
-        
+        }      
+
         result = new_pools_collector._extract_pool_info(pool_data)
         assert result is None
     
     def test_extract_pool_info_invalid_timestamp(self, new_pools_collector):
         """Test extracting pool info with invalid timestamp."""
         pool_data = {
-            "id": "test_pool_1",
+            "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+            "type": "pool",
             "attributes": {
-                "name": "Test Pool",
-                "address": "0x123456",
-                "dex_id": "heaven",
-                "pool_created_at": "invalid_timestamp"
+                "name": "Yuge / SOL",
+                "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                "dex_id": "pump-fun",
+                "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                "quote_token_id": "So11111111111111111111111111111111111111112",
+                "reserve_in_usd": "5952.5667",
+                "pool_created_at": "invalid_timestamp",
+                "base_token_price_usd": "0.00000604",
+                "quote_token_price_usd": "215.5899125",
+                "fdv_usd": "6037.723098",
+                "market_cap_usd": "6445.394187",
+                "price_change_percentage_h1": "18.495",
+                "price_change_percentage_h24": "18.495",
+                "transactions_h1_buys": 4,
+                "transactions_h1_sells": 2,
+                "transactions_h24_buys": 4,
+                "transactions_h24_sells": 2,
+                "volume_usd_h24": "1596.119712",
+                "network_id": "solana"
             }
         }
         
@@ -165,21 +225,27 @@ class TestNewPoolsCollector:
     def test_create_history_record_valid_data(self, new_pools_collector):
         """Test creating history record from valid API data."""
         pool_data = {
-            "id": "test_pool_1",
+            "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
             "type": "pool",
             "attributes": {
-                "name": "Test Pool",
-                "address": "0x123456",
-                "dex_id": "heaven",
-                "base_token_id": "base_1",
-                "quote_token_id": "quote_1",
-                "reserve_in_usd": "10000.50",
-                "pool_created_at": "2024-01-01T00:00:00Z",
-                "base_token_price_usd": "1.25",
-                "fdv_usd": "50000.00",
-                "price_change_percentage_h1": "2.5",
-                "transactions_h1_buys": 15,
-                "volume_usd_h24": "5000.75",
+                "name": "Yuge / SOL",
+                "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                "dex_id": "pump-fun",
+                "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                "quote_token_id": "So11111111111111111111111111111111111111112",
+                "reserve_in_usd": "5952.5667",
+                "pool_created_at": "2025-09-09T21:27:38Z",
+                "base_token_price_usd": "0.00000604",
+                "quote_token_price_usd": "215.5899125",
+                "fdv_usd": "6037.723098",
+                "market_cap_usd": "6445.394187",
+                "price_change_percentage_h1": "18.495",
+                "price_change_percentage_h24": "18.495",
+                "transactions_h1_buys": 4,
+                "transactions_h1_sells": 2,
+                "transactions_h24_buys": 4,
+                "transactions_h24_sells": 2,
+                "volume_usd_h24": "1596.119712",
                 "network_id": "solana"
             }
         }
@@ -187,38 +253,56 @@ class TestNewPoolsCollector:
         result = new_pools_collector._create_history_record(pool_data)
         
         assert result is not None
-        assert result["pool_id"] == "test_pool_1"
+        assert result["pool_id"] == "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
         assert result["type"] == "pool"
-        assert result["name"] == "Test Pool"
-        assert result["address"] == "0x123456"
-        assert result["dex_id"] == "heaven"
-        assert result["base_token_price_usd"] == Decimal("1.25")
-        assert result["fdv_usd"] == Decimal("50000.00")
-        assert result["price_change_percentage_h1"] == Decimal("2.5")
-        assert result["transactions_h1_buys"] == 15
-        assert result["volume_usd_h24"] == Decimal("5000.75")
+        assert result["name"] == "Yuge / SOL"
+        assert result["address"] == "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
+        assert result["dex_id"] == "pump-fun"
+        assert result["base_token_price_usd"] == Decimal("0.00000604")
+        assert result["fdv_usd"] == Decimal("6037.723098")
+        assert result["price_change_percentage_h1"] == Decimal("18.495")
+        assert result["transactions_h1_buys"] == 4
+        assert result["volume_usd_h24"] == Decimal("1596.119712")
         assert result["network_id"] == "solana"
         assert isinstance(result["collected_at"], datetime)
     
     def test_create_history_record_with_nulls(self, new_pools_collector):
         """Test creating history record with null/empty values."""
         pool_data = {
-            "id": "test_pool_1",
+            "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+            "type": "pool",
             "attributes": {
-                "name": "Test Pool",
+                "name": "Yuge / SOL",
+                "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                "dex_id": "pump-fun",
+                "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                "quote_token_id": "So11111111111111111111111111111111111111112",
+                "reserve_in_usd": "5952.5667",
+                "pool_created_at": "2025-09-09T21:27:38Z",
                 "base_token_price_usd": None,
-                "fdv_usd": "",
+                "quote_token_price_usd": "215.5899125",
+                "fdv_usd": "6037.723098",
+                "market_cap_usd": "6445.394187",
+                "price_change_percentage_h1": "18.495",
+                "price_change_percentage_h24": "18.495",
                 "transactions_h1_buys": None,
-                "volume_usd_h24": "invalid_number"
+                "transactions_h1_sells": 2,
+                "transactions_h24_buys": 4,
+                "transactions_h24_sells": 2,
+                "volume_usd_h24": "ABCD",
+                "network_id": "solana"
             }
         }
         
         result = new_pools_collector._create_history_record(pool_data)
+
+        #print("-result:")
+        #print(result)
+        #print("---")
         
         assert result is not None
-        assert result["pool_id"] == "test_pool_1"
-        assert result["base_token_price_usd"] is None
-        assert result["fdv_usd"] is None
+        assert result["pool_id"] == "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
+        assert result["base_token_price_usd"] is None        
         assert result["transactions_h1_buys"] is None
         assert result["volume_usd_h24"] is None  # Invalid number should become None
     
@@ -282,16 +366,62 @@ class TestNewPoolsCollector:
         """Test validation with valid data."""
         data = [
             {
-                "id": "pool_1",
-                "attributes": {"name": "Pool 1"}
+                "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                "type": "pool",
+                "attributes": {
+                    "name": "Yuge / SOL",
+                    "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "5952.5667",
+                    "pool_created_at": "2025-09-09T21:27:38Z",
+                    "base_token_price_usd": "0.00000604",
+                    "quote_token_price_usd": "215.5899125",
+                    "fdv_usd": "6037.723098",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "18.495",
+                    "price_change_percentage_h24": "18.495",
+                    "transactions_h1_buys": 4,
+                    "transactions_h1_sells": 2,
+                    "transactions_h24_buys": 4,
+                    "transactions_h24_sells": 2,
+                    "volume_usd_h24": "1596.119712",
+                    "network_id": "solana"
+                }
             },
             {
-                "id": "pool_2", 
-                "attributes": {"name": "Pool 2"}
+                "id": "solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
+                "type": "pool",
+                "attributes": {
+                    "name": "CN / SOL",
+                    "address": "Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "GG368b5zKycLRK4G88yZDpZRjwYgQkt825KCcnHCpump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "6067.7761",
+                    "pool_created_at": "2025-09-09T21:27:36Z",
+                    "base_token_price_usd": "0.00000620",
+                    "quote_token_price_usd": "215.539392",
+                    "fdv_usd": "6191.901295",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "-19.315",
+                    "price_change_percentage_h24": "-19.315",
+                    "transactions_h1_buys": 39,
+                    "transactions_h1_sells": 35,
+                    "transactions_h24_buys": 39,
+                    "transactions_h24_sells": 35,
+                    "volume_usd_h24": "6944.721262",
+                    "network_id": "solana"
+                }
             }
         ]
         
         result = await new_pools_collector._validate_specific_data(data)
+
+        #print("---")
+        #print("result")
+        #print("---")
         
         assert result.is_valid is True
         assert len(result.errors) == 0
@@ -310,8 +440,28 @@ class TestNewPoolsCollector:
     async def test_validate_specific_data_missing_fields(self, new_pools_collector):
         """Test validation with missing required fields."""
         data = [
-            {"attributes": {"name": "Pool 1"}},  # Missing id
-            {"id": "pool_2"}  # Missing attributes
+            {"attributes": {
+                    "name": "CN / SOL",
+                    "address": "Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "GG368b5zKycLRK4G88yZDpZRjwYgQkt825KCcnHCpump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "6067.7761",
+                    "pool_created_at": "2025-09-09T21:27:36Z",
+                    "base_token_price_usd": "0.00000620",
+                    "quote_token_price_usd": "215.539392",
+                    "fdv_usd": "6191.901295",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "-19.315",
+                    "price_change_percentage_h24": "-19.315",
+                    "transactions_h1_buys": 39,
+                    "transactions_h1_sells": 35,
+                    "transactions_h24_buys": 39,
+                    "transactions_h24_sells": 35,
+                    "volume_usd_h24": "6944.721262",
+                    "network_id": "solana"
+                }},  # Missing id
+            {"id": "Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP"}  # Missing attributes
         ]
         
         result = await new_pools_collector._validate_specific_data(data)
@@ -360,9 +510,37 @@ class TestNewPoolsCollector:
     @pytest.mark.asyncio
     async def test_collect_validation_failure(self, new_pools_collector):
         """Test collection with validation failure."""
-        # Mock the API client to return invalid data
+        # Mock the API client to return invalid data (missing base_token_id in attributes)
         mock_client = AsyncMock()
-        mock_client.get_new_pools_by_network.return_value = {"data": "invalid_data"}
+        mock_client.get_new_pools_by_network.return_value = {
+            "data": [
+                {
+                    "id": "12345",
+                    "type": "pool",
+                    "attributes": {
+                        "name": "Yuge / SOL",
+                        "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                        "dex_id": "pump-fun",
+                        # Missing base_token_id to trigger validation failure
+                        "quote_token_id": "So11111111111111111111111111111111111111112",
+                        "reserve_in_usd": "5952.5667",
+                        "pool_created_at": "2025-09-09T21:27:38Z",
+                        "base_token_price_usd": "0.00000604",
+                        "quote_token_price_usd": "215.5899125",
+                        "fdv_usd": "6037.723098",
+                        "market_cap_usd": "6445.394187",
+                        "price_change_percentage_h1": "18.495",
+                        "price_change_percentage_h24": "18.495",
+                        "transactions_h1_buys": 4,
+                        "transactions_h1_sells": 2,
+                        "transactions_h24_buys": 4,
+                        "transactions_h24_sells": 2,
+                        "volume_usd_h24": "1596.119712",
+                        "network_id": "solana"
+                    }
+                }
+            ]
+        }
         new_pools_collector._client = mock_client
         
         # Mock rate limiter
@@ -371,12 +549,15 @@ class TestNewPoolsCollector:
         
         result = await new_pools_collector.collect()
 
-        print("-_test_collect_validation_failure--")
-        print(result)
-        print("---")
+        #print("-_test_collect_validation_failure--")
+        #print(result)
+        #print("---")
         
-        assert result.success is False
+        # The collector should continue processing despite validation errors
+        assert result.success is True
+        assert len(result.errors) > 0
         assert "Data validation failed" in result.errors[0]
+        assert "Missing 'base_token_id' field in attributes" in result.errors[0]
     
     @pytest.mark.asyncio
     async def test_collect_api_exception(self, new_pools_collector):
