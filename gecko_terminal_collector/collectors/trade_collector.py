@@ -233,8 +233,12 @@ class TradeCollector(BaseDataCollector):
                 validation_result = await self._validate_trade_data(filtered_records)
                 
                 if validation_result.is_valid:
-                    # Store trade data with duplicate prevention
-                    stored_count = await self.db_manager.store_trade_data(filtered_records)
+                    # Store trade data with optimized duplicate prevention and lock avoidance
+                    if hasattr(self.db_manager, 'store_trade_data_optimized'):
+                        stored_count = await self.db_manager.store_trade_data_optimized(filtered_records)
+                    else:
+                        # Fallback to standard method
+                        stored_count = await self.db_manager.store_trade_data(filtered_records)
                     
                     logger.debug(
                         f"Stored {stored_count} trade records for pool {pool_id} "

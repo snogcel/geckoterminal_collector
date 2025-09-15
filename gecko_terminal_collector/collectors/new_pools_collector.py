@@ -303,9 +303,15 @@ class NewPoolsCollector(BaseDataCollector):
                 self.logger.debug(f"Pool {pool_info['id']} already exists")
                 return False
             
-            # Create new pool record
+            # Create new pool record with optimized storage
             pool = Pool(**pool_info)
-            await self.db_manager.store_pool(pool)
+            
+            # Use optimized storage if available
+            if hasattr(self.db_manager, 'store_pools_optimized'):
+                await self.db_manager.store_pools_optimized([pool])
+            else:
+                # Fallback to standard method
+                await self.db_manager.store_pool(pool)
             self.logger.debug(f"Created new pool: {pool_info['id']}")
             return True
             
