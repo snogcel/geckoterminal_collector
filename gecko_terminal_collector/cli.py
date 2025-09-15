@@ -37,6 +37,42 @@ def _add_migrate_pool_ids_command(subparsers):
     migrate_parser.set_defaults(func=migrate_pool_ids_command)
 
 
+def _add_add_watchlist_command(subparsers):
+    """Add add-watchlist command parser."""
+    add_watchlist_parser = subparsers.add_parser(
+        'add-watchlist',
+        help='Add a new entry to the watchlist',
+        description='Add a new token/pool to the watchlist for monitoring'
+    )
+    add_watchlist_parser.add_argument(
+        '--pool-id',
+        type=str,
+        required=True,
+        help='Pool ID (with network prefix, e.g., solana_ABC123...)'
+    )
+    add_watchlist_parser.add_argument(
+        '--symbol',
+        type=str,
+        required=True,
+        help='Token symbol (e.g., YUGE, SOL, BTC)'
+    )
+    add_watchlist_parser.add_argument(
+        '--name',
+        type=str,
+        help='Token name (optional, e.g., "Yuge Token")'
+    )
+    add_watchlist_parser.add_argument(
+        '--network-address',
+        type=str,
+        help='Network-specific token address (optional)'
+    )
+    add_watchlist_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -114,6 +150,9 @@ Examples:
     # Migration commands
     _add_migrate_pool_ids_command(subparsers)
     
+    # Watchlist management commands
+    _add_add_watchlist_command(subparsers)
+    
     args = parser.parse_args()
     
     if args.command is None:
@@ -149,6 +188,7 @@ Examples:
         "build-ohlcv": build_ohlcv_command,
         "validate-workflow": validate_workflow_command,
         "migrate-pool-ids": migrate_pool_ids_command,
+        "add-watchlist": add_watchlist_command,
     }
     
     handler = command_handlers.get(args.command)
@@ -2530,6 +2570,116 @@ async def migrate_pool_ids_command(args):
     except Exception as e:
         print(f"❌ Pool ID migration failed: {e}")
         raise SystemExit(1)
+
+
+async def add_watchlist_command(args):
+    """Add a new entry to the watchlist."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.database.models import WatchlistEntry, Pool, DEX
+        from datetime import datetime
+        
+        print(f"Adding watchlist entry...")
+        print(f"Pool ID: {args.pool_id}")
+        print(f"Symbol: {args.symbol}")
+        if args.name:
+            print(f"Name: {args.name}")
+        if args.network_address:
+            print(f"Network Address: {args.network_address}")
+        
+        # Extract network and address from pool_id
+        if '_' not in args.pool_id:
+            print(f"❌ Invalid pool ID format. Expected format: network_address (e.g., solana_ABC123...)")
+            return 1
+        
+        network, pool_address = args.pool_id.split('_', 1)
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Check if entry already exists
+            existing_entry = await db_manager.get_watchlist_entry_by_pool_id(args.pool_id)
+            if existing_entry:
+                print(f"❌ Entry already exists in watchlist: {args.pool_id}")
+                print(f"   Existing symbol: {existing_entry.token_symbol}")
+                return 1
+            
+            # Ensure the pool exists (create minimal entry if needed)
+            with db_manager.connection.get_session() as session:
+                # Check if pool exists
+                existing_pool = session.query(Pool).filter_by(id=args.pool_id).first()
+                
+                if not existing_pool:
+                    print(f"Creating minimal pool entry for {args.pool_id}...")
+                    
+                    # Ensure DEX exists (create if needed)
+                    dex_id = f"{network}_unknown"  # Use a generic DEX ID
+                    existing_dex = session.query(DEX).filter_by(id=dex_id).first()
+                    
+                    if not existing_dex:
+                        new_dex = DEX(
+                            id=dex_id,
+                            name=f"{network.title()} Unknown DEX",
+                            network=network
+                        )
+                        session.add(new_dex)
+                        session.flush()  # Ensure DEX is created before pool
+                    
+                    # Create minimal pool entry
+                    new_pool = Pool(
+                        id=args.pool_id,
+                        address=pool_address,
+                        name=f"{args.symbol} Pool" if args.symbol else "Unknown Pool",
+                        dex_id=dex_id,
+                        discovery_source="manual",
+                        collection_priority="normal",
+                        created_at=datetime.now()
+                    )
+                    session.add(new_pool)
+                    session.commit()
+                    print(f"✅ Created minimal pool entry")
+            
+            # Create watchlist entry
+            entry = WatchlistEntry(
+                pool_id=args.pool_id,
+                token_symbol=args.symbol,
+                token_name=args.name,
+                network_address=args.network_address,
+                is_active=True
+            )
+            
+            # Store the entry using the add method
+            await db_manager.add_watchlist_entry(entry)
+            
+            print(f"✅ Successfully added '{args.symbol}' to watchlist")
+            print(f"   Pool ID: {args.pool_id}")
+            
+            # Show current watchlist pool count
+            watchlist_pools = await db_manager.get_watchlist_pools()
+            print(f"   Total active watchlist entries: {len(watchlist_pools)}")
+            
+        except Exception as e:
+            if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e):
+                print(f"❌ Entry already exists in watchlist: {args.pool_id}")
+                return 1
+            else:
+                raise
+        
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to add watchlist entry: {e}")
+        return 1
 
 
 if __name__ == "__main__":

@@ -13,20 +13,497 @@ Finish QA Testing
 
 TODO (Business Tasks)
 
-1. Address Prefix Technical Debt
+1. Address Prefix Technical Debt [DONE] - pending QA
+
+2. New Pools History Collection - review status of existing issue
 
 
 
 
-
-
-
-1. New Pools History Collection
 
 2. QA / Test Coverage
 
 3. QLib Server
 
+
+
+
+
+
+
+# Need to add item to watchlist for new_pools_history to work
+
+# How best to optimize the insertion of new pools into watchlist --> much bigger question here.
+
+
+
+
+SQLAlchemyDatabaseManager
+
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP" --symbol "CN / SOL"
+
+
+# Self Centered Development Approaches - until September 28th ############################################################################
+
+
+I've noticed that the recommended approach for adding new watchlist entries doesn't work. What are your recommendations on how to fix this?
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+usage: cli.py [-h] [--version] [--config CONFIG] [--verbose] [--quiet]
+              {init,validate,db-setup,start,stop,status,run-collector,backfill,export,cleanup,health-check,metrics,logs,backup,restore,build-ohlcv,validate-workflow,migrate-pool-ids}
+              ...
+cli.py: error: argument command: invalid choice: 'add-watchlist' (choose from 'init', 'validate', 'db-setup', 'start', 'stop', 'status', 'run-collector', 'backfill', 'export', 'cleanup', 'health-check', 'metrics', 'logs', 'backup', 'restore', 'build-ohlcv', 'validate-workflow', 'migrate-pool-ids')
+
+###
+
+I can see the issue! The add-watchlist command doesn't exist in the main CLI. Let me check what commands are actually available and then help you implement the missing functionality.
+
+Read file(s)
+
+cli.py
+I can see the issue! The main CLI doesn't have an add-watchlist command. Let me check if there's a separate example or utility for adding watchlist entries:
+
+Read file(s)
+
+test_add_watchlist.py
+I can see the issue! The add-watchlist command doesn't exist in the main CLI. Let me create a proper solution by adding this command to the CLI. Let me first check the current CLI structure and then add the missing functionality.
+
+Searched workspace
+Looking for watchlist-related functionality in the CLI
+Now let me check if there's a WatchlistProcessor or similar utility that handles adding watchlist entries:
+
+Searched workspace
+Looking for watchlist processor or manager files
+Searched workspace
+Looking for watchlist-related Python files
+Searched workspace
+Looking for watchlist processor or manager classes
+Perfect! Now I can see there's a WatchlistProcessor class. Let me check it and also look at the database models to understand how to properly add watchlist entries:
+
+Read file(s)
+
+watchlist_processor.py 130 - 161
+
+models.py 130 - 161
+Now let me check the full WatchlistProcessor to understand how it works:
+
+Read file(s)
+
+watchlist_processor.py
+Now I understand the issue! The system expects watchlist entries to be managed through CSV files, but there's no CLI command to add entries to the database directly. Let me create a proper solution by adding the missing add-watchlist command to the CLI.
+
+Read file(s)
+
+cli.py 2500 - 9007199254740992
+Now let me add the add-watchlist command to the CLI. I'll need to add it to the subparsers and create the command handler:
+
+
+2 edits to file
+
+cli.py
+
+Edited
+
+cli.py
+
+Edited
+
+cli.py
+
+Now let me add the command parser function and the command handler:
+
+Edited
+
+cli.py
+
+Now let me add the command handler function at the end of the file, before the if __name__ == "__main__": line:
+
+Edited
+
+cli.py
+
+Now let me check if the database manager has the store_watchlist_entry and get_watchlist_entries methods:
+
+Searched workspace
+Checking if the database manager has watchlist methods
+I can see there are two different signatures for store_watchlist_entry. Let me check the SQLAlchemy manager to see the correct signature:
+
+Read file(s)
+
+sqlalchemy_manager.py 1390 - 1421
+Let me also check if there's a get_watchlist_entries method:
+
+Searched workspace
+Looking for get_watchlist_entries method
+I need to check what watchlist methods are available:
+
+Searched workspace
+Looking for all watchlist methods in the database manager
+Perfect! I can see there are multiple methods available. Let me update the command to use the correct method and also add a method to get all watchlist entries. Let me first check if there's a method to get all entries:
+
+Searched workspace
+Looking for methods to get all watchlist entries
+I'll need to create a simple query to count watchlist entries. Let me update the command to use the correct method:
+
+Edited
+
+cli.py
+
+Now let's test the new command:
+
+Command
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9a
+aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"Adding watchlist entry...
+Pool ID: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+Symbol: YUGE
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+WARNING: Watchlist entry already exists for pool solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?) RETURNING id, added_at]
+[parameters: ('solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm', 'YUGE', None, None, 1)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+❌ Failed to add watchlist entry: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO watchlist (pool_id, token_symbol, token_name, network_address, added_at, is_active) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?) RETURNING id, added_at]
+[parameters: ('solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm', 'YUGE', None, None, 1)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+I see the issue! There's a foreign key constraint error because the pool doesn't exist in the pools table yet. The watchlist entry references a pool that must exist first. Let me check the database schema:
+
+Read file(s)
+
+models.py 134 - 156
+The issue is that the pool_id has a foreign key constraint to the pools.id table, but the pool doesn't exist yet. I need to modify the command to either:
+
+Create the pool first, or
+Make the foreign key constraint optional
+Let me check how other parts of the system handle this. Let me look at how the watchlist collector works:
+
+Searched workspace
+Looking at how the watchlist collector handles adding entries
+Let me check how the watchlist monitor handles this - it seems to successfully add entries. Let me look at that code:
+
+Read file(s)
+
+watchlist_monitor.py 270 - 291
+I see that the watchlist monitor uses record.pool_address directly, not a prefixed pool ID. Let me check what format the pool addresses are in the CSV files:
+
+Read file(s)
+
+watchlist.csv
+I see! The CSV uses raw pool addresses without network prefixes, but the database expects prefixed pool IDs. The issue is that I need to either:
+
+Create the pool entry first, or
+Use the raw address format
+Let me check if there's a method to create a basic pool entry. But first, let me see if the system is designed to work with raw addresses. Let me check the database to see what pool IDs actually exist:
+
+Command
+python -c "
+import asyncio
+from gecko_terminal_collector.config.manager import ConfigManager
+from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+
+async def check_pools():
+    manager = ConfigManager('config.yaml')
+    config = manager.load_config()
+    db_manager = SQLAlchemyDatabaseManager(config.database)
+    await db_manager.initialize()
+    
+    # Get some pool IDs to see the format
+    with db_manager.connection.get_session() as session:
+        from gecko_terminal_collector.database.models import Pool
+        pools = session.query(Pool).limit(5).all()
+        print('Sample pool IDs:')
+        for pool in pools:
+            print(f'  {pool.id}')
+    
+    await db_manager.close()
+
+asyncio.run(check_pools())
+"
+python -c "
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -c "dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>import asyncio
+'import' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>from gecko_terminal_collector.config.manager import ConfigManager
+'from' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager       
+'from' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>async def check_pools():
+'async' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    manager = ConfigManager('config.yaml')
+'manager' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    config = manager.load_config()
+'config' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    db_manager = SQLAlchemyDatabaseManager(config.database)
+'db_manager' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>  await db_manager.initialize()
+'await' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    # Get some pool IDs to see the format
+'#' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    with db_manager.connection.get_session() as session:
+'with' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>        from gecko_terminal_collector.database.models import Pool
+'from' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>        pools = session.query(Pool).limit(5).all()
+'pools' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>        print('Sample pool IDs:')
+Unable to initialize device PRN
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - print ('Sample pool IDs:')
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>        for pool in pools:
+pool was unexpected at this time.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>            print(f'  {pool.id}')
+Unable to initialize device PRN
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - print (f'  {pool.id}')
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>    await db_manager.close()
+'await' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>asyncio.run(check_pools())
+'asyncio.run' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>"
+mdNotFound;"\
+'"' is not recognized as an internal or external command,
+operable program or batch file.
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Let me create a simple Python file to check this:
+
+Created
+
+check_pools.py
+
+Command
+python check_pools.py
+python check_pools.py
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  check_pools.pySample pool IDs:
+  solana_EkU9zGSkUnVVK6nhmPSqnxqcKPzt1PicrCjdxSbWo9uA
+  solana_Fw1KLDHCPaJaVX4tnc2iTVEmN1KrmCnXD9hb8244VP8W
+  solana_4pE7TvQ5cc9rZ9YV4vgVm6foX73BgTyyYHnteZgsDsVz
+  solana_2gHKtu65ujq7K5bPeaNBk92wPyAQuWqTVMudxYfAYfti
+  solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Perfect! So the pool IDs in the database do have the solana_ prefix. The issue is that when I try to add a watchlist entry, the pool with that ID doesn't exist yet.
+
+The solution is to modify the command to either:
+
+Create a basic pool entry first, or
+Allow the user to add watchlist entries that will be resolved later when the pool is discovered
+Let me check how the system is supposed to work. Let me look at the watchlist collector to see how it handles this:
+
+Read file(s)
+
+watchlist_collector.py 250 - 281
+Let me look at the broader context of how the watchlist collector works:
+
+Read file(s)
+
+watchlist_collector.py 200 - 251
+I see the issue! The watchlist collector calls _create_or_update_watchlist_entry AFTER it has collected the pool data and presumably created the pool entry. The pool must exist before the watchlist entry can be created.
+
+Let me modify the CLI command to create a basic pool entry first. Let me check how pools are created:
+
+Searched workspace
+Looking for how pools are created in the database
+Perfect! There's a store_pool method. Let me check the Pool model to see what fields are required:
+
+Read file(s)
+
+models.py 30 - 81
+I can see that the Pool model requires:
+
+id (primary key)
+address (not null)
+dex_id (foreign key to dexes table, not null)
+So I need to create a basic pool entry with these required fields. Let me modify the CLI command to create a minimal pool entry first:
+
+Edited
+
+cli.py
+
+Now let's test the updated command:
+
+Command
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9a
+aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"Adding watchlist entry...
+Pool ID: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+Symbol: YUGE
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Creating minimal pool entry for solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm...
+✅ Created minimal pool entry
+INFO: Added watchlist entry for pool: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+✅ Successfully added 'YUGE' to watchlist
+   Pool ID: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+   Total active watchlist entries: 2
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Excellent! 🎉 The command is now working perfectly. Let's test it again to make sure it handles duplicates correctly:
+
+Command
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9a
+aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"Adding watchlist entry...
+Pool ID: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+Symbol: YUGE
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+❌ Entry already exists in watchlist: solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm
+   Existing symbol: YUGE
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Perfect! Let's also test with a different pool to make sure it works for new entries:
+
+Command
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_ABC123TestPool456" --symbol "TEST" --name "Test Token"
+python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_ABC123TestPool456" --symbo
+ol "TEST" --name "Test Token"
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_ABC123TestPool456" --symbol "TEST" --name "Test Token"Adding watchlist entry...
+Pool ID: solana_ABC123TestPool456
+Symbol: TEST
+Name: Test Token
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: SQLAlchemy database manager initialized
+Creating minimal pool entry for solana_ABC123TestPool456...
+✅ Created minimal pool entry
+INFO: Added watchlist entry for pool: solana_ABC123TestPool456
+✅ Successfully added 'TEST' to watchlist
+   Pool ID: solana_ABC123TestPool456
+   Total active watchlist entries: 3
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Excellent! Let's also test the help to make sure it shows up correctly:
+
+Command
+python -m gecko_terminal_collector.cli --help
+python -m gecko_terminal_collector.cli --help
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli --helpusage: cli.py [-h] [--version] [--config CONFIG] [--verbose] [--quiet]
+              {init,validate,db-setup,start,stop,status,run-collector,backfill,export,cleanup,health-check,metrics,logs,backup,restore,build-ohlcv,validate-workflow,migrate-pool-
+-ids,add-watchlist}
+              ...
+
+GeckoTerminal Data Collector CLI
+
+positional arguments:
+  {init,validate,db-setup,start,stop,status,run-collector,backfill,export,cleanup,health-check,metrics,logs,backup,restore,build-ohlcv,validate-workflow,migrate-pool-ids,add-watc
+chlist}
+                        Available commands
+    init                Initialize configuration and database
+    validate            Validate configuration
+    db-setup            Initialize database schema
+    start               Start data collection
+    stop                Stop data collection
+    status              Show system status
+    run-collector       Run specific collector once
+    backfill            Backfill historical data
+    export              Export data
+    cleanup             Clean up old data
+    health-check        Perform system health check
+    metrics             Show performance metrics
+    logs                Show recent logs
+    backup              Create data backup
+    restore             Restore data from backup
+    build-ohlcv         Build OHLCV dataset for watchlist item
+    validate-workflow   Validate complete watchlist-to-QLib workflow
+    migrate-pool-ids    Migrate pool IDs to standardized format with network prefixes
+    add-watchlist       Add a new entry to the watchlist
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --config CONFIG       Path to configuration file (default: config.yaml)
+  --verbose, -v         Enable verbose output
+  --quiet, -q           Suppress non-error output
+
+Examples:
+  gecko-cli init --force                    # Initialize with default config
+  gecko-cli validate                        # Validate current configuration
+  gecko-cli start --daemon                  # Start collection as daemon
+  gecko-cli status                          # Show system status
+  gecko-cli run-collector ohlcv            # Run specific collector once
+  gecko-cli backfill --days 30             # Backfill 30 days of data
+  gecko-cli export --format qlib           # Export data for QLib
+  gecko-cli db-setup                        # Initialize database schema
+
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Perfect! And let's check the specific help for the add-watchlist command:
+
+Command
+python -m gecko_terminal_collector.cli add-watchlist --help
+python -m gecko_terminal_collector.cli add-watchlist --help
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda - python  -m gecko_terminal_collector.cli add-watchlist --helpusage: cli.py add-watchlist [-h] --pool-id POOL_ID --symbol SYMBOL [--name NAME] [--network-address NETWORK_ADDRESS] [--config CONFIG]
+
+Add a new token/pool to the watchlist for monitoring
+
+options:
+  -h, --help            show this help message and exit
+  --pool-id POOL_ID     Pool ID (with network prefix, e.g., solana_ABC123...)
+  --symbol SYMBOL       Token symbol (e.g., YUGE, SOL, BTC)
+  --name NAME           Token name (optional, e.g., "Yuge Token")
+  --network-address NETWORK_ADDRESS
+                        Network-specific token address (optional)
+  --config CONFIG, -c CONFIG
+                        Configuration file path
+dministrator: C:\WINDOWS\System32\cmd.exe - activate - "C:\Users\ledni\anaconda3\condabin\conda.bat"  activate c:\Projects\geckoterminal_collector\.conda
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector
+Perfect! Let me clean up the temporary file:
 
 
 
@@ -181,18 +658,9 @@ ohlcv_collector.py:665-676
 
 
 
-SQLAlchemyDatabaseManager
-
-python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm" --symbol "YUGE"
-python -m gecko_terminal_collector.cli add-watchlist --pool-id "solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP" --symbol "CN / SOL"
 
 
 
-
-####
-I do my part.... Goal already done.
-I ask for help when I need it.
-####
 
 
 
@@ -202,12 +670,17 @@ I ask for help when I need it.
 ###################################### - the multi tasking zone ##########
 
 # While I wait for the scheduler to run (which will confirm if the data collectors work)...
-#
+
+
+
+
 
 # test tracking trades as they happen -- waiting for next collection cycle
 
 # verify that all timeframes are being collected in ohlcv data
-TODO - adjust script to capture different timeframes (1h is default / hard-coded) -- the scheduler-cli module currently captures multiple timeframes.
+
+
+
 - Backfill using selectable timeframes.
 
 python examples/cli_with_scheduler.py run-once -col historical_ohlcv
@@ -219,6 +692,11 @@ python -m test_workflow_validation -- --days 14
 
 # works, but should support up to 6 months (depending on token)
 # works, but should support multiple time aggregations (it does already)
+
+
+
+
+
 
 ############################################################################
 
@@ -308,6 +786,13 @@ _== run_collector_commands _==
 
 
 ############
+
+
+####
+I do my part.... Goal already done.
+I ask for help when I need it.
+####
+
 
 ***************
 Note to self: talking out loud and taking notes while I'm trying to troubleshoot makes it much easier in distracting and self-imposed deadline situations (solopreneurship! good and bad). And, perhaps even in serene ones.

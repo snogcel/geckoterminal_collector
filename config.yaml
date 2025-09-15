@@ -10,7 +10,8 @@ dexes:
 
 # Collection Intervals
 intervals:
-  top_pools_monitoring: "1h"    # How often to check top pools
+  #top_pools_monitoring: "1h"    # How often to check top pools
+  top_pools_monitoring: "5m"    # How often to check top pools
   ohlcv_collection: "1h"        # OHLCV data collection frequency
   trade_collection: "30m"       # Trade data collection frequency
   watchlist_check: "1h"         # Watchlist file check frequency
