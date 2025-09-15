@@ -29,9 +29,9 @@ gecko_terminal_collector/
 ├── models/          # Data models and schemas
 ├── scheduling/      # Task scheduling system
 ├── qlib/           # QLib integration
-├── monitoring/     # System monitoring
-├── utils/          # Utility functions
-└── cli.py          # Command-line interface
+├── monitoring/     # System monitoring and database health
+├── utils/          # Utility functions and activity scoring
+└── cli.py          # Enhanced command-line interface
 ```
 
 ### Design Principles
@@ -236,13 +236,15 @@ gecko_terminal_collector/
 │   └── formatter.py      # Data format conversion
 ├── monitoring/
 │   ├── __init__.py
-│   ├── metrics.py        # Performance metrics
-│   └── alerts.py         # Alert system
+│   ├── database_monitor.py  # Real-time database health monitoring
+│   ├── metrics.py          # Performance metrics collection
+│   └── alerts.py           # Multi-level alert system
 └── utils/
     ├── __init__.py
     ├── api_client.py     # API client utilities
     ├── error_handling.py # Error handling utilities
-    └── validation.py     # Data validation utilities
+    ├── validation.py     # Data validation utilities
+    └── activity_scorer.py # Pool activity scoring algorithms
 ```
 
 ## Creating Custom Collectors

@@ -56,7 +56,7 @@ if not result.is_valid:
 
 ### DatabaseManager
 
-Database abstraction layer with integrity controls.
+Enhanced database abstraction layer with resilience infrastructure and integrity controls.
 
 ```python
 from gecko_terminal_collector.database import DatabaseManager
@@ -92,6 +92,18 @@ class DatabaseManager:
     async def update_collection_metadata(self, collector_type: str, 
                                        metadata: CollectionMetadata) -> None:
         """Update collection execution metadata."""
+        
+    async def get_database_health(self) -> DatabaseHealthMetrics:
+        """Get comprehensive database health metrics."""
+        
+    async def test_database_connectivity(self) -> ConnectivityTestResult:
+        """Test database connectivity and response time."""
+        
+    async def test_database_performance(self) -> PerformanceTestResult:
+        """Run database performance tests."""
+        
+    async def get_connection_pool_stats(self) -> ConnectionPoolStats:
+        """Get connection pool statistics and health."""
 ```
 
 **Example Usage:**
@@ -396,6 +408,91 @@ class DatabaseStats:
         
     async def get_storage_usage(self) -> Dict[str, Any]:
         """Get database storage usage statistics."""
+```
+
+## Database Monitoring APIs
+
+### DatabaseMonitor
+
+Real-time database health monitoring and alerting system.
+
+```python
+from gecko_terminal_collector.monitoring import DatabaseMonitor
+
+class DatabaseMonitor:
+    def __init__(self, db_manager: DatabaseManager, config: MonitoringConfig):
+        """Initialize database monitor."""
+        
+    async def start_monitoring(self, interval: int = 30, duration: int = 0) -> None:
+        """Start real-time database monitoring."""
+        
+    async def stop_monitoring(self) -> None:
+        """Stop database monitoring."""
+        
+    async def get_health_metrics(self) -> DatabaseHealthMetrics:
+        """Get current database health metrics."""
+        
+    async def get_performance_metrics(self) -> PerformanceMetrics:
+        """Get database performance metrics."""
+        
+    async def check_alert_conditions(self, metrics: DatabaseHealthMetrics) -> List[Alert]:
+        """Check if any alert conditions are met."""
+        
+    def configure_alerts(self, alert_config: AlertConfig) -> None:
+        """Configure alert thresholds and notifications."""
+```
+
+### Enhanced Database Manager
+
+```python
+from gecko_terminal_collector.database import EnhancedSQLAlchemyManager
+
+class EnhancedSQLAlchemyManager(DatabaseManager):
+    def __init__(self, config: DatabaseConfig):
+        """Initialize enhanced database manager with resilience features."""
+        
+    async def execute_with_circuit_breaker(self, operation: Callable) -> Any:
+        """Execute database operation with circuit breaker protection."""
+        
+    async def execute_with_retry(self, operation: Callable, max_retries: int = 3) -> Any:
+        """Execute operation with exponential backoff retry logic."""
+        
+    async def get_connection_with_timeout(self, timeout: int = 30) -> Connection:
+        """Get database connection with timeout protection."""
+        
+    async def optimize_wal_mode(self) -> bool:
+        """Enable and optimize WAL mode for better concurrency."""
+        
+    async def get_lock_statistics(self) -> LockStatistics:
+        """Get database lock statistics and analysis."""
+```
+
+### Activity Scoring APIs
+
+```python
+from gecko_terminal_collector.utils import ActivityScorer
+
+class ActivityScorer:
+    def __init__(self, config: ScoringConfig):
+        """Initialize activity scoring system."""
+        
+    def calculate_activity_score(self, pool_data: Dict[str, Any]) -> float:
+        """Calculate comprehensive activity score for a pool."""
+        
+    def calculate_liquidity_score(self, liquidity_usd: float) -> float:
+        """Calculate liquidity-based score component."""
+        
+    def calculate_volume_score(self, volume_24h: float) -> float:
+        """Calculate volume-based score component."""
+        
+    def calculate_age_score(self, created_at: datetime) -> float:
+        """Calculate age-based score component."""
+        
+    def calculate_trend_score(self, price_change_24h: float) -> float:
+        """Calculate trend-based score component."""
+        
+    def get_score_breakdown(self, pool_data: Dict[str, Any]) -> Dict[str, float]:
+        """Get detailed breakdown of score components."""
 ```
 
 ## Configuration APIs
