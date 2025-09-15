@@ -84,52 +84,52 @@ def mock_new_pools_data():
     return {
         "data": [
             {
-                "id": "integration_pool_1",
+                "id": "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
                 "type": "pool",
                 "attributes": {
-                    "name": "Integration Test Pool 1",
-                    "address": "0x1111111111111111111111111111111111111111",
-                    "dex_id": "heaven",
-                    "base_token_id": "base_token_1",
-                    "quote_token_id": "quote_token_1",
-                    "reserve_in_usd": "15000.75",
-                    "pool_created_at": "2024-01-01T00:00:00Z",
-                    "base_token_price_usd": "2.50",
-                    "quote_token_price_usd": "1.00",
-                    "fdv_usd": "75000.00",
-                    "market_cap_usd": "50000.00",
-                    "price_change_percentage_h1": "5.2",
-                    "price_change_percentage_h24": "12.8",
-                    "transactions_h1_buys": 25,
-                    "transactions_h1_sells": 15,
-                    "transactions_h24_buys": 120,
-                    "transactions_h24_sells": 80,
-                    "volume_usd_h24": "8500.25",
+                    "name": "Yuge / SOL",
+                    "address": "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "CMrrmHipHAcNcwqEmeZ5nUT3NPTdyUXoC2a6pY4Spump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "5952.5667",
+                    "pool_created_at": "2025-09-09T21:27:38Z",
+                    "base_token_price_usd": "0.00000604",
+                    "quote_token_price_usd": "215.5899125",
+                    "fdv_usd": "6037.723098",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "18.495",
+                    "price_change_percentage_h24": "18.495",
+                    "transactions_h1_buys": 4,
+                    "transactions_h1_sells": 2,
+                    "transactions_h24_buys": 4,
+                    "transactions_h24_sells": 2,
+                    "volume_usd_h24": "1596.119712",
                     "network_id": "solana"
                 }
             },
             {
-                "id": "integration_pool_2",
+                "id": "solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
                 "type": "pool",
                 "attributes": {
-                    "name": "Integration Test Pool 2",
-                    "address": "0x2222222222222222222222222222222222222222",
-                    "dex_id": "pumpswap",
-                    "base_token_id": "base_token_2",
-                    "quote_token_id": "quote_token_2",
-                    "reserve_in_usd": "25000.50",
-                    "pool_created_at": "2024-01-01T01:00:00Z",
-                    "base_token_price_usd": "1.75",
-                    "quote_token_price_usd": "1.00",
-                    "fdv_usd": "87500.00",
-                    "market_cap_usd": "62500.00",
-                    "price_change_percentage_h1": "-2.1",
-                    "price_change_percentage_h24": "8.4",
-                    "transactions_h1_buys": 18,
-                    "transactions_h1_sells": 22,
-                    "transactions_h24_buys": 95,
-                    "transactions_h24_sells": 105,
-                    "volume_usd_h24": "12750.80",
+                    "name": "CN / SOL",
+                    "address": "Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP",
+                    "dex_id": "pump-fun",
+                    "base_token_id": "GG368b5zKycLRK4G88yZDpZRjwYgQkt825KCcnHCpump",
+                    "quote_token_id": "So11111111111111111111111111111111111111112",
+                    "reserve_in_usd": "6067.7761",
+                    "pool_created_at": "2025-09-09T21:27:36Z",
+                    "base_token_price_usd": "0.00000620",
+                    "quote_token_price_usd": "215.539392",
+                    "fdv_usd": "6191.901295",
+                    "market_cap_usd": "6445.394187",
+                    "price_change_percentage_h1": "-19.315",
+                    "price_change_percentage_h24": "-19.315",
+                    "transactions_h1_buys": 39,
+                    "transactions_h1_sells": 35,
+                    "transactions_h24_buys": 39,
+                    "transactions_h24_sells": 35,
+                    "volume_usd_h24": "6944.721262",
                     "network_id": "solana"
                 }
             }
@@ -156,6 +156,10 @@ class TestNewPoolsIntegration:
             use_mock=True
         )
         
+        print("--mock_new_pools_data:")
+        print(mock_new_pools_data)
+
+
         # Mock the API response
         mock_client = AsyncMock()
         mock_client.get_new_pools_by_network.return_value = mock_new_pools_data
@@ -166,6 +170,10 @@ class TestNewPoolsIntegration:
         
         # Execute collection
         result = await collector.collect()
+
+        print("_result: ")
+        #print(result)
+        print("---")
         
         # Verify collection result
         assert result.success is True
@@ -176,18 +184,21 @@ class TestNewPoolsIntegration:
         assert result.metadata["history_records"] == 2
         
         # Verify pools were stored in database
-        pool1 = await db_manager.get_pool_by_id("integration_pool_1")
+        pool1 = await db_manager.get_pool_by_id("solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm")
+
+        print("_stored_pool1: ")
+        print(pool1)
 
         assert pool1 is not None
-        assert pool1.name == "Integration Test Pool 1"
-        assert pool1.address == "0x1111111111111111111111111111111111111111"
-        assert pool1.dex_id == "heaven"
-        assert pool1.reserve_usd == Decimal("15000.75")
+        assert pool1.name == "Yuge / SOL"
+        assert pool1.address == "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
+        assert pool1.dex_id == "pump-fun"
+        assert pool1.reserve_usd == Decimal("5952.5667")
         
-        pool2 = await db_manager.get_pool_by_id("integration_pool_2")
+        pool2 = await db_manager.get_pool_by_id("solana_Apxj5Z3BoZcSduwPGvdMbS927BdqbD3RZhgrU5aiYDUP")
         assert pool2 is not None
-        assert pool2.name == "Integration Test Pool 2"
-        assert pool2.dex_id == "pumpswap"
+        assert pool2.name == "CN / SOL"
+        assert pool2.dex_id == "pump-fun"
         
         # Verify history records were stored
         with db_manager.connection.get_session() as session:
@@ -196,10 +207,10 @@ class TestNewPoolsIntegration:
             
             # Check specific history record
             history1 = session.query(NewPoolsHistory).filter_by(
-                pool_id="integration_pool_1"
+                pool_id="solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
             ).first()
             assert history1 is not None
-            assert history1.name == "Integration Test Pool 1"
+            assert history1.name == "Yuge / SOL"
             assert history1.base_token_price_usd == Decimal("2.50")
             assert history1.fdv_usd == Decimal("75000.00")
             assert history1.price_change_percentage_h1 == Decimal("5.2")

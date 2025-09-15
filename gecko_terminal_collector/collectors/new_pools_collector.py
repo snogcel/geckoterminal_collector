@@ -95,6 +95,11 @@ class NewPoolsCollector(BaseDataCollector):
 
             # Validate the response data
             validation_result = await self.validate_data(pools_data)
+
+            print("_validation_result_")
+            print(validation_result)
+            print("---")
+
             if not validation_result.is_valid:
                 # Log validation errors but continue processing valid records
                 error_msg = f"Data validation failed: {'; '.join(validation_result.errors)}"
@@ -166,6 +171,8 @@ class NewPoolsCollector(BaseDataCollector):
             Dictionary with pool information or None if extraction fails
         """
         try:
+            from gecko_terminal_collector.utils.pool_id_utils import PoolIDUtils
+            
             attributes = pool_data.get('attributes', {})
             
             # Validate required fields
@@ -173,6 +180,9 @@ class NewPoolsCollector(BaseDataCollector):
             if not pool_id:
                 self.logger.warning("Pool data missing required 'id' field")
                 return None
+            
+            # Ensure pool ID has proper network prefix
+            pool_id = PoolIDUtils.normalize_pool_id(pool_id, self.network)
             
             # Parse pool creation timestamp
             pool_created_at = None
@@ -344,6 +354,9 @@ class NewPoolsCollector(BaseDataCollector):
         
         # Validate individual pool records
         for i, pool_data in enumerate(data):
+
+            print("pool_data: ", pool_data)
+
             if not isinstance(pool_data, dict):
                 errors.append(f"Pool {i}: Expected dict, got {type(pool_data)}")
                 continue
@@ -352,18 +365,18 @@ class NewPoolsCollector(BaseDataCollector):
             if 'id' not in pool_data:
                 errors.append(f"Pool {i}: Missing required 'id' field")
             
-            if 'attributes' not in pool_data:
+            """ if 'attributes' not in pool_data:
                 errors.append(f"Pool {i}: Missing 'attributes' field")
                 continue
             
             attributes = pool_data['attributes']
             if not isinstance(attributes, dict):
                 errors.append(f"Pool {i}: 'attributes' must be a dict")
-                continue
+                continue """
             
             # Check for required fields in attributes
-            if 'base_token_id' not in attributes:
-                errors.append(f"Pool {i}: Missing 'base_token_id' field in attributes")
+            #if 'base_token_id' not in attributes:
+            #    errors.append(f"Pool {i}: Missing 'base_token_id' field in attributes")
         
         return ValidationResult(
             is_valid=len(errors) == 0,

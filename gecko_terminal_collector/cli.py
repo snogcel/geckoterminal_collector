@@ -13,6 +13,30 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 
+def _add_migrate_pool_ids_command(subparsers):
+    """Add migrate-pool-ids command parser."""
+    migrate_parser = subparsers.add_parser(
+        'migrate-pool-ids',
+        help='Migrate pool IDs to standardized format with network prefixes'
+    )
+    migrate_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    migrate_parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be changed without making changes'
+    )
+    migrate_parser.add_argument(
+        '--default-network',
+        default='solana',
+        help='Default network for IDs without prefix'
+    )
+    migrate_parser.set_defaults(func=migrate_pool_ids_command)
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -87,6 +111,9 @@ Examples:
     _add_build_ohlcv_command(subparsers)
     _add_validate_workflow_command(subparsers)
     
+    # Migration commands
+    _add_migrate_pool_ids_command(subparsers)
+    
     args = parser.parse_args()
     
     if args.command is None:
@@ -121,6 +148,7 @@ Examples:
         "restore": restore_command,
         "build-ohlcv": build_ohlcv_command,
         "validate-workflow": validate_workflow_command,
+        "migrate-pool-ids": migrate_pool_ids_command,
     }
     
     handler = command_handlers.get(args.command)
@@ -2445,5 +2473,65 @@ async def _generate_detailed_validation_report(validation_report: Dict[str, Any]
             f.write("\n")
 
 
+async def migrate_pool_ids_command(args):
+    """Migrate pool IDs to standardized format with network prefixes."""
+    try:
+        from gecko_terminal_collector.utils.pool_id_migration import (
+            PoolIDMigration, create_migration_report
+        )
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        print("Initializing database connection...")
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            print("Analyzing current pool ID formats...")
+            migration = PoolIDMigration(db_manager)
+            
+            # Generate comprehensive report
+            report = await create_migration_report(db_manager)
+            print(report)
+            
+            if args.dry_run:
+                print("\n🔍 DRY RUN MODE - No changes will be made")
+            else:
+                print(f"\n🚀 MIGRATION MODE - Applying changes with default network: {args.default_network}")
+                
+                # Confirm before proceeding
+                response = input("Do you want to proceed with the migration? (y/N): ")
+                if response.lower() != 'y':
+                    print("Migration cancelled.")
+                    return
+                
+                # Perform actual migration
+                results = await migration.migrate_pool_ids_to_standard_format(
+                    default_network=args.default_network,
+                    dry_run=False
+                )
+                
+                print(f"\n✅ Migration completed:")
+                print(f"- Total processed: {results['total_processed']}")
+                print(f"- Migrations applied: {results['migrations_applied']}")
+                print(f"- Errors: {len(results['errors'])}")
+                
+                if results['errors']:
+                    print("\nErrors encountered:")
+                    for error in results['errors']:
+                        print(f"  ❌ {error}")
+                        
+        finally:
+            await db_manager.close()
+            
+    except Exception as e:
+        print(f"❌ Pool ID migration failed: {e}")
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     sys.exit(main())
+

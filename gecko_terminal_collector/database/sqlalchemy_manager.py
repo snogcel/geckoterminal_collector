@@ -1438,14 +1438,37 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         Get a pool by ID (database model).
         
         Args:
-            pool_id: Pool identifier
+            pool_id: Pool identifier (with or without network prefix)
             
         Returns:
             Pool model instance or None if not found
         """
         try:
+            from gecko_terminal_collector.utils.pool_id_utils import PoolIDUtils
+            
             with self.connection.get_session() as session:
-                return session.query(PoolModel).filter_by(id=pool_id).first()
+                # First try exact match
+                pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                if pool:
+                    return pool
+                
+                # If not found, try with/without network prefix
+                network, address = PoolIDUtils.parse_pool_id(pool_id)
+                
+                if network:
+                    # Try without network prefix
+                    pool = session.query(PoolModel).filter_by(id=address).first()
+                    if pool:
+                        return pool
+                else:
+                    # Try with common network prefixes
+                    for net in ['solana', 'ethereum', 'bsc', 'polygon']:
+                        prefixed_id = f"{net}_{pool_id}"
+                        pool = session.query(PoolModel).filter_by(id=prefixed_id).first()
+                        if pool:
+                            return pool
+                
+                return None
         except Exception as e:
             logger.error(f"Error getting pool by ID {pool_id}: {e}")
             return None
