@@ -82,9 +82,7 @@ class DatabaseConnection:
                     # Additional SQLite optimizations
                     "isolation_level": None,  # Enable autocommit mode
                 },
-                # Limit connections for SQLite to reduce lock contention
-                "pool_size": 1,
-                "max_overflow": 0,
+                # SQLite uses StaticPool which doesn't support pool_size/max_overflow
             })
         else:
             # PostgreSQL/MySQL configuration
