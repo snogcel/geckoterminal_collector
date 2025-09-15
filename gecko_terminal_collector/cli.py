@@ -67,10 +67,268 @@ def _add_add_watchlist_command(subparsers):
         help='Network-specific token address (optional)'
     )
     add_watchlist_parser.add_argument(
+        '--active',
+        type=str,
+        choices=['true', 'false'],
+        default='true',
+        help='Whether the entry should be active (default: true)'
+    )
+    add_watchlist_parser.add_argument(
         '--config', '-c',
         default='config.yaml',
         help='Configuration file path'
     )
+    add_watchlist_parser.set_defaults(func=add_watchlist_command)
+
+
+def _add_list_watchlist_command(subparsers):
+    """Add list-watchlist command parser."""
+    list_watchlist_parser = subparsers.add_parser(
+        'list-watchlist',
+        help='List all watchlist entries',
+        description='Display all entries in the watchlist'
+    )
+    list_watchlist_parser.add_argument(
+        '--active-only',
+        action='store_true',
+        help='Show only active entries'
+    )
+    list_watchlist_parser.add_argument(
+        '--format',
+        choices=['table', 'csv', 'json'],
+        default='table',
+        help='Output format (default: table)'
+    )
+    list_watchlist_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    list_watchlist_parser.set_defaults(func=list_watchlist_command)
+
+
+def _add_update_watchlist_command(subparsers):
+    """Add update-watchlist command parser."""
+    update_watchlist_parser = subparsers.add_parser(
+        'update-watchlist',
+        help='Update an existing watchlist entry',
+        description='Update fields of an existing watchlist entry'
+    )
+    update_watchlist_parser.add_argument(
+        '--pool-id',
+        type=str,
+        required=True,
+        help='Pool ID of the entry to update'
+    )
+    update_watchlist_parser.add_argument(
+        '--symbol',
+        type=str,
+        help='New token symbol'
+    )
+    update_watchlist_parser.add_argument(
+        '--name',
+        type=str,
+        help='New token name'
+    )
+    update_watchlist_parser.add_argument(
+        '--network-address',
+        type=str,
+        help='New network-specific token address'
+    )
+    update_watchlist_parser.add_argument(
+        '--active',
+        type=str,
+        choices=['true', 'false'],
+        help='Set active status'
+    )
+    update_watchlist_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    update_watchlist_parser.set_defaults(func=update_watchlist_command)
+
+
+def _add_remove_watchlist_command(subparsers):
+    """Add remove-watchlist command parser."""
+    remove_watchlist_parser = subparsers.add_parser(
+        'remove-watchlist',
+        help='Remove an entry from the watchlist',
+        description='Remove a token/pool from the watchlist'
+    )
+    remove_watchlist_parser.add_argument(
+        '--pool-id',
+        type=str,
+        required=True,
+        help='Pool ID of the entry to remove'
+    )
+    remove_watchlist_parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Skip confirmation prompt'
+    )
+    remove_watchlist_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    remove_watchlist_parser.set_defaults(func=remove_watchlist_command)
+
+
+def _add_collect_new_pools_command(subparsers):
+    """Add collect-new-pools command parser."""
+    collect_parser = subparsers.add_parser(
+        'collect-new-pools',
+        help='Collect new pools with enhanced features',
+        description='Run enhanced new pools collection with automatic watchlist integration'
+    )
+    collect_parser.add_argument(
+        '--network',
+        type=str,
+        default='solana',
+        help='Network to collect pools from (default: solana)'
+    )
+    collect_parser.add_argument(
+        '--auto-watchlist',
+        action='store_true',
+        help='Automatically add promising pools to watchlist'
+    )
+    collect_parser.add_argument(
+        '--min-liquidity',
+        type=float,
+        default=1000.0,
+        help='Minimum liquidity in USD for watchlist consideration (default: 1000)'
+    )
+    collect_parser.add_argument(
+        '--min-volume',
+        type=float,
+        default=100.0,
+        help='Minimum 24h volume in USD for watchlist consideration (default: 100)'
+    )
+    collect_parser.add_argument(
+        '--max-age-hours',
+        type=int,
+        default=24,
+        help='Maximum age in hours for new pool consideration (default: 24)'
+    )
+    collect_parser.add_argument(
+        '--min-activity-score',
+        type=float,
+        default=60.0,
+        help='Minimum activity score for watchlist addition (default: 60.0)'
+    )
+    collect_parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be collected without storing data'
+    )
+    collect_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    collect_parser.set_defaults(func=collect_new_pools_command)
+
+
+def _add_analyze_pool_discovery_command(subparsers):
+    """Add analyze-pool-discovery command parser."""
+    analyze_parser = subparsers.add_parser(
+        'analyze-pool-discovery',
+        help='Analyze pool discovery statistics',
+        description='Analyze pool discovery and watchlist addition statistics'
+    )
+    analyze_parser.add_argument(
+        '--days',
+        type=int,
+        default=7,
+        help='Number of days to analyze (default: 7)'
+    )
+    analyze_parser.add_argument(
+        '--network',
+        type=str,
+        help='Filter by specific network'
+    )
+    analyze_parser.add_argument(
+        '--format',
+        choices=['table', 'csv', 'json'],
+        default='table',
+        help='Output format (default: table)'
+    )
+    analyze_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    analyze_parser.set_defaults(func=analyze_pool_discovery_command)
+
+
+def _add_db_health_command(subparsers):
+    """Add db-health command parser."""
+    health_parser = subparsers.add_parser(
+        'db-health',
+        help='Check database health and performance',
+        description='Analyze database health, performance metrics, and connectivity'
+    )
+    health_parser.add_argument(
+        '--format',
+        choices=['table', 'json'],
+        default='table',
+        help='Output format (default: table)'
+    )
+    health_parser.add_argument(
+        '--test-connectivity',
+        action='store_true',
+        help='Run connectivity tests'
+    )
+    health_parser.add_argument(
+        '--test-performance',
+        action='store_true',
+        help='Run performance benchmarks'
+    )
+    health_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    health_parser.set_defaults(func=db_health_command)
+
+
+def _add_db_monitor_command(subparsers):
+    """Add db-monitor command parser."""
+    monitor_parser = subparsers.add_parser(
+        'db-monitor',
+        help='Start database health monitoring',
+        description='Start continuous database health monitoring with alerting'
+    )
+    monitor_parser.add_argument(
+        '--interval',
+        type=int,
+        default=60,
+        help='Monitoring interval in seconds (default: 60)'
+    )
+    monitor_parser.add_argument(
+        '--duration',
+        type=int,
+        help='Monitoring duration in minutes (default: run indefinitely)'
+    )
+    monitor_parser.add_argument(
+        '--alert-threshold-lock-wait',
+        type=float,
+        default=1000,
+        help='Alert threshold for lock wait time in ms (default: 1000)'
+    )
+    monitor_parser.add_argument(
+        '--alert-threshold-query-time',
+        type=float,
+        default=500,
+        help='Alert threshold for query time in ms (default: 500)'
+    )
+    monitor_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    monitor_parser.set_defaults(func=db_monitor_command)
 
 
 def main():
@@ -88,6 +346,14 @@ Examples:
   gecko-cli backfill --days 30             # Backfill 30 days of data
   gecko-cli export --format qlib           # Export data for QLib
   gecko-cli db-setup                        # Initialize database schema
+  gecko-cli add-watchlist --pool-id solana_ABC123 --symbol YUGE --name "Yuge Token"
+  gecko-cli list-watchlist --format table  # List all watchlist entries
+  gecko-cli update-watchlist --pool-id solana_ABC123 --active false
+  gecko-cli remove-watchlist --pool-id solana_ABC123 --force
+  gecko-cli collect-new-pools --network solana --auto-watchlist --min-liquidity 5000
+  gecko-cli analyze-pool-discovery --days 7 --format json
+  gecko-cli db-health --test-connectivity --test-performance
+  gecko-cli db-monitor --interval 30 --duration 60
         """
     )
     
@@ -152,6 +418,17 @@ Examples:
     
     # Watchlist management commands
     _add_add_watchlist_command(subparsers)
+    _add_list_watchlist_command(subparsers)
+    _add_update_watchlist_command(subparsers)
+    _add_remove_watchlist_command(subparsers)
+    
+    # Enhanced pool discovery commands
+    _add_collect_new_pools_command(subparsers)
+    _add_analyze_pool_discovery_command(subparsers)
+    
+    # Database health and monitoring commands
+    _add_db_health_command(subparsers)
+    _add_db_monitor_command(subparsers)
     
     args = parser.parse_args()
     
@@ -189,6 +466,13 @@ Examples:
         "validate-workflow": validate_workflow_command,
         "migrate-pool-ids": migrate_pool_ids_command,
         "add-watchlist": add_watchlist_command,
+        "list-watchlist": list_watchlist_command,
+        "update-watchlist": update_watchlist_command,
+        "remove-watchlist": remove_watchlist_command,
+        "collect-new-pools": collect_new_pools_command,
+        "analyze-pool-discovery": analyze_pool_discovery_command,
+        "db-health": db_health_command,
+        "db-monitor": db_monitor_command,
     }
     
     handler = command_handlers.get(args.command)
@@ -347,13 +631,48 @@ def _add_run_collector_command(subparsers):
     )
     run_parser.add_argument(
         "collector_type",
-        choices=["dex", "top-pools", "watchlist", "ohlcv", "trades", "historical"],
+        choices=["dex", "top-pools", "watchlist", "ohlcv", "trades", "historical", "new-pools"],
         help="Type of collector to run"
     )
     run_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be collected without storing data"
+    )
+    run_parser.add_argument(
+        "--network",
+        type=str,
+        default="solana",
+        help="Network to collect from (for new-pools collector)"
+    )
+    run_parser.add_argument(
+        "--auto-watchlist",
+        action="store_true",
+        help="Automatically add promising pools to watchlist (for new-pools collector)"
+    )
+    run_parser.add_argument(
+        "--min-liquidity",
+        type=float,
+        default=1000.0,
+        help="Minimum liquidity in USD for watchlist consideration (default: 1000)"
+    )
+    run_parser.add_argument(
+        "--min-volume",
+        type=float,
+        default=100.0,
+        help="Minimum 24h volume in USD for watchlist consideration (default: 100)"
+    )
+    run_parser.add_argument(
+        "--max-age-hours",
+        type=int,
+        default=24,
+        help="Maximum age in hours for new pool consideration (default: 24)"
+    )
+    run_parser.add_argument(
+        "--min-activity-score",
+        type=float,
+        default=60.0,
+        help="Minimum activity score for watchlist addition (default: 60.0)"
     )
 
 
@@ -2588,6 +2907,10 @@ async def add_watchlist_command(args):
         if args.network_address:
             print(f"Network Address: {args.network_address}")
         
+        # Parse active flag
+        is_active = args.active.lower() == 'true'
+        print(f"Active: {is_active}")
+        
         # Extract network and address from pool_id
         if '_' not in args.pool_id:
             print(f"❌ Invalid pool ID format. Expected format: network_address (e.g., solana_ABC123...)")
@@ -2652,7 +2975,7 @@ async def add_watchlist_command(args):
                 token_symbol=args.symbol,
                 token_name=args.name,
                 network_address=args.network_address,
-                is_active=True
+                is_active=is_active
             )
             
             # Store the entry using the add method
@@ -2679,6 +3002,540 @@ async def add_watchlist_command(args):
         
     except Exception as e:
         print(f"❌ Failed to add watchlist entry: {e}")
+        return 1
+
+
+async def list_watchlist_command(args):
+    """List all watchlist entries."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        import json
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Get watchlist entries
+            if args.active_only:
+                entries = await db_manager.get_active_watchlist_entries()
+            else:
+                entries = await db_manager.get_all_watchlist_entries()
+            
+            if not entries:
+                print("No watchlist entries found.")
+                return 0
+            
+            # Format output
+            if args.format == 'json':
+                entry_data = []
+                for entry in entries:
+                    entry_data.append({
+                        'id': entry.id,
+                        'pool_id': entry.pool_id,
+                        'token_symbol': entry.token_symbol,
+                        'token_name': entry.token_name,
+                        'network_address': entry.network_address,
+                        'added_at': entry.added_at.isoformat() if entry.added_at else None,
+                        'is_active': entry.is_active
+                    })
+                print(json.dumps(entry_data, indent=2))
+                
+            elif args.format == 'csv':
+                print("id,pool_id,token_symbol,token_name,network_address,added_at,is_active")
+                for entry in entries:
+                    added_at = entry.added_at.isoformat() if entry.added_at else ""
+                    print(f"{entry.id},{entry.pool_id},{entry.token_symbol or ''},{entry.token_name or ''},{entry.network_address or ''},{added_at},{entry.is_active}")
+                    
+            else:  # table format
+                print(f"{'ID':<5} {'Pool ID':<50} {'Symbol':<10} {'Name':<30} {'Active':<8} {'Added':<20}")
+                print("-" * 125)
+                for entry in entries:
+                    added_at = entry.added_at.strftime('%Y-%m-%d %H:%M:%S') if entry.added_at else ""
+                    name = (entry.token_name or "")[:28] + ".." if entry.token_name and len(entry.token_name) > 30 else (entry.token_name or "")
+                    print(f"{entry.id:<5} {entry.pool_id:<50} {entry.token_symbol or '':<10} {name:<30} {entry.is_active!s:<8} {added_at:<20}")
+                
+                print(f"\nTotal entries: {len(entries)}")
+                active_count = sum(1 for entry in entries if entry.is_active)
+                print(f"Active entries: {active_count}")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to list watchlist entries: {e}")
+        return 1
+
+
+async def update_watchlist_command(args):
+    """Update an existing watchlist entry."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Check if entry exists
+            existing_entry = await db_manager.get_watchlist_entry_by_pool_id(args.pool_id)
+            if not existing_entry:
+                print(f"❌ Watchlist entry not found: {args.pool_id}")
+                return 1
+            
+            print(f"Updating watchlist entry for {args.pool_id}...")
+            
+            # Prepare update data
+            update_data = {}
+            if args.symbol is not None:
+                update_data['token_symbol'] = args.symbol
+                print(f"  Symbol: {existing_entry.token_symbol} → {args.symbol}")
+            
+            if args.name is not None:
+                update_data['token_name'] = args.name
+                print(f"  Name: {existing_entry.token_name or 'None'} → {args.name}")
+            
+            if args.network_address is not None:
+                update_data['network_address'] = args.network_address
+                print(f"  Network Address: {existing_entry.network_address or 'None'} → {args.network_address}")
+            
+            if args.active is not None:
+                is_active = args.active.lower() == 'true'
+                update_data['is_active'] = is_active
+                print(f"  Active: {existing_entry.is_active} → {is_active}")
+            
+            if not update_data:
+                print("❌ No fields specified for update. Use --symbol, --name, --network-address, or --active.")
+                return 1
+            
+            # Update the entry
+            await db_manager.update_watchlist_entry_fields(args.pool_id, update_data)
+            
+            print(f"✅ Successfully updated watchlist entry for {args.pool_id}")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to update watchlist entry: {e}")
+        return 1
+
+
+async def remove_watchlist_command(args):
+    """Remove an entry from the watchlist."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Check if entry exists
+            existing_entry = await db_manager.get_watchlist_entry_by_pool_id(args.pool_id)
+            if not existing_entry:
+                print(f"❌ Watchlist entry not found: {args.pool_id}")
+                return 1
+            
+            # Confirmation prompt unless --force is used
+            if not args.force:
+                print(f"Are you sure you want to remove the following entry?")
+                print(f"  Pool ID: {existing_entry.pool_id}")
+                print(f"  Symbol: {existing_entry.token_symbol}")
+                print(f"  Name: {existing_entry.token_name or 'None'}")
+                
+                response = input("Type 'yes' to confirm: ").strip().lower()
+                if response != 'yes':
+                    print("Operation cancelled.")
+                    return 0
+            
+            # Remove the entry
+            await db_manager.remove_watchlist_entry(args.pool_id)
+            
+            print(f"✅ Successfully removed watchlist entry: {args.pool_id}")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to remove watchlist entry: {e}")
+        return 1
+
+
+async def collect_new_pools_command(args):
+    """Run enhanced new pools collection with automatic watchlist integration."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.collectors.enhanced_new_pools_collector import EnhancedNewPoolsCollector
+        
+        print(f"🚀 Starting enhanced new pools collection for {args.network}")
+        print(f"   Auto-watchlist: {args.auto_watchlist}")
+        if args.auto_watchlist:
+            print(f"   Min liquidity: ${args.min_liquidity:,.2f}")
+            print(f"   Min volume: ${args.min_volume:,.2f}")
+            print(f"   Max age: {args.max_age_hours} hours")
+            print(f"   Min activity score: {args.min_activity_score}")
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Create enhanced collector
+            collector = EnhancedNewPoolsCollector(
+                config=config,
+                db_manager=db_manager,
+                network=args.network,
+                auto_watchlist=args.auto_watchlist,
+                min_liquidity_usd=args.min_liquidity,
+                min_volume_24h_usd=args.min_volume,
+                max_age_hours=args.max_age_hours,
+                min_activity_score=args.min_activity_score
+            )
+            
+            if args.dry_run:
+                print("🧪 DRY RUN MODE - No data will be stored")
+                # In dry run mode, we'd simulate the collection
+                print("   Would collect new pools and evaluate for watchlist...")
+                return 0
+            
+            # Run collection
+            result = await collector.collect()
+            
+            if result.success:
+                print(f"✅ Collection completed successfully!")
+                print(f"   Records collected: {result.records_collected}")
+                
+                if result.metadata:
+                    metadata = result.metadata
+                    print(f"   Pools created: {metadata.get('pools_created', 0)}")
+                    print(f"   History records: {metadata.get('history_records', 0)}")
+                    
+                    if args.auto_watchlist and 'watchlist_stats' in metadata:
+                        stats = metadata['watchlist_stats']
+                        print(f"\n📊 Watchlist Integration Results:")
+                        print(f"   Pools evaluated: {stats.get('pools_evaluated', 0)}")
+                        print(f"   Added to watchlist: {stats.get('pools_added_to_watchlist', 0)}")
+                        print(f"   Already in watchlist: {stats.get('pools_already_in_watchlist', 0)}")
+                        print(f"   Rejected (liquidity): {stats.get('pools_rejected_liquidity', 0)}")
+                        print(f"   Rejected (volume): {stats.get('pools_rejected_volume', 0)}")
+                        print(f"   Rejected (age): {stats.get('pools_rejected_age', 0)}")
+                        print(f"   Rejected (activity): {stats.get('pools_rejected_activity', 0)}")
+                
+                if result.errors:
+                    print(f"\n⚠️  Warnings/Errors encountered:")
+                    for error in result.errors:
+                        print(f"   - {error}")
+            else:
+                print(f"❌ Collection failed")
+                if result.errors:
+                    for error in result.errors:
+                        print(f"   Error: {error}")
+                return 1
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to run enhanced new pools collection: {e}")
+        return 1
+
+
+async def analyze_pool_discovery_command(args):
+    """Analyze pool discovery and watchlist statistics."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from datetime import datetime, timedelta
+        import json
+        
+        print(f"📊 Analyzing pool discovery statistics for last {args.days} days")
+        if args.network:
+            print(f"   Network filter: {args.network}")
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize database
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Calculate date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=args.days)
+            
+            # Get statistics (these methods would need to be implemented)
+            stats = {
+                'analysis_period': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'days': args.days
+                },
+                'pools_discovered': 0,  # Would query new_pools_history table
+                'pools_added_to_watchlist': 0,  # Would query watchlist table
+                'active_watchlist_entries': 0,  # Current active entries
+                'top_networks': [],  # Most active networks
+                'discovery_trends': []  # Daily discovery counts
+            }
+            
+            # Get current watchlist count
+            watchlist_entries = await db_manager.get_all_watchlist_entries()
+            stats['total_watchlist_entries'] = len(watchlist_entries)
+            stats['active_watchlist_entries'] = len([e for e in watchlist_entries if e.is_active])
+            
+            # Format output
+            if args.format == 'json':
+                print(json.dumps(stats, indent=2))
+            elif args.format == 'csv':
+                print("metric,value")
+                print(f"analysis_days,{args.days}")
+                print(f"total_watchlist_entries,{stats['total_watchlist_entries']}")
+                print(f"active_watchlist_entries,{stats['active_watchlist_entries']}")
+            else:  # table format
+                print(f"\n📈 Pool Discovery Analysis Results")
+                print(f"{'='*50}")
+                print(f"Analysis Period: {args.days} days")
+                print(f"Start Date: {start_date.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"End Date: {end_date.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"\n📊 Current Statistics:")
+                print(f"Total Watchlist Entries: {stats['total_watchlist_entries']}")
+                print(f"Active Watchlist Entries: {stats['active_watchlist_entries']}")
+                
+                if args.network:
+                    print(f"Network Filter: {args.network}")
+                
+                print(f"\n💡 Note: Enhanced analytics require additional database queries")
+                print(f"    to be implemented for historical discovery data.")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to analyze pool discovery: {e}")
+        return 1
+
+
+async def db_health_command(args):
+    """Check database health and performance."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.enhanced_sqlalchemy_manager import EnhancedSQLAlchemyDatabaseManager
+        from gecko_terminal_collector.monitoring.database_monitor import DatabaseHealthMonitor
+        import json
+        
+        print("🔍 Checking database health...")
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize enhanced database manager
+        db_manager = EnhancedSQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Initialize health monitor
+            health_monitor = DatabaseHealthMonitor(db_manager)
+            
+            # Collect health metrics
+            print("📊 Collecting health metrics...")
+            metrics = await health_monitor.collect_health_metrics()
+            
+            # Run connectivity test if requested
+            if args.test_connectivity:
+                print("🔗 Testing database connectivity...")
+                is_connected = await db_manager.test_database_connectivity()
+                print(f"   Connectivity: {'✅ Connected' if is_connected else '❌ Failed'}")
+            
+            # Run performance test if requested
+            if args.test_performance:
+                print("⚡ Running performance benchmarks...")
+                start_time = time.time()
+                
+                # Test simple query performance
+                try:
+                    count = await db_manager.count_records('pools')
+                    query_time = (time.time() - start_time) * 1000
+                    print(f"   Query performance: {query_time:.1f}ms (counted {count} pools)")
+                except Exception as e:
+                    print(f"   Query performance: ❌ Failed ({e})")
+            
+            # Get health summary
+            health_summary = health_monitor.get_health_summary()
+            
+            # Format output
+            if args.format == 'json':
+                output = {
+                    'health_summary': health_summary,
+                    'detailed_metrics': {
+                        'timestamp': metrics.timestamp.isoformat(),
+                        'circuit_breaker_state': metrics.circuit_breaker_state,
+                        'circuit_breaker_failures': metrics.circuit_breaker_failures,
+                        'query_performance_ms': metrics.query_performance_ms,
+                        'lock_wait_time_ms': metrics.lock_wait_time_ms,
+                        'availability': metrics.availability,
+                        'error_rate': metrics.error_rate,
+                        'wal_mode_enabled': metrics.wal_mode_enabled
+                    }
+                }
+                print(json.dumps(output, indent=2))
+            else:
+                # Table format
+                print(f"\n📈 Database Health Report")
+                print(f"{'='*50}")
+                print(f"Overall Status: {health_summary['status']}")
+                print(f"Message: {health_summary['message']}")
+                print(f"Timestamp: {metrics.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+                
+                print(f"\n🔧 Technical Metrics:")
+                print(f"Circuit Breaker State: {metrics.circuit_breaker_state}")
+                print(f"Circuit Breaker Failures: {metrics.circuit_breaker_failures}")
+                print(f"Query Performance: {metrics.query_performance_ms:.1f}ms")
+                print(f"Lock Wait Time: {metrics.lock_wait_time_ms:.1f}ms")
+                print(f"Availability: {metrics.availability:.1%}")
+                print(f"Error Rate: {metrics.error_rate:.1%}")
+                print(f"WAL Mode Enabled: {'✅ Yes' if metrics.wal_mode_enabled else '❌ No'}")
+                
+                # Health recommendations
+                print(f"\n💡 Recommendations:")
+                if metrics.circuit_breaker_state == 'OPEN':
+                    print("   • Circuit breaker is OPEN - database operations are being blocked")
+                    print("   • Wait for automatic recovery or investigate database issues")
+                elif metrics.query_performance_ms > 1000:
+                    print("   • Query performance is slow - consider database optimization")
+                elif not metrics.wal_mode_enabled:
+                    print("   • Enable WAL mode for better concurrency (automatic in enhanced manager)")
+                elif metrics.error_rate > 0.05:
+                    print("   • High error rate detected - check database logs")
+                else:
+                    print("   • Database is operating within normal parameters")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to check database health: {e}")
+        return 1
+
+
+async def db_monitor_command(args):
+    """Start database health monitoring."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.enhanced_sqlalchemy_manager import EnhancedSQLAlchemyDatabaseManager
+        from gecko_terminal_collector.monitoring.database_monitor import DatabaseHealthMonitor
+        import signal
+        
+        print(f"🔍 Starting database health monitoring...")
+        print(f"   Interval: {args.interval} seconds")
+        if args.duration:
+            print(f"   Duration: {args.duration} minutes")
+        else:
+            print(f"   Duration: Indefinite (Ctrl+C to stop)")
+        
+        # Load configuration
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Initialize enhanced database manager
+        db_manager = EnhancedSQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        try:
+            # Set up custom alert thresholds
+            alert_thresholds = {
+                'lock_wait_time_ms': args.alert_threshold_lock_wait,
+                'query_performance_ms': args.alert_threshold_query_time
+            }
+            
+            # Initialize health monitor
+            health_monitor = DatabaseHealthMonitor(db_manager, alert_thresholds)
+            
+            # Start monitoring
+            await health_monitor.start_monitoring(args.interval)
+            
+            # Set up signal handler for graceful shutdown
+            def signal_handler(signum, frame):
+                print(f"\n🛑 Received shutdown signal, stopping monitoring...")
+                asyncio.create_task(health_monitor.stop_monitoring())
+            
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
+            
+            print(f"✅ Database monitoring started. Press Ctrl+C to stop.")
+            
+            # Run for specified duration or indefinitely
+            if args.duration:
+                await asyncio.sleep(args.duration * 60)
+                print(f"\n⏰ Monitoring duration completed ({args.duration} minutes)")
+            else:
+                # Run indefinitely until interrupted
+                try:
+                    while health_monitor.monitoring_active:
+                        await asyncio.sleep(1)
+                except KeyboardInterrupt:
+                    pass
+            
+            # Stop monitoring
+            await health_monitor.stop_monitoring()
+            
+            # Show final summary
+            summary = health_monitor.get_health_summary()
+            print(f"\n📊 Final Health Summary:")
+            print(f"   Status: {summary['status']}")
+            print(f"   Message: {summary['message']}")
+            
+            # Show metrics history if available
+            history = health_monitor.get_metrics_history(hours=1)
+            if history:
+                print(f"\n📈 Recent Performance (last hour):")
+                avg_query_time = sum(m['query_performance_ms'] for m in history) / len(history)
+                avg_availability = sum(m['availability'] for m in history) / len(history)
+                print(f"   Average Query Time: {avg_query_time:.1f}ms")
+                print(f"   Average Availability: {avg_availability:.1%}")
+                print(f"   Total Samples: {len(history)}")
+            
+        finally:
+            await db_manager.close()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Failed to start database monitoring: {e}")
         return 1
 
 

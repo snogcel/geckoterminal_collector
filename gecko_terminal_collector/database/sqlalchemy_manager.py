@@ -1029,6 +1029,37 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return pool_ids
     
+    async def get_all_watchlist_entries(self) -> List[WatchlistEntryModel]:
+        """Get all watchlist entries."""
+        with self.connection.get_session() as session:
+            return session.query(WatchlistEntryModel).all()
+    
+    async def get_active_watchlist_entries(self) -> List[WatchlistEntryModel]:
+        """Get all active watchlist entries."""
+        with self.connection.get_session() as session:
+            return session.query(WatchlistEntryModel).filter_by(is_active=True).all()
+    
+    async def update_watchlist_entry_fields(self, pool_id: str, update_data: Dict[str, Any]) -> None:
+        """Update specific fields of a watchlist entry."""
+        with self.connection.get_session() as session:
+            try:
+                entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                
+                if entry:
+                    for field, value in update_data.items():
+                        if hasattr(entry, field):
+                            setattr(entry, field, value)
+                    
+                    session.commit()
+                    logger.info(f"Updated watchlist entry fields for pool {pool_id}: {update_data}")
+                else:
+                    logger.warning(f"Watchlist entry not found for pool: {pool_id}")
+                    
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating watchlist entry fields: {e}")
+                raise
+    
     async def remove_watchlist_entry(self, pool_id: str) -> None:
         """Remove a pool from the watchlist."""
         with self.connection.get_session() as session:
