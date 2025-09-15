@@ -73,13 +73,18 @@ class DatabaseConnection:
         
         # Configure connection pooling
         if self.config.url.startswith("sqlite"):
-            # SQLite-specific configuration
+            # SQLite-specific configuration optimized for concurrency
             engine_kwargs.update({
                 "poolclass": StaticPool,
                 "connect_args": {
                     "check_same_thread": False,
                     "timeout": 30,
-                }
+                    # Additional SQLite optimizations
+                    "isolation_level": None,  # Enable autocommit mode
+                },
+                # Limit connections for SQLite to reduce lock contention
+                "pool_size": 1,
+                "max_overflow": 0,
             })
         else:
             # PostgreSQL/MySQL configuration

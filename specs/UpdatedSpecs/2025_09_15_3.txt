@@ -1,0 +1,38 @@
+
+# watchlist entry creation - part 3
+
+
+How would you go about updating the existing Watchlist Entry system (CLI) for this problem? 
+
+The System currently accepts two variables when inserting a watchlist entry via CLI:
+
+- Network
+- Pool Address
+
+TODO:
+- Add remaining fields in watchlist to create a complete entry system.
+
+async def add_watchlist_command(args):
+    """Add a new entry to the watchlist."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.database.models import WatchlistEntry, Pool, DEX
+        from datetime import datetime
+        
+        print(f"Adding watchlist entry...")
+        print(f"Pool ID: {args.pool_id}")
+        print(f"Symbol: {args.symbol}")
+        if args.name:
+            print(f"Name: {args.name}")
+        if args.network_address:
+            print(f"Network Address: {args.network_address}")
+        
+        # Extract network and address from pool_id
+        if '_' not in args.pool_id:
+            print(f"❌ Invalid pool ID format. Expected format: network_address (e.g., solana_ABC123...)")
+            return 1
+        
+        network, pool_address = args.pool_id.split('_', 1)
+
+

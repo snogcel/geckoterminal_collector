@@ -1,0 +1,56 @@
+I'd be happy to update the documentation in the /docs folder! However, I don't see a /docs folder in the current file structure. Let me first check if there's a docs directory and see what documentation currently exists.
+
+Searched workspace
+Checking the root directory structure to locate documentation folders
+Perfect! I can see there's a docs/ folder with existing documentation. Let me examine the current documentation structure and then update it with all of today's enhancements.
+
+Read file(s)
+
+README.md
+
+user_guide.md
+
+developer_guide.md
+
+api_documentation.md
+Perfect! Now I can see the existing documentation structure. Let me update all the documentation files to reflect today's major enhancements. I'll start by updating the main README and then work through each documentation file.
+
+
+3 edits to file
+
+README.md
+
+Edited
+
+README.md
+
+Edited
+
+README.md
+
+Edited
+
+README.md
+
+Now let me update the user guide with all the new CLI commands:
+
+
+2 edits to file
+
+user_guide.md
+
+Edited
+
+user_guide.md
+
+Edited
+
+user_guide.md
+
+Now let me add a comprehensive section for the new watchlist management commands:
+
+Edited
+
+user_guide.md
+
+Now let me add a new section for intelligent pool discovery:

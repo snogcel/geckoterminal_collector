@@ -1,0 +1,15 @@
+
+2025-09-15 07:11:35,409 - __main__ - INFO - Received signal 2, initiating shutdown...
+
+2025-09-15 07:11:35,409 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pool solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', '', '', '', '', '', 0.0, None, '2025-09-15 07:11:01.593261', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-09-15 07:11:35,409 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', '', '', '', '', '', 0.0, None, '2025-09-15 07:11:01.593261', None, 'auto', 'normal', None, None)]
+
+
+
+

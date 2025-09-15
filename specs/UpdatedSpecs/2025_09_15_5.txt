@@ -1,0 +1,1373 @@
+2025-09-15 06:41:01,003 - __main__ - INFO - Collection system is running. Press Ctrl+C to stop.
+2025-09-15 06:46:01,006 - apscheduler.executors.default - INFO - Running job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 06:51:01 MDT)" (scheduled at 2025-09-15 06:46:01.000280-06:00)
+2025-09-15 06:46:01,006 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for top_pools_solana (top_pools_solana_1757940361_collector_top_pools_solana)
+2025-09-15 06:46:01,006 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: top_pools_solana (top_pools_solana_1757940361_collector_top_pools_solana)
+2025-09-15 06:46:01,006 - gecko_terminal_collector.collectors.top_pools - INFO - Starting top pools collection for network: solana
+2025-09-15 06:46:01,006 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: heaven
+2025-09-15 06:46:01,935 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/heaven/pools "HTTP/1.1 200 OK"
+2025-09-15 06:46:34,819 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:46:34,820 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:46:34,820 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:46:34,848 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: pumpswap
+2025-09-15 06:46:35,258 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/pumpswap/pools "HTTP/1.1 200 OK"
+2025-09-15 06:47:08,053 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:08,054 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:08,054 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:08,058 - gecko_terminal_collector.collectors.top_pools - INFO - Top pools collection completed: 0 pools processed, 2 errors
+2025-09-15 06:47:08,058 - gecko_terminal_collector.utils.metadata - INFO - Updated metadata for top_pools_solana: Success rate: 0.0%, Total runs: 1, Records collected: 0
+2025-09-15 06:47:08,059 - gecko_terminal_collector.monitoring.execution_history - INFO - Completed execution top_pools_solana_1757940361_collector_top_pools_solana for top_pools_solana: failure (67.05s, 0 records)
+2025-09-15 06:47:08,059 - gecko_terminal_collector.monitoring.collection_monitor - WARNING - Generated warning alert for top_pools_solana: Collector performance issues: Low success rate: 0.0%
+2025-09-15 06:47:08,059 - gecko_terminal_collector.scheduling.scheduler - WARNING - Collection failed for top_pools_solana: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:08,059 - gecko_terminal_collector.monitoring.execution_history - WARNING - No active execution found for ID: top_pools_solana_1757940361_collector_top_pools_solana
+2025-09-15 06:47:08,060 - gecko_terminal_collector.scheduling.scheduler - ERROR - Error executing collector collector_top_pools_solana: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:08,070 - apscheduler.executors.default - ERROR - Job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 06:51:01 MDT)" raised an exception
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\apscheduler\executors\base.py", line 181, in run_coroutine_job
+    retval = await job.func(*job.args, **job.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\scheduling\scheduler.py", line 421, in _execute_collector
+    raise Exception(f"Collection failed: {'; '.join(result.errors)}")
+Exception: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:40,830 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:46:01.006723', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:40,831 - gecko_terminal_collector.utils.metadata - ERROR - Error persisting metadata to database: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:46:01.006723', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:47:40,831 - gecko_terminal_collector.scheduling.scheduler - ERROR - Job collector_top_pools_solana failed: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:02.064454', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:46:35.291296', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8). Consecutive errors: 1
+2025-09-15 06:51:00,998 - gecko_terminal_collector.scheduling.scheduler - WARNING - Unhealthy collectors detected: ['top_pools_solana']
+2025-09-15 06:51:01,014 - apscheduler.executors.default - INFO - Running job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 06:56:01 MDT)" (scheduled at 2025-09-15 06:51:01.000280-06:00)
+2025-09-15 06:51:01,014 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for top_pools_solana (top_pools_solana_1757940661_collector_top_pools_solana)
+2025-09-15 06:51:01,014 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: top_pools_solana (top_pools_solana_1757940661_collector_top_pools_solana)
+2025-09-15 06:51:01,014 - gecko_terminal_collector.collectors.top_pools - INFO - Starting top pools collection for network: solana
+2025-09-15 06:51:01,014 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: heaven
+2025-09-15 06:51:01,420 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/heaven/pools "HTTP/1.1 200 OK"
+2025-09-15 06:51:34,206 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:51:34,207 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:51:34,207 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:51:34,211 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: pumpswap
+2025-09-15 06:51:34,628 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/pumpswap/pools "HTTP/1.1 200 OK"
+2025-09-15 06:52:07,450 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:07,451 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:07,451 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:07,455 - gecko_terminal_collector.collectors.top_pools - INFO - Top pools collection completed: 0 pools processed, 2 errors
+2025-09-15 06:52:07,455 - gecko_terminal_collector.utils.metadata - INFO - Updated metadata for top_pools_solana: Success rate: 0.0%, Total runs: 2, Records collected: 0
+2025-09-15 06:52:07,456 - gecko_terminal_collector.monitoring.execution_history - INFO - Completed execution top_pools_solana_1757940661_collector_top_pools_solana for top_pools_solana: failure (66.44s, 0 records)
+2025-09-15 06:52:07,456 - gecko_terminal_collector.monitoring.collection_monitor - WARNING - Generated critical alert for top_pools_solana: Collector in critical state: Consecutive failures: 3
+2025-09-15 06:52:07,456 - gecko_terminal_collector.scheduling.scheduler - WARNING - Collection failed for top_pools_solana: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:07,457 - gecko_terminal_collector.monitoring.execution_history - WARNING - No active execution found for ID: top_pools_solana_1757940661_collector_top_pools_solana
+2025-09-15 06:52:07,457 - gecko_terminal_collector.scheduling.scheduler - ERROR - Error executing collector collector_top_pools_solana: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:07,458 - apscheduler.executors.default - ERROR - Job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 06:56:01 MDT)" raised an exception
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\apscheduler\executors\base.py", line 181, in run_coroutine_job
+    retval = await job.func(*job.args, **job.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\scheduling\scheduler.py", line 421, in _execute_collector
+    raise Exception(f"Collection failed: {'; '.join(result.errors)}")
+Exception: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:40,213 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:51:01.014305', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:40,214 - gecko_terminal_collector.utils.metadata - ERROR - Error persisting metadata to database: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:51:01.014305', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:52:40,214 - gecko_terminal_collector.scheduling.scheduler - ERROR - Job collector_top_pools_solana failed: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:01.452448', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:51:34.658893', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8). Consecutive errors: 2
+2025-09-15 06:56:00,998 - gecko_terminal_collector.scheduling.scheduler - WARNING - Unhealthy collectors detected: ['top_pools_solana']
+2025-09-15 06:56:01,014 - apscheduler.executors.default - INFO - Running job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:01:01 MDT)" (scheduled at 2025-09-15 06:56:01.000280-06:00)
+2025-09-15 06:56:01,015 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for top_pools_solana (top_pools_solana_1757940961_collector_top_pools_solana)
+2025-09-15 06:56:01,015 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: top_pools_solana (top_pools_solana_1757940961_collector_top_pools_solana)
+2025-09-15 06:56:01,015 - gecko_terminal_collector.collectors.top_pools - INFO - Starting top pools collection for network: solana
+2025-09-15 06:56:01,015 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: heaven
+2025-09-15 06:56:01,383 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/heaven/pools "HTTP/1.1 200 OK"
+2025-09-15 06:56:34,147 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:56:34,148 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:56:34,148 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:56:34,152 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: pumpswap
+2025-09-15 06:56:34,658 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/pumpswap/pools "HTTP/1.1 200 OK"
+2025-09-15 06:57:07,422 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:07,423 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:07,423 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:07,428 - gecko_terminal_collector.collectors.top_pools - INFO - Top pools collection completed: 0 pools processed, 2 errors
+2025-09-15 06:57:07,428 - gecko_terminal_collector.utils.metadata - INFO - Updated metadata for top_pools_solana: Success rate: 0.0%, Total runs: 3, Records collected: 0
+2025-09-15 06:57:07,428 - gecko_terminal_collector.monitoring.execution_history - INFO - Completed execution top_pools_solana_1757940961_collector_top_pools_solana for top_pools_solana: failure (66.41s, 0 records)
+2025-09-15 06:57:07,428 - gecko_terminal_collector.scheduling.scheduler - WARNING - Collection failed for top_pools_solana: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:07,429 - gecko_terminal_collector.monitoring.execution_history - WARNING - No active execution found for ID: top_pools_solana_1757940961_collector_top_pools_solana
+2025-09-15 06:57:07,429 - gecko_terminal_collector.scheduling.scheduler - ERROR - Error executing collector collector_top_pools_solana: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:07,429 - apscheduler.executors.default - ERROR - Job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:01:01 MDT)" raised an exception
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\apscheduler\executors\base.py", line 181, in run_coroutine_job
+    retval = await job.func(*job.args, **job.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\scheduling\scheduler.py", line 421, in _execute_collector
+    raise Exception(f"Collection failed: {'; '.join(result.errors)}")
+Exception: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:40,221 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:56:01.015993', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:40,221 - gecko_terminal_collector.utils.metadata - ERROR - Error persisting metadata to database: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 06:56:01.015993', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 06:57:40,221 - gecko_terminal_collector.scheduling.scheduler - ERROR - Job collector_top_pools_solana failed: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:01.414576', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 12:56:34.685421', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8). Consecutive errors: 3
+2025-09-15 07:01:01,005 - gecko_terminal_collector.scheduling.scheduler - WARNING - Unhealthy collectors detected: ['top_pools_solana']
+2025-09-15 07:01:01,005 - apscheduler.executors.default - INFO - Running job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:06:01 MDT)" (scheduled at 2025-09-15 07:01:01.000280-06:00)
+2025-09-15 07:01:01,006 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for top_pools_solana (top_pools_solana_1757941261_collector_top_pools_solana)
+2025-09-15 07:01:01,006 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: top_pools_solana (top_pools_solana_1757941261_collector_top_pools_solana)
+2025-09-15 07:01:01,006 - gecko_terminal_collector.collectors.top_pools - INFO - Starting top pools collection for network: solana
+2025-09-15 07:01:01,006 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: heaven
+2025-09-15 07:01:01,382 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/heaven/pools "HTTP/1.1 200 OK"
+2025-09-15 07:01:34,172 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:01:34,172 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:01:34,173 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:01:34,177 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: pumpswap
+2025-09-15 07:01:34,665 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/pumpswap/pools "HTTP/1.1 200 OK"
+2025-09-15 07:02:07,427 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:07,428 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:07,428 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:07,432 - gecko_terminal_collector.collectors.top_pools - INFO - Top pools collection completed: 0 pools processed, 2 errors
+2025-09-15 07:02:07,432 - gecko_terminal_collector.utils.metadata - INFO - Updated metadata for top_pools_solana: Success rate: 0.0%, Total runs: 4, Records collected: 0
+2025-09-15 07:02:07,433 - gecko_terminal_collector.monitoring.execution_history - INFO - Completed execution top_pools_solana_1757941261_collector_top_pools_solana for top_pools_solana: failure (66.43s, 0 records)
+2025-09-15 07:02:07,433 - gecko_terminal_collector.scheduling.scheduler - WARNING - Collection failed for top_pools_solana: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:07,433 - gecko_terminal_collector.monitoring.execution_history - WARNING - No active execution found for ID: top_pools_solana_1757941261_collector_top_pools_solana
+2025-09-15 07:02:07,433 - gecko_terminal_collector.scheduling.scheduler - ERROR - Error executing collector collector_top_pools_solana: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:07,434 - apscheduler.executors.default - ERROR - Job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:06:01 MDT)" raised an exception
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\apscheduler\executors\base.py", line 181, in run_coroutine_job
+    retval = await job.func(*job.args, **job.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\scheduling\scheduler.py", line 421, in _execute_collector
+    raise Exception(f"Collection failed: {'; '.join(result.errors)}")
+Exception: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:40,207 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 07:01:01.006519', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:40,208 - gecko_terminal_collector.utils.metadata - ERROR - Error persisting metadata to database: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 07:01:01.006519', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:02:40,208 - gecko_terminal_collector.scheduling.scheduler - ERROR - Job collector_top_pools_solana failed: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:01.413843', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:01:34.691551', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8). Consecutive errors: 4
+2025-09-15 07:06:01,001 - gecko_terminal_collector.scheduling.scheduler - WARNING - Unhealthy collectors detected: ['top_pools_solana']
+2025-09-15 07:06:01,001 - apscheduler.executors.default - INFO - Running job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:11:01 MDT)" (scheduled at 2025-09-15 07:06:01.000280-06:00)
+2025-09-15 07:06:01,001 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for top_pools_solana (top_pools_solana_1757941561_collector_top_pools_solana)
+2025-09-15 07:06:01,001 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: top_pools_solana (top_pools_solana_1757941561_collector_top_pools_solana)
+2025-09-15 07:06:01,001 - gecko_terminal_collector.collectors.top_pools - INFO - Starting top pools collection for network: solana
+2025-09-15 07:06:01,001 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: heaven
+2025-09-15 07:06:01,389 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/heaven/pools "HTTP/1.1 200 OK"
+2025-09-15 07:06:34,634 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:06:34,634 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:06:34,634 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:06:34,634 - gecko_terminal_collector.collectors.top_pools - INFO - Collecting top pools for DEX: pumpswap
+2025-09-15 07:06:35,117 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/dexes/pumpswap/pools "HTTP/1.1 200 OK"
+2025-09-15 07:07:08,324 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pools: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:08,324 - gecko_terminal_collector.collectors.top_pools - ERROR - Error storing pool data: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:08,324 - gecko_terminal_collector.collectors.top_pools - ERROR - Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 112, in collect
+    stored_count = await self._store_pools_data(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\collectors\top_pools.py", line 280, in _store_pools_data
+    stored_count = await self.db_manager.store_pools(pool_records)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\database\sqlalchemy_manager.py", line 85, in store_pools
+    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 2230, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3065, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 3054, in _autoflush
+    self.flush()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4345, in flush
+    self._flush(objects)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4480, in _flush
+    with util.safe_reraise():
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\session.py", line 4441, in _flush
+    flush_context.execute()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
+    _emit_update_statements(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
+    c = connection.execute(
+        ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:08,324 - gecko_terminal_collector.collectors.top_pools - INFO - Top pools collection completed: 0 pools processed, 2 errors
+2025-09-15 07:07:08,324 - gecko_terminal_collector.utils.metadata - INFO - Updated metadata for top_pools_solana: Success rate: 0.0%, Total runs: 5, Records collected: 0
+2025-09-15 07:07:08,324 - gecko_terminal_collector.monitoring.execution_history - INFO - Completed execution top_pools_solana_1757941561_collector_top_pools_solana for top_pools_solana: failure (67.32s, 0 records)
+2025-09-15 07:07:08,324 - gecko_terminal_collector.scheduling.scheduler - WARNING - Collection failed for top_pools_solana: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:08,324 - gecko_terminal_collector.monitoring.execution_history - WARNING - No active execution found for ID: top_pools_solana_1757941561_collector_top_pools_solana
+2025-09-15 07:07:08,324 - gecko_terminal_collector.scheduling.scheduler - ERROR - Error executing collector collector_top_pools_solana: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:08,324 - apscheduler.executors.default - ERROR - Job "Collector: top_pools_solana (trigger: interval[0:05:00], next run at: 2025-09-15 07:11:01 MDT)" raised an exception
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\apscheduler\executors\base.py", line 181, in run_coroutine_job
+    retval = await job.func(*job.args, **job.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\projects\geckoterminal_collector\gecko_terminal_collector\scheduling\scheduler.py", line 421, in _execute_collector
+    raise Exception(f"Collection failed: {'; '.join(result.errors)}")
+Exception: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:41,610 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 07:06:01.001999', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:41,610 - gecko_terminal_collector.utils.metadata - ERROR - Error persisting metadata to database: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE collection_metadata SET last_run=?, run_count=?, error_count=?, last_error=?, last_updated=CURRENT_TIMESTAMP WHERE collection_metadata.collector_type = ?]
+[parameters: ('2025-09-15 07:06:01.001999', 28, 1, "Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is o ... (583 characters truncated) ... : ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)", 'top_pools_solana')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:07:41,610 - gecko_terminal_collector.scheduling.scheduler - ERROR - Job collector_top_pools_solana failed: Collection failed: Error collecting pools for DEX heaven: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:01.425784', 'solana_2X3V92NT8wBkAozfR2v2q7Nz5QbJhShZhqZaKrmYg4w5')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8); Error collecting pools for DEX pumpswap: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.OperationalError) database is locked
+[SQL: UPDATE pools SET last_updated=? WHERE pools.id = ?]
+[parameters: ('2025-09-15 13:06:35.149632', 'solana_jFSpfwy8LhWZbm9ycf75hzmA3CqCdrmyyYshj9DXkUz')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8). Consecutive errors: 5
+2025-09-15 07:07:41,610 - gecko_terminal_collector.scheduling.scheduler - WARNING - Starting error recovery for collector top_pools_solana after 5 consecutive errors
+2025-09-15 07:07:41,610 - apscheduler.scheduler - INFO - Removed job collector_top_pools_solana
+2025-09-15 07:07:41,610 - gecko_terminal_collector.scheduling.scheduler - INFO - Disabled collector collector_top_pools_solana
+2025-09-15 07:08:41,614 - apscheduler.scheduler - INFO - Added job "Collector: top_pools_solana" to job store "default"
+2025-09-15 07:08:41,614 - gecko_terminal_collector.scheduling.scheduler - INFO - Enabled collector collector_top_pools_solana
+2025-09-15 07:08:41,614 - gecko_terminal_collector.scheduling.scheduler - INFO - Error recovery completed for collector top_pools_solana
+2025-09-15 07:11:01,007 - gecko_terminal_collector.scheduling.scheduler - WARNING - Unhealthy collectors detected: ['top_pools_solana']
+2025-09-15 07:11:01,007 - apscheduler.executors.default - INFO - Running job "Collector: new_pools_solana (trigger: interval[0:30:00], next run at: 2025-09-15 07:41:01 MDT)" (scheduled at 2025-09-15 07:11:01.001788-06:00)
+2025-09-15 07:11:01,007 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for new_pools_solana (new_pools_solana_1757941861_collector_new_pools_solana)
+2025-09-15 07:11:01,007 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: new_pools_solana (new_pools_solana_1757941861_collector_new_pools_solana)
+2025-09-15 07:11:01,007 - gecko_terminal_collector.collectors.base.NewPoolsCollector - INFO - Starting new pools collection for network: solana
+2025-09-15 07:11:01,152 - apscheduler.executors.default - INFO - Running job "Collector: trade_collector (trigger: interval[0:30:00], next run at: 2025-09-15 07:41:01 MDT)" (scheduled at 2025-09-15 07:11:01.001788-06:00)
+2025-09-15 07:11:01,152 - gecko_terminal_collector.monitoring.execution_history - INFO - Started execution tracking for trade_collector (trade_collector_1757941861_collector_trade_collector)
+2025-09-15 07:11:01,152 - gecko_terminal_collector.scheduling.scheduler - INFO - Executing collector: trade_collector (trade_collector_1757941861_collector_trade_collector)
+2025-09-15 07:11:01,152 - gecko_terminal_collector.collectors.trade_collector - INFO - Retrieving active watchlist pools for trade collection
+2025-09-15 07:11:01,152 - gecko_terminal_collector.collectors.trade_collector - INFO - Found 2 watchlist pools for trade collection
+2025-09-15 07:11:01,202 - gecko_terminal_collector.collectors.trade_collector - INFO - Fair rotation selected 2 pools for collection
+2025-09-15 07:11:01,568 - httpx - INFO - HTTP Request: GET https://api.geckoterminal.com/api/v2/networks/solana/new_pools "HTTP/1.1 200 OK"
+2025-09-15 07:11:01,582 - gecko_terminal_collector.collectors.base.NewPoolsCollector - INFO - Received 20 new pools from API
+pool_data:  {'id': 'solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', 'type': 'pool', 'name': 'Pumptv / SOL', 'base_token_price_usd': '0.00000700039070753629703349593198631124973130533182931678554585388483', 'base_token_price_native_currency': '0.0000000288712569457982', 'quote_token_price_usd': '234.820694970127224231741066093459128132749880647', 'quote_token_price_native_currency': '1.0', 'address': '5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', 'reserve_in_usd': '5207.5215', 'pool_created_at': '2025-09-15T13:10:15Z', 'fdv_usd': '6562.945397', 'market_cap_usd': None, 'price_change_percentage_h1': '-7.309', 'price_change_percentage_h24': '-7.309', 'transactions_h1_buys': 5, 'transactions_h1_sells': 5, 'transactions_h24_buys': 5, 'transactions_h24_sells': 5, 'volume_usd_h24': '1102.1319874565', 'dex_id': 'pump-fun', 'base_token_id': 'YEDt4V73irePha8fnoVjQrjQ2S3uno17mkgnn5Fpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', 'type': 'pool', 'name': '555 / SOL', 'base_token_price_usd': '0.00000699225812700985826060989343586838388363729105314027968167717184', 'base_token_price_native_currency': '0.0000000283951711761428', 'quote_token_price_usd': '234.522039115447655369880902208743622758694503133', 'quote_token_price_native_currency': '1.0', 'address': '8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', 'reserve_in_usd': '5287.9435', 'pool_created_at': '2025-09-15T13:10:13Z', 'fdv_usd': '6659.293445', 'market_cap_usd': None, 'price_change_percentage_h1': '-1.716', 'price_change_percentage_h24': '-1.716', 'transactions_h1_buys': 1, 'transactions_h1_sells': 2, 'transactions_h24_buys': 1, 'transactions_h24_sells': 2, 'volume_usd_h24': '586.3044164312', 'dex_id': 'pump-fun', 'base_token_id': 'ZPCVBEp11KSNyFxUsTGJWDbTUoGVJYjeXpHFXD1pump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', 'type': 'pool', 'name': 'Beans / SOL', 'base_token_price_usd': '0.00000786664173998147356275200927714217589504807952674680606894285726', 'base_token_price_native_currency': '0.0000000340413201238629', 'quote_token_price_usd': '234.820694970127224231741066093459128132749880647', 'quote_token_price_native_currency': '1.0', 'address': '5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', 'reserve_in_usd': '5208.4372', 'pool_created_at': '2025-09-15T13:10:13Z', 'fdv_usd': '7993.205163', 'market_cap_usd': None, 'price_change_percentage_h1': '21.864', 'price_change_percentage_h24': '21.864', 'transactions_h1_buys': 5, 'transactions_h1_sells': 0, 'transactions_h24_buys': 5, 'transactions_h24_sells': 0, 'volume_usd_h24': '717.6765508825', 'dex_id': 'pump-fun', 'base_token_id': 'BA9dTt1BVNamZYMGsxbjXsbA9zxuw9PmC49p6qf7pump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt', 'type': 'pool', 'name': 'PVP / SOL', 'base_token_price_usd': '0.000023506602453876846429448187409728337641224303327588169088082644', 'base_token_price_native_currency': '0.000000100115269246174', 'quote_token_price_usd': '234.795377676867768567191313410787515918080307912', 'quote_token_price_native_currency': '1.0', 'address': '7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt', 'reserve_in_usd': '25423.6526', 'pool_created_at': '2025-09-15T13:10:10Z', 'fdv_usd': '23506.60245', 'market_cap_usd': None, 'price_change_percentage_h1': '-30.202', 'price_change_percentage_h24': '-30.202', 'transactions_h1_buys': 14, 'transactions_h1_sells': 16, 'transactions_h24_buys': 14, 'transactions_h24_sells': 16, 'volume_usd_h24': '13496.1529540267', 'dex_id': 'meteora-dbc', 'base_token_id': 'Au3SeekW3VsCFWTMEt4j7HG5HJ2zAxWox9uicxsiHhbF', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_Cii84phkMaD6AyW8bUkFemtXw1tL3rdSub99Kb9Yq6zr', 'type': 'pool', 'name': 'DOG LIVE / SOL', 'base_token_price_usd': '0.0000080025752126948928956816447940209733404854779206946232430647425', 'base_token_price_native_currency': '0.0000000341415407562704', 'quote_token_price_usd': '234.71229598976729251251521799399981685290540143', 'quote_token_price_native_currency': '1.0', 'address': 'Cii84phkMaD6AyW8bUkFemtXw1tL3rdSub99Kb9Yq6zr', 'reserve_in_usd': '6654.0957', 'pool_created_at': '2025-09-15T13:10:06Z', 'fdv_usd': '8082.152854', 'market_cap_usd': None, 'price_change_percentage_h1': '19.908', 'price_change_percentage_h24': '19.908', 'transactions_h1_buys': 15, 'transactions_h1_sells': 9, 'transactions_h24_buys': 15, 'transactions_h24_sells': 9, 'volume_usd_h24': '3056.1008608195', 'dex_id': 'pump-fun', 'base_token_id': 'GdpXmogvEuKtYMrLsaaQxah6w2hQhm4oZvFxcnLbpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_2VaJcp6K9MqTdeBFnfdMiJMGpA7q4qDZJLxdzyAUAL7i', 'type': 'pool', 'name': '1$ / SOL', 'base_token_price_usd': '0.00000679228247786032427341251374107423059557208690963772727977337265', 'base_token_price_native_currency': '0.0000000289411484620235', 'quote_token_price_usd': '234.692914373220242823218676123455702191926092937', 'quote_token_price_native_currency': '1.0', 'address': '2VaJcp6K9MqTdeBFnfdMiJMGpA7q4qDZJLxdzyAUAL7i', 'reserve_in_usd': '5428.2208', 'pool_created_at': '2025-09-15T13:10:03Z', 'fdv_usd': '6792.282478', 'market_cap_usd': None, 'price_change_percentage_h1': '2.714', 'price_change_percentage_h24': '2.714', 'transactions_h1_buys': 7, 'transactions_h1_sells': 6, 'transactions_h24_buys': 7, 'transactions_h24_sells': 6, 'volume_usd_h24': '1689.5957268893', 'dex_id': 'pump-fun', 'base_token_id': 'KWddkoj6ud5P5ABFMpjPezVRjeaMHk9KYBLjk7vpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_45Fy4dCk5SUFPmT2XyNiPnGeS5g6cSaCRe6tnLoJbWzd', 'type': 'pool', 'name': 'Pho / SOL', 'base_token_price_usd': '0.0000070966603049010009386861110239356853175653655139276910011590143', 'base_token_price_native_currency': '0.0000000302601452022369', 'quote_token_price_usd': '234.521687105995756319064494000695342034750385247', 'quote_token_price_native_currency': '1.0', 'address': '45Fy4dCk5SUFPmT2XyNiPnGeS5g6cSaCRe6tnLoJbWzd', 'reserve_in_usd': '5632.9127', 'pool_created_at': '2025-09-15T13:10:03Z', 'fdv_usd': '7096.660305', 'market_cap_usd': None, 'price_change_percentage_h1': '-8.693', 'price_change_percentage_h24': '-8.693', 'transactions_h1_buys': 2, 'transactions_h1_sells': 3, 'transactions_h24_buys': 2, 'transactions_h24_sells': 3, 'volume_usd_h24': '1365.1573467119', 'dex_id': 'pump-fun', 'base_token_id': 'Bc29cLpCDdJpiLumVEFyGYBaRxr6UFSSC5mbhtyNpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_9UrNuNSGqSArVXbM8vVhkSS2bzr9WzTuuxYnNqnu7fqd', 'type': 'pool', 'name': 'Surstrming / SOL', 'base_token_price_usd': '0.0000071073392574291918975511513355594544169506747767384628617391155', 'base_token_price_native_currency': '0.0000000302492124825588', 'quote_token_price_usd': '234.522307615256190645423910375003832848943801162', 'quote_token_price_native_currency': '1.0', 'address': '9UrNuNSGqSArVXbM8vVhkSS2bzr9WzTuuxYnNqnu7fqd', 'reserve_in_usd': '5619.8862', 'pool_created_at': '2025-09-15T13:10:02Z', 'fdv_usd': '7107.339257', 'market_cap_usd': None, 'price_change_percentage_h1': '4.909', 'price_change_percentage_h24': '4.909', 'transactions_h1_buys': 3, 'transactions_h1_sells': 2, 'transactions_h24_buys': 3, 'transactions_h24_sells': 2, 'volume_usd_h24': '1051.3576850397', 'dex_id': 'pump-fun', 'base_token_id': 'DoSAAGgfpBnK5p99zfxPcGQx9LY5v9erxP9ejoXNpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_CN2Z8inLDkiJFmyjQP9HQRNwDRcvWmN2EZVvHzvapJw4', 'type': 'pool', 'name': 'MYX / SOL', 'base_token_price_usd': '0.067516744558076936945127284132054016526888086851325434133870105', 'base_token_price_native_currency': '0.00025465725805268', 'quote_token_price_usd': '234.831623268396836730285774685766586010690843725', 'quote_token_price_native_currency': '1.0', 'address': 'CN2Z8inLDkiJFmyjQP9HQRNwDRcvWmN2EZVvHzvapJw4', 'reserve_in_usd': '49367.397', 'pool_created_at': '2025-09-15T13:10:02Z', 'fdv_usd': '48021634.84', 'market_cap_usd': None, 'price_change_percentage_h1': '20.406', 'price_change_percentage_h24': '20.406', 'transactions_h1_buys': 49, 'transactions_h1_sells': 27, 'transactions_h24_buys': 49, 'transactions_h24_sells': 27, 'volume_usd_h24': '50067.9230262268', 'dex_id': 'pumpswap', 'base_token_id': 'FD2gddMwMs4fQNFNb7znsQHs4vZgSbokKKR5itQe8PTU', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_4qS9B5R7N357UNiq4bXMd4hBaKSSK1xotaa9tSxtzUGn', 'type': 'pool', 'name': 'YOLO / SOL', 'base_token_price_usd': '0.00001425867052739903650359404984091200713222904698525484548612093812', 'base_token_price_native_currency': '0.0000000690016069321131', 'quote_token_price_usd': '234.834016045350504286115998519530751771135305329', 'quote_token_price_native_currency': '1.0', 'address': '4qS9B5R7N357UNiq4bXMd4hBaKSSK1xotaa9tSxtzUGn', 'reserve_in_usd': '10759.0597', 'pool_created_at': '2025-09-15T13:10:01Z', 'fdv_usd': '16562.69924', 'market_cap_usd': None, 'price_change_percentage_h1': '72.323', 'price_change_percentage_h24': '72.323', 'transactions_h1_buys': 44, 'transactions_h1_sells': 28, 'transactions_h24_buys': 44, 'transactions_h24_sells': 28, 'volume_usd_h24': '10515.5821256856', 'dex_id': 'pump-fun', 'base_token_id': 'CXN77taUnrXgia1BQ73B5DdkEiAyJzmofBdevzVdpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_GxBFWBF7WEYTTizvi18Gnzzann55vfbPbFVATBGGhW6Y', 'type': 'pool', 'name': 'CR7 / SOL', 'base_token_price_usd': '0.00000663793748306989378709768731523746042020018607113779414206855266', 'base_token_price_native_currency': '0.0000000283039396885111', 'quote_token_price_usd': '234.523446421994729999838130255831512685904251361', 'quote_token_price_native_currency': '1.0', 'address': 'GxBFWBF7WEYTTizvi18Gnzzann55vfbPbFVATBGGhW6Y', 'reserve_in_usd': '5268.7812', 'pool_created_at': '2025-09-15T13:09:59Z', 'fdv_usd': '6637.937483', 'market_cap_usd': None, 'price_change_percentage_h1': '-14.521', 'price_change_percentage_h24': '-14.521', 'transactions_h1_buys': 2, 'transactions_h1_sells': 6, 'transactions_h24_buys': 2, 'transactions_h24_sells': 6, 'volume_usd_h24': '887.5814836814', 'dex_id': 'pump-fun', 'base_token_id': '3cKULtXyyekWagraY6vKXnR1aLF367vsc4UdhmnQpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_GEXuMSrZLBB5481ioGAhccUiiwUwCouykPEPL5uscoh1', 'type': 'pool', 'name': 'BAG / SOL', 'base_token_price_usd': '0.00000685078835998315709338618332633833715885190513742990129584710646', 'base_token_price_native_currency': '0.0000000292211722505153', 'quote_token_price_usd': '234.446048271124694156393930523662989953880677574', 'quote_token_price_native_currency': '1.0', 'address': 'GEXuMSrZLBB5481ioGAhccUiiwUwCouykPEPL5uscoh1', 'reserve_in_usd': '5433.7101', 'pool_created_at': '2025-09-15T13:09:56Z', 'fdv_usd': '6850.7883599832', 'market_cap_usd': None, 'price_change_percentage_h1': '3.967', 'price_change_percentage_h24': '3.967', 'transactions_h1_buys': 3, 'transactions_h1_sells': 2, 'transactions_h24_buys': 3, 'transactions_h24_sells': 2, 'volume_usd_h24': '734.0333425752', 'dex_id': 'pump-fun', 'base_token_id': 'GV9NuH5FQc11TzqT4TyP2nJWdCusH6eKC2hPqVTbeZig', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_275nskSPeytv3DjFWJQePUpGF6dRaoo51tv21jrbgYtg', 'type': 'pool', 'name': 'MOTHER / SOL', 'base_token_price_usd': '0.00000767429246625225766094415440959060170446386616436350484941419416', 'base_token_price_native_currency': '0.0000000327333056180009', 'quote_token_price_usd': '234.449051855977796888650341660991108159432713857', 'quote_token_price_native_currency': '1.0', 'address': '275nskSPeytv3DjFWJQePUpGF6dRaoo51tv21jrbgYtg', 'reserve_in_usd': '6042.8419', 'pool_created_at': '2025-09-15T13:09:53Z', 'fdv_usd': '7674.2924662523', 'market_cap_usd': None, 'price_change_percentage_h1': '0.544', 'price_change_percentage_h24': '0.544', 'transactions_h1_buys': 3, 'transactions_h1_sells': 2, 'transactions_h24_buys': 3, 'transactions_h24_sells': 2, 'volume_usd_h24': '1296.6915611528', 'dex_id': 'pump-fun', 'base_token_id': 'J2Pn32xUfQ8AGCwN3keT92qJ42e7zV5dy7sTSsdopump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_BTNjGq7w1tsJXL7FtnHWTDhGfkuthV7epELm6iZmRxhz', 'type': 'pool', 'name': 'BNTRTST / SOL', 'base_token_price_usd': '0.0001143471504367394604596918088557675145351956225664016106576021472', 'base_token_price_native_currency': '0.000000479381174326099', 'quote_token_price_usd': '234.820694970127224231741066093459128132749880647', 'quote_token_price_native_currency': '1.0', 'address': 'BTNjGq7w1tsJXL7FtnHWTDhGfkuthV7epELm6iZmRxhz', 'reserve_in_usd': '44053.8847', 'pool_created_at': '2025-09-15T13:09:52Z', 'fdv_usd': '114347.150436739', 'market_cap_usd': None, 'price_change_percentage_h1': '-27.206', 'price_change_percentage_h24': '-27.206', 'transactions_h1_buys': 77, 'transactions_h1_sells': 48, 'transactions_h24_buys': 77, 'transactions_h24_sells': 48, 'volume_usd_h24': '26529.4273635888', 'dex_id': 'pumpswap', 'base_token_id': '7dSBYv1kXuB1h25crC69BviHVVqjBXw8gRnLnCM9pump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_9UdufmWKexXCDtCQdQx5kukcgpV4xr5xhR4FgDEbCGFd', 'type': 'pool', 'name': 'BNTRTST / SOL', 'base_token_price_usd': '0.000095445845918090697864660729595466739258001348653816607854910864', 'base_token_price_native_currency': 'NaN', 'quote_token_price_usd': '234.446226835431541478852793687792668945889002602', 'quote_token_price_native_currency': 'NaN', 'address': '9UdufmWKexXCDtCQdQx5kukcgpV4xr5xhR4FgDEbCGFd', 'reserve_in_usd': '0.0', 'pool_created_at': '2025-09-15T13:09:52Z', 'fdv_usd': '24897.75607', 'market_cap_usd': None, 'price_change_percentage_h1': '0', 'price_change_percentage_h24': '0', 'transactions_h1_buys': 2, 'transactions_h1_sells': 0, 'transactions_h24_buys': 2, 'transactions_h24_sells': 0, 'volume_usd_h24': '19929.1856917047', 'dex_id': 'pump-fun', 'base_token_id': '7dSBYv1kXuB1h25crC69BviHVVqjBXw8gRnLnCM9pump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_8Gca5wPXCUNJFpKZFaJSw32FiDg4exjtewS4bdzdp6tA', 'type': 'pool', 'name': 'KOLSTONE / SOL', 'base_token_price_usd': '0.00000699583138468931758281846755433528152117432659599576554821434996', 'base_token_price_native_currency': '0.0000000298398349482905', 'quote_token_price_usd': '234.446048271124694156393930523662989953880677574', 'quote_token_price_native_currency': '1.0', 'address': '8Gca5wPXCUNJFpKZFaJSw32FiDg4exjtewS4bdzdp6tA', 'reserve_in_usd': '5542.5531', 'pool_created_at': '2025-09-15T13:09:50Z', 'fdv_usd': '6995.8313846893', 'market_cap_usd': None, 'price_change_percentage_h1': '-1.374', 'price_change_percentage_h24': '-1.374', 'transactions_h1_buys': 4, 'transactions_h1_sells': 2, 'transactions_h24_buys': 4, 'transactions_h24_sells': 2, 'volume_usd_h24': '689.5244359953', 'dex_id': 'pump-fun', 'base_token_id': '8eHuP1qnyur3HzrZqKuX1Ker4xKKDd9dJUk3k2Eypump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_GUgi8145aBNyFD9AyEwxFP8i5XfRZHSPH9xM3bkr2tZF', 'type': 'pool', 'name': 'monster / SOL', 'base_token_price_usd': '0.00000678149348961797230013769897564854202960925388365847720857716392', 'base_token_price_native_currency': '0.0000000288794541658907', 'quote_token_price_usd': '234.820694931755402450913406268920036558714059092', 'quote_token_price_native_currency': '1.0', 'address': 'GUgi8145aBNyFD9AyEwxFP8i5XfRZHSPH9xM3bkr2tZF', 'reserve_in_usd': '5378.1336', 'pool_created_at': '2025-09-15T13:09:48Z', 'fdv_usd': '6770.929086', 'market_cap_usd': None, 'price_change_percentage_h1': '0', 'price_change_percentage_h24': '0', 'transactions_h1_buys': 1, 'transactions_h1_sells': 0, 'transactions_h24_buys': 1, 'transactions_h24_sells': 0, 'volume_usd_h24': '231.5603793458', 'dex_id': 'pump-fun', 'base_token_id': '8omT9UoDPLxrfKyuvUBETHYQt3ibes5RWJmYE98YY4r', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_B5U5nW2wsGg5s3pWfvQ2ztrdZmLDiiXASGAG3mmZkT2r', 'type': 'pool', 'name': 'RVcoin / SOL', 'base_token_price_usd': '0.00000660955762606571018454146359374937340985650844235198046648218774', 'base_token_price_native_currency': '0.0000000281729855848184', 'quote_token_price_usd': '234.606219002483368500772425263099735831868526666', 'quote_token_price_native_currency': '1.0', 'address': 'B5U5nW2wsGg5s3pWfvQ2ztrdZmLDiiXASGAG3mmZkT2r', 'reserve_in_usd': '6509.6501', 'pool_created_at': '2025-09-15T13:09:45Z', 'fdv_usd': '6609.5576260657', 'market_cap_usd': None, 'price_change_percentage_h1': '7.937', 'price_change_percentage_h24': '7.937', 'transactions_h1_buys': 11, 'transactions_h1_sells': 9, 'transactions_h24_buys': 11, 'transactions_h24_sells': 9, 'volume_usd_h24': '4716.9886351472', 'dex_id': 'pump-fun', 'base_token_id': '49W6Xy1BkdnXTQyK4S3Rwnh73YWqVxmqu39PGmZCpump', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_63WCi727hKe6ZNed6qcgpX8ZBj1nAuBi4qTJ3ibKbHqr', 'type': 'pool', 'name': 'KKR / SOL', 'base_token_price_usd': '0.00000662372736125113139427834503239948126696047990214103961317820761', 'base_token_price_native_currency': '0.0000000282519671992846', 'quote_token_price_usd': '234.451899031613484894834898553839366096846914301', 'quote_token_price_native_currency': '1.0', 'address': '63WCi727hKe6ZNed6qcgpX8ZBj1nAuBi4qTJ3ibKbHqr', 'reserve_in_usd': '5254.8592', 'pool_created_at': '2025-09-15T13:09:45Z', 'fdv_usd': '6623.7273612511', 'market_cap_usd': None, 'price_change_percentage_h1': '1.03', 'price_change_percentage_h24': '1.03', 'transactions_h1_buys': 3, 'transactions_h1_sells': 2, 'transactions_h24_buys': 3, 'transactions_h24_sells': 2, 'volume_usd_h24': '565.4720041537', 'dex_id': 'pump-fun', 'base_token_id': 'DBmcQ3R4zBwPbEYyT9Atj23Zkt94CYgmJiNrpkRNLcEF', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+pool_data:  {'id': 'solana_3nPCwP3yeUNHJCqb87keNMcezAgZANrb8CAMdfdFWSie', 'type': 'pool', 'name': 'XVM / SOL', 'base_token_price_usd': '0.84963402803306867578001977410718502071449774145019565847112775', 'base_token_price_native_currency': '0.003577269882069', 'quote_token_price_usd': '234.831623268396836730285774685766586010690843725', 'quote_token_price_native_currency': '1.0', 'address': '3nPCwP3yeUNHJCqb87keNMcezAgZANrb8CAMdfdFWSie', 'reserve_in_usd': '72251.2968', 'pool_created_at': '2025-09-15T13:09:38Z', 'fdv_usd': '821249312.3', 'market_cap_usd': None, 'price_change_percentage_h1': '349746.997', 'price_change_percentage_h24': '349746.997', 'transactions_h1_buys': 68, 'transactions_h1_sells': 10, 'transactions_h24_buys': 68, 'transactions_h24_sells': 10, 'volume_usd_h24': '36728.6400156792', 'dex_id': 'pumpswap', 'base_token_id': 'DHLksTLsnMoZoBvBiKtseBEPysbGSxVv776TFRhERYwo', 'quote_token_id': 'So11111111111111111111111111111111111111112', 'network_id': 'solana'}
+_validation_result_
+ValidationResult(is_valid=True, errors=[], warnings=[])
+---
+2025-09-15 07:11:35,409 - __main__ - INFO - Received signal 2, initiating shutdown...
+2025-09-15 07:11:35,409 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pool solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', '', '', '', '', '', 0.0, None, '2025-09-15 07:11:01.593261', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:11:35,409 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', '', '', '', '', '', 0.0, None, '2025-09-15 07:11:01.593261', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:12:09,270 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing new pools history record: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:11:35.409656')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:12:09,270 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error storing history record for solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:11:35.409656')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:12:09,270 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error processing pool solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5cNNQs6GVERLJHMHNNDEqhogGBNdz9u26RKTL3gmJBwX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:11:35.409656')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:12:42,263 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pool solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', '', '', '', '', '', 0.0, None, '2025-09-15 07:12:09.270138', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:12:42,263 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', '', '', '', '', '', 0.0, None, '2025-09-15 07:12:09.270138', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:13:15,917 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing new pools history record: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:12:42.263352')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:13:15,917 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error storing history record for solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:12:42.263352')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:13:15,917 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error processing pool solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_8MpTLRYhETp2jog729UgxfdpQb8LRxb42AgaDDTpqKGX', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:12:42.263352')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:13:49,729 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pool solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', '', '', '', '', '', 0.0, None, '2025-09-15 07:13:15.917292', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:13:49,729 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', '', '', '', '', '', 0.0, None, '2025-09-15 07:13:15.917292', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:14:23,564 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing new pools history record: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:13:49.729488')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:14:23,564 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error storing history record for solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:13:49.729488')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:14:23,564 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error processing pool solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO new_pools_history (pool_id, type, name, base_token_price_usd, base_token_price_native_currency, quote_token_price_usd, quote_token_price_native_currency, address, reserve_in_usd, pool_created_at, fdv_usd, market_cap_usd, price_change_percentage_h1, price_change_percentage_h24, transactions_h1_buys, transactions_h1_sells, transactions_h24_buys, transactions_h24_sells, volume_usd_h24, dex_id, base_token_id, quote_token_id, network_id, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_5rNpbAsM57rhdJm8HQNqzhUeUimi5VgFQPEM1xLTfUNM', 'pool', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 'solana', '2025-09-15 07:13:49.729488')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:14:57,341 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing pool solana_7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt', '', '', '', '', '', 0.0, None, '2025-09-15 07:14:23.564178', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-15 07:14:57,341 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt: (sqlite3.OperationalError) database is locked
+[SQL: INSERT INTO pools (id, address, name, dex_id, base_token_id, quote_token_id, reserve_usd, created_at, last_updated, activity_score, discovery_source, collection_priority, auto_discovered_at, last_activity_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('solana_7zUXsBNAY57G1TVAUGm9y5AuWqaujd5anrYkzUtDjFdt', '', '', '', '', '', 0.0, None, '2025-09-15 07:14:23.564178', None, 'auto', 'normal', None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
