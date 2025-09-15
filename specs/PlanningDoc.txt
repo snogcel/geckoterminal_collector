@@ -17,6 +17,10 @@ TODO (Business Tasks)
 
 
 
+
+
+
+
 1. New Pools History Collection
 
 2. QA / Test Coverage
@@ -45,7 +49,7 @@ TODO (Personal Tasks)
 
 - Takeaways from UPW Refresh (Breakthrough 2022 V2)
 - 25 active daily users of easyonset.com? (Currently Seems Unrealistic)
-
+- Find additional ways to create flow state (programming does it for me)
 
 
 #######################

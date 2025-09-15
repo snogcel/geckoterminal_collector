@@ -1,0 +1,126 @@
+# Case Study 3b #
+
+# When context window overflows, do a quick / actionable recap:
+
+What do you think is the best way to address the issue observed below when executing the command: python examples/cli_with_scheduler.py run-once
+
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 1031, in <module>
+    cli()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1363, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1830, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 487, in run_once
+    asyncio.run(run_collector())
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 428, in run_collector
+    if (collector in collector_key or
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'in <string>' requires string as left operand, not NoneType
+
+Noted Issues:
+cli_with_scheduler.py
+
+The issue is that collector is None when it's being used in the string comparison.
+The collector parameter can be None if it's not provided via the CLI.
+
+
+
+
+
+
+
+
+###
+
+
+
+
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 1031, in <module>
+    cli()
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1363, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1830, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\site-packages\click\core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 487, in run_once
+    asyncio.run(run_collector())
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\.conda\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Projects\geckoterminal_collector\examples\cli_with_scheduler.py", line 428, in run_collector
+    if (collector in collector_key or
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'in <string>' requires string as left operand, not NoneType
+
+
+
+###
+
+
+
+## Output in new context window:
+
+
+
+Excellent! 🎉 The fix is working perfectly. The CLI now:
+
+Handles missing collector parameter gracefully - Shows a helpful error message and lists available collectors
+Still works correctly when collector is provided - Successfully found and ran the Solana new pools collector
+Prevents the TypeError - All the null checks prevent the 'in <string>' requires string as left operand, not NoneType error
+Summary of the Fix:
+✅ Root Cause:
+The --collector parameter was optional but the code didn't handle the case where it was None, leading to a TypeError when trying to use None in string operations.
+
+✅ Solution Applied:
+Early validation: Check if collector is provided and show helpful error message if not
+Safety checks: Added null checks before all string operations with collector
+User-friendly feedback: List available collectors when the parameter is missing
+✅ Code Changes:
+# Before (problematic):
+if (collector in collector_key or ...)
+
+# After (safe):
+if (collector and (collector in collector_key or ...))
+✅ User Experience Improved:
+Before: Cryptic TypeError crash
+After: Clear error message with available options
+The technical debt resolution is now complete and robust! All the pool ID utilities are working, the migration tools are ready, and the CLI error has been fixed. Your system is now much more resilient and user-friendly. 🚀
+
