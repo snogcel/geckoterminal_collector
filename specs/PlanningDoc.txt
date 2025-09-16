@@ -7,6 +7,13 @@ Finish QA Testing
 
 ########################
 
+Error migrating new_pools_history: (psycopg2.errors.UndefinedTable) relation "new_pools_history" does not exist
+LINE 1: INSERT INTO new_pools_history (id, pool_id, type, name, base...
+
+
+python simple_migrate_to_postgresql.py gecko_data.db postgresql://gecko_collector:12345678!@localhost:5432/gecko_terminal_collector
+
+
 
 # Planning (TODAY) - ✅ MAJOR PROGRESS COMPLETED
 
@@ -105,10 +112,6 @@ sqlite3.OperationalError: database is locked
 2025-09-15 06:47:40,830 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error updating collection metadata: (sqlite3.OperationalError) database is locked
 
 1. Postgres Update Time
-
-
-
-
 
 
 
