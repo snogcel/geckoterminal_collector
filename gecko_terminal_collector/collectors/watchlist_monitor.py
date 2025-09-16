@@ -273,7 +273,6 @@ class WatchlistMonitor(BaseDataCollector):
                         token_symbol=record.token_symbol,
                         token_name=record.token_name,
                         network_address=record.network_address,
-                        added_at=datetime.now(),
                         is_active=True
                     )
                     

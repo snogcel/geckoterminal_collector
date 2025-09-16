@@ -6,7 +6,7 @@ import asyncio
 import logging
 import time
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Dict, List, Optional, Any, Set
 
@@ -883,6 +883,20 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return records
     
+    def _ensure_timezone_aware(self, dt: datetime) -> datetime:
+        """
+        Ensure datetime is timezone-aware (UTC if naive).
+        
+        Args:
+            dt: Datetime to check
+            
+        Returns:
+            Timezone-aware datetime
+        """
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+    
     async def get_data_gaps(
         self,
         pool_id: str,
@@ -899,6 +913,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         - Validation of expected intervals based on timeframe
         """
         gaps = []
+        
+        # Ensure timezone consistency
+        start = self._ensure_timezone_aware(start)
+        end = self._ensure_timezone_aware(end)
         
         with self.connection.get_session() as session:
             # Get all records in the time range, ordered by datetime
@@ -934,10 +952,11 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             
             # Check for gap at the beginning
             first_expected = aligned_start
-            if records[0].datetime > first_expected:
+            first_record_time = self._ensure_timezone_aware(records[0].datetime)
+            if first_record_time > first_expected:
                 gaps.append(Gap(
                     start_time=first_expected,
-                    end_time=records[0].datetime,
+                    end_time=first_record_time,
                     pool_id=pool_id,
                     timeframe=timeframe
                 ))
@@ -946,8 +965,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             tolerance_seconds = min(60, interval_seconds // 10)  # 1 minute or 10% of interval
             
             for i in range(len(records) - 1):
-                current_time = records[i].datetime
-                next_time = records[i + 1].datetime
+                current_time = self._ensure_timezone_aware(records[i].datetime)
+                next_time = self._ensure_timezone_aware(records[i + 1].datetime)
                 expected_next = current_time + timedelta(seconds=interval_seconds)
                 
                 # Allow for small timing differences
@@ -960,7 +979,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     ))
             
             # Check for gap at the end
-            last_record_time = records[-1].datetime
+            last_record_time = self._ensure_timezone_aware(records[-1].datetime)
             expected_next = last_record_time + timedelta(seconds=interval_seconds)
             
             if expected_next <= aligned_end:
