@@ -155,8 +155,6 @@ class Trade(Base):
         # Partial indexes for better performance
         Index('idx_trades_high_volume', 'pool_id', 'block_timestamp', 
               postgresql_where=text('volume_usd > 1000')),
-        Index('idx_trades_recent', 'pool_id', 'volume_usd', 
-              postgresql_where=text("block_timestamp > NOW() - INTERVAL '7 days'")),
     )
 
 
@@ -198,11 +196,7 @@ class OHLCVData(Base):
         Index('idx_ohlcv_timeframe', 'timeframe'),
         Index('idx_ohlcv_volume_desc', 'volume_usd', postgresql_using='btree', postgresql_ops={'volume_usd': 'DESC'}),
         
-        # Partial indexes for common queries
-        Index('idx_ohlcv_recent_1h', 'pool_id', 'datetime', 
-              postgresql_where=text("timeframe = '1h' AND datetime > NOW() - INTERVAL '30 days'")),
-        Index('idx_ohlcv_recent_1d', 'pool_id', 'datetime', 
-              postgresql_where=text("timeframe = '1d' AND datetime > NOW() - INTERVAL '1 year'")),
+        # Partial indexes for common queries (removed NOW() indexes due to immutability issues)
     )
 
 
