@@ -184,6 +184,12 @@ class NewPoolsCollector(BaseDataCollector):
             # Ensure pool ID has proper network prefix
             pool_id = PoolIDUtils.normalize_pool_id(pool_id, self.network)
             
+            # Validate DEX ID - this is required for foreign key constraint
+            dex_id = attributes.get('dex_id', '').strip()
+            if not dex_id:
+                self.logger.warning(f"Pool {pool_id} has empty dex_id, skipping")
+                return None
+            
             # Parse pool creation timestamp
             pool_created_at = None
             created_at_str = attributes.get('pool_created_at')
@@ -196,13 +202,19 @@ class NewPoolsCollector(BaseDataCollector):
                 except (ValueError, TypeError) as e:
                     self.logger.warning(f"Failed to parse pool_created_at '{created_at_str}': {e}")
             
+            # Clean and validate other fields
+            address = attributes.get('address', '').strip()
+            name = attributes.get('name', '').strip()
+            base_token_id = attributes.get('base_token_id', '').strip()
+            quote_token_id = attributes.get('quote_token_id', '').strip()
+            
             return {
                 'id': pool_id,
-                'address': attributes.get('address', ''),
-                'name': attributes.get('name', ''),
-                'dex_id': attributes.get('dex_id', ''),
-                'base_token_id': attributes.get('base_token_id', ''),
-                'quote_token_id': attributes.get('quote_token_id', ''),
+                'address': address,
+                'name': name,
+                'dex_id': dex_id,
+                'base_token_id': base_token_id if base_token_id else None,
+                'quote_token_id': quote_token_id if quote_token_id else None,
                 'reserve_usd': Decimal(str(attributes.get('reserve_in_usd', 0))),
                 'created_at': pool_created_at,
                 'last_updated': datetime.now()
@@ -289,6 +301,7 @@ class NewPoolsCollector(BaseDataCollector):
     async def _ensure_pool_exists(self, pool_info: Dict) -> bool:
         """
         Ensure pool exists in the Pools table, create if it doesn't.
+        Also ensures required DEX and tokens exist.
         
         Args:
             pool_info: Pool information dictionary
@@ -302,6 +315,24 @@ class NewPoolsCollector(BaseDataCollector):
             if existing_pool:
                 self.logger.debug(f"Pool {pool_info['id']} already exists")
                 return False
+            
+            # Validate and ensure DEX exists before creating pool
+            dex_id = pool_info.get('dex_id', '').strip()
+            if not dex_id:
+                self.logger.warning(f"Pool {pool_info['id']} has empty dex_id, skipping")
+                return False
+            
+            # Ensure DEX exists
+            await self._ensure_dex_exists(dex_id)
+            
+            # Ensure tokens exist if provided
+            base_token_id = pool_info.get('base_token_id', '').strip()
+            quote_token_id = pool_info.get('quote_token_id', '').strip()
+            
+            if base_token_id:
+                await self._ensure_token_exists(base_token_id)
+            if quote_token_id:
+                await self._ensure_token_exists(quote_token_id)
             
             # Create new pool record with optimized storage
             pool = PoolModel(**pool_info)
@@ -318,6 +349,96 @@ class NewPoolsCollector(BaseDataCollector):
         except Exception as e:
             self.logger.error(f"Error ensuring pool exists for {pool_info.get('id')}: {e}")
             return False
+    
+    async def _ensure_dex_exists(self, dex_id: str) -> None:
+        """
+        Ensure DEX exists in the database, create if it doesn't.
+        
+        Args:
+            dex_id: DEX identifier
+        """
+        try:
+            from gecko_terminal_collector.database.models import DEX as DEXModel
+            
+            # Check if DEX already exists
+            existing_dex = await self.db_manager.get_dex_by_id(dex_id)
+            if existing_dex:
+                return
+            
+            # Create new DEX record with minimal information
+            dex_data = {
+                'id': dex_id,
+                'name': dex_id.replace('-', ' ').title(),  # Convert "pump-fun" to "Pump Fun"
+                'network': self.network,
+                'metadata_json': '{}'
+            }
+            
+            dex = DEXModel(**dex_data)
+            
+            # Store DEX
+            if hasattr(self.db_manager, 'store_dex'):
+                await self.db_manager.store_dex(dex)
+            else:
+                # Fallback to generic store method
+                with self.db_manager.connection.get_session() as session:
+                    session.add(dex)
+                    session.commit()
+            
+            self.logger.debug(f"Created new DEX: {dex_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error ensuring DEX exists for {dex_id}: {e}")
+            raise
+    
+    async def _ensure_token_exists(self, token_id: str) -> None:
+        """
+        Ensure token exists in the database, create if it doesn't.
+        
+        Args:
+            token_id: Token identifier (usually network_address format)
+        """
+        try:
+            from gecko_terminal_collector.database.models import Token as TokenModel
+            
+            # Check if token already exists
+            existing_token = await self.db_manager.get_token_by_id(token_id)
+            if existing_token:
+                return
+            
+            # Parse token ID to extract network and address
+            if '_' in token_id:
+                network, address = token_id.split('_', 1)
+            else:
+                network = self.network
+                address = token_id
+            
+            # Create new token record with minimal information
+            token_data = {
+                'id': token_id,
+                'address': address,
+                'network': network,
+                'name': f"Token {address[:8]}...",  # Placeholder name
+                'symbol': f"TKN{address[:4]}",  # Placeholder symbol
+                'metadata_json': '{}'
+            }
+            
+            token = TokenModel(**token_data)
+            
+            # Store token
+            if hasattr(self.db_manager, 'store_token'):
+                await self.db_manager.store_token(token)
+            else:
+                # Fallback to generic store method
+                with self.db_manager.connection.get_session() as session:
+                    session.add(token)
+                    session.commit()
+            
+            self.logger.debug(f"Created new token: {token_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error ensuring token exists for {token_id}: {e}")
+            # Don't raise for tokens - they're optional
+            pass
     
     async def _store_history_record(self, history_record: Dict) -> None:
         """
