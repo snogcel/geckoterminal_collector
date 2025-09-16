@@ -329,7 +329,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     # Use bulk_insert_mappings for new pools
                     pool_dicts = [self._pool_to_dict(pool_model) for pool_model in pool_models]
-                    session.bulk_insert_mappings(PoolModel, pool_dicts)
+                    session.bulk_insert_mappings(self.PoolModel, pool_dicts)
                     stored_count += len(new_pools)
                     
                 except IntegrityError:
@@ -375,7 +375,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     # Use bulk_update_mappings for existing pools
                     pool_dicts = [self._pool_to_dict(pool_model) for pool_model in pool_models]
-                    session.bulk_update_mappings(PoolModel, pool_dicts)
+                    session.bulk_update_mappings(self.PoolModel, pool_dicts)
                     
                 except Exception as e:
                     logger.warning(f"Bulk update failed, falling back to individual updates: {e}")
@@ -764,7 +764,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     # Use database-specific upsert for atomic operations
                     stmt = self._create_upsert_statement(
-                        OHLCVDataModel,
+                        self.OHLCVDataModel,
                         {
                             'pool_id': record.pool_id,
                             'timeframe': record.timeframe,
@@ -1298,10 +1298,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 db_url = str(self.connection.engine.url)
                 
                 if "sqlite" in db_url:
-                    stmt = sqlite_insert(TradeModel).values(trade_data)
+                    stmt = sqlite_insert(self.TradeModel).values(trade_data)
                     stmt = stmt.on_conflict_do_nothing()
                 elif "postgresql" in db_url:
-                    stmt = postgresql_insert(TradeModel).values(trade_data)
+                    stmt = postgresql_insert(self.TradeModel).values(trade_data)
                     stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
                 else:
                     # Fallback to regular insert
