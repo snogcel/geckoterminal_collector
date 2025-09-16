@@ -2896,8 +2896,17 @@ async def add_watchlist_command(args):
     try:
         from gecko_terminal_collector.config.manager import ConfigManager
         from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-        from gecko_terminal_collector.database.models import WatchlistEntry, Pool, DEX
         from datetime import datetime
+        
+        # Load configuration first to determine database type
+        manager = ConfigManager(args.config)
+        config = manager.load_config()
+        
+        # Use PostgreSQL models if database URL indicates PostgreSQL
+        if config.database.url.startswith(('postgresql://', 'postgres://')):
+            from gecko_terminal_collector.database.postgresql_models import WatchlistEntry, Pool, DEX
+        else:
+            from gecko_terminal_collector.database.models import WatchlistEntry, Pool, DEX
         
         print(f"Adding watchlist entry...")
         print(f"Pool ID: {args.pool_id}")
@@ -2917,10 +2926,6 @@ async def add_watchlist_command(args):
             return 1
         
         network, pool_address = args.pool_id.split('_', 1)
-        
-        # Load configuration
-        manager = ConfigManager(args.config)
-        config = manager.load_config()
         
         # Initialize database
         db_manager = SQLAlchemyDatabaseManager(config.database)
@@ -3041,24 +3046,24 @@ async def list_watchlist_command(args):
                         'token_symbol': entry.token_symbol,
                         'token_name': entry.token_name,
                         'network_address': entry.network_address,
-                        'added_at': entry.added_at.isoformat() if entry.added_at else None,
+                        'created_at': entry.created_at.isoformat() if entry.created_at else None,
                         'is_active': entry.is_active
                     })
                 print(json.dumps(entry_data, indent=2))
                 
             elif args.format == 'csv':
-                print("id,pool_id,token_symbol,token_name,network_address,added_at,is_active")
+                print("id,pool_id,token_symbol,token_name,network_address,created_at,is_active")
                 for entry in entries:
-                    added_at = entry.added_at.isoformat() if entry.added_at else ""
-                    print(f"{entry.id},{entry.pool_id},{entry.token_symbol or ''},{entry.token_name or ''},{entry.network_address or ''},{added_at},{entry.is_active}")
+                    created_at = entry.created_at.isoformat() if entry.created_at else ""
+                    print(f"{entry.id},{entry.pool_id},{entry.token_symbol or ''},{entry.token_name or ''},{entry.network_address or ''},{created_at},{entry.is_active}")
                     
             else:  # table format
                 print(f"{'ID':<5} {'Pool ID':<50} {'Symbol':<10} {'Name':<30} {'Active':<8} {'Added':<20}")
                 print("-" * 125)
                 for entry in entries:
-                    added_at = entry.added_at.strftime('%Y-%m-%d %H:%M:%S') if entry.added_at else ""
+                    created_at = entry.created_at.strftime('%Y-%m-%d %H:%M:%S') if entry.created_at else ""
                     name = (entry.token_name or "")[:28] + ".." if entry.token_name and len(entry.token_name) > 30 else (entry.token_name or "")
-                    print(f"{entry.id:<5} {entry.pool_id:<50} {entry.token_symbol or '':<10} {name:<30} {entry.is_active!s:<8} {added_at:<20}")
+                    print(f"{entry.id:<5} {entry.pool_id:<50} {entry.token_symbol or '':<10} {name:<30} {entry.is_active!s:<8} {created_at:<20}")
                 
                 print(f"\nTotal entries: {len(entries)}")
                 active_count = sum(1 for entry in entries if entry.is_active)

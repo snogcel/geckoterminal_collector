@@ -36,6 +36,9 @@ class DEX(Base):
     network = Column(String(20), nullable=False)
     last_updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
     
+    # Additional metadata (for PostgreSQL compatibility)
+    metadata_json = Column(Text, default="{}")  # JSON metadata
+    
     # Relationships
     pools = relationship("Pool", back_populates="dex", cascade="all, delete-orphan")
 
@@ -62,6 +65,9 @@ class Pool(Base):
     auto_discovered_at = Column(DateTime)  # When pool was auto-discovered
     last_activity_check = Column(DateTime)  # Last time activity was checked
     
+    # Additional metadata (for PostgreSQL compatibility)
+    metadata_json = Column(Text, default="{}")  # JSON metadata
+    
     # Relationships
     dex = relationship("DEX", back_populates="pools")
     ohlcv_data = relationship("OHLCVData", back_populates="pool", cascade="all, delete-orphan")
@@ -81,6 +87,9 @@ class Token(Base):
     decimals = Column(Integer)
     network = Column(String(20), nullable=False)
     last_updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    
+    # Additional metadata (for PostgreSQL compatibility)
+    metadata_json = Column(Text, default="{}")  # JSON metadata
 
 
 class OHLCVData(Base):
@@ -137,12 +146,18 @@ class WatchlistEntry(Base):
     __tablename__ = "watchlist"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    pool_id = Column(String(100), ForeignKey("pools.id"), nullable=False)
-    token_symbol = Column(String(20))
+    pool_id = Column(String(200), ForeignKey("pools.id"), nullable=False)
+    token_symbol = Column(String(50))
     token_name = Column(String(200))
     network_address = Column(String(100))
-    added_at = Column(DateTime, default=func.current_timestamp())
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Timestamps (PostgreSQL compatibility)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    
+    # Additional metadata (PostgreSQL compatibility)
+    metadata_json = Column(Text, default="{}")  # JSON metadata
     
     # Unique constraint to prevent duplicate watchlist entries
     __table_args__ = (

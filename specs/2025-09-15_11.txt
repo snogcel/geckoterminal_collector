@@ -1,0 +1,3 @@
+
+
+gecko-cli add-watchlist --pool-id solana_ABC123 --symbol YUGE --name "Yuge Token" --network-address 5LKH... --active true

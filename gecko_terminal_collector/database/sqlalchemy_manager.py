@@ -20,17 +20,7 @@ from sqlalchemy.orm import Session
 from gecko_terminal_collector.config.models import DatabaseConfig
 from gecko_terminal_collector.database.connection import DatabaseConnection
 from gecko_terminal_collector.database.manager import DatabaseManager
-from gecko_terminal_collector.database.models import (
-    CollectionMetadata as CollectionMetadataModel,
-    DEX as DEXModel,
-    DiscoveryMetadata as DiscoveryMetadataModel,
-    NewPoolsHistory as NewPoolsHistoryModel,
-    OHLCVData as OHLCVDataModel,
-    Pool as PoolModel,
-    Token as TokenModel,
-    Trade as TradeModel,
-    WatchlistEntry as WatchlistEntryModel,
-)
+# Import models dynamically based on database type in __init__
 from gecko_terminal_collector.models.core import (
     Gap,
     OHLCVRecord,
@@ -59,6 +49,43 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """
         super().__init__(config)
         self.connection = DatabaseConnection(config)
+        
+        # Import correct models based on database type
+        if config.url.startswith(('postgresql://', 'postgres://')):
+            from gecko_terminal_collector.database.postgresql_models import (
+                CollectionMetadata as CollectionMetadataModel,
+                DEX as DEXModel,
+                DiscoveryMetadata as DiscoveryMetadataModel,
+                NewPoolsHistory as NewPoolsHistoryModel,
+                OHLCVData as OHLCVDataModel,
+                Pool as PoolModel,
+                Token as TokenModel,
+                Trade as TradeModel,
+                WatchlistEntry as WatchlistEntryModel,
+            )
+        else:
+            from gecko_terminal_collector.database.models import (
+                CollectionMetadata as CollectionMetadataModel,
+                DEX as DEXModel,
+                DiscoveryMetadata as DiscoveryMetadataModel,
+                NewPoolsHistory as NewPoolsHistoryModel,
+                OHLCVData as OHLCVDataModel,
+                Pool as PoolModel,
+                Token as TokenModel,
+                Trade as TradeModel,
+                WatchlistEntry as WatchlistEntryModel,
+            )
+        
+        # Set as instance attributes for use throughout the class
+        self.CollectionMetadataModel = CollectionMetadataModel
+        self.DEXModel = DEXModel
+        self.DiscoveryMetadataModel = DiscoveryMetadataModel
+        self.NewPoolsHistoryModel = NewPoolsHistoryModel
+        self.OHLCVDataModel = OHLCVDataModel
+        self.PoolModel = PoolModel
+        self.TokenModel = TokenModel
+        self.TradeModel = TradeModel
+        self.WatchlistEntryModel = WatchlistEntryModel
         
         # Lock optimization settings
         self.max_retries = 3
@@ -390,7 +417,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return existing_ids
     
-    def _pool_to_dict(self, pool: PoolModel) -> Dict[str, Any]:
+    def _pool_to_dict(self, pool) -> Dict[str, Any]:
         """Convert pool model to dictionary for bulk operations."""
         return {
             'id': pool.id,
@@ -452,7 +479,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return pools
     
-    async def get_pools_needing_activity_update(self, cutoff_time: datetime) -> List[PoolModel]:
+    async def get_pools_needing_activity_update(self, cutoff_time: datetime):
         """
         Get pools that need activity score updates.
         
@@ -589,7 +616,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 )
         return None
     
-    async def get_token_by_id(self, token_id: str) -> Optional[TokenModel]:
+    async def get_token_by_id(self, token_id: str):
         """
         Get a token by ID (database model).
         
@@ -606,7 +633,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             logger.error(f"Error getting token by ID {token_id}: {e}")
             return None
     
-    async def store_token(self, token: TokenModel) -> None:
+    async def store_token(self, token) -> None:
         """
         Store a single token record.
         
@@ -637,7 +664,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 raise
     
     # DEX operations
-    async def store_dex_data(self, dexes: List[DEXModel]) -> int:
+    async def store_dex_data(self, dexes) -> int:
         """Store DEX data with upsert logic."""
         if not dexes:
             return 0
@@ -668,12 +695,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return stored_count
     
-    async def get_dex_by_id(self, dex_id: str) -> Optional[DEXModel]:
+    async def get_dex_by_id(self, dex_id: str):
         """Get a DEX by ID."""
         with self.connection.get_session() as session:
             return session.query(DEXModel).filter_by(id=dex_id).first()
     
-    async def store_dex(self, dex: DEXModel) -> None:
+    async def store_dex(self, dex) -> None:
         """
         Store a single DEX record.
         
@@ -700,7 +727,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error storing DEX {dex.id}: {e}")
                 raise
     
-    async def get_dexes_by_network(self, network: str) -> List[DEXModel]:
+    async def get_dexes_by_network(self, network: str):
         """Get all DEXes for a specific network."""
         with self.connection.get_session() as session:
             return session.query(DEXModel).filter_by(network=network).all()
@@ -1396,7 +1423,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error storing watchlist entry: {e}")
                 raise
     
-    async def add_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+    async def add_watchlist_entry(self, entry) -> None:
         """Add a new watchlist entry."""
         with self.connection.get_session() as session:
             try:
@@ -1413,10 +1440,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error adding watchlist entry: {e}")
                 raise
     
-    async def get_watchlist_entry_by_pool_id(self, pool_id: str) -> Optional[WatchlistEntryModel]:
+    async def get_watchlist_entry_by_pool_id(self, pool_id: str):
         """Get a watchlist entry by pool ID."""
         with self.connection.get_session() as session:
-            return session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+            return session.query(self.WatchlistEntryModel).filter_by(pool_id=pool_id).first()
     
     async def update_watchlist_entry_status(self, pool_id: str, is_active: bool) -> None:
         """Update the active status of a watchlist entry."""
@@ -1445,12 +1472,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return pool_ids
     
-    async def get_all_watchlist_entries(self) -> List[WatchlistEntryModel]:
+    async def get_all_watchlist_entries(self):
         """Get all watchlist entries."""
         with self.connection.get_session() as session:
             return session.query(WatchlistEntryModel).all()
     
-    async def get_active_watchlist_entries(self) -> List[WatchlistEntryModel]:
+    async def get_active_watchlist_entries(self):
         """Get all active watchlist entries."""
         with self.connection.get_session() as session:
             return session.query(WatchlistEntryModel).filter_by(is_active=True).all()
@@ -1835,7 +1862,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             logger.error(f"Error counting records in table {table_name}: {e}")
             return 0
     
-    async def store_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+    async def store_watchlist_entry(self, entry) -> None:
         """
         Store a watchlist entry.
         
@@ -1863,7 +1890,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error storing watchlist entry: {e}")
                 raise
     
-    async def update_watchlist_entry(self, entry: WatchlistEntryModel) -> None:
+    async def update_watchlist_entry(self, entry) -> None:
         """
         Update an existing watchlist entry.
         
@@ -1880,7 +1907,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error updating watchlist entry: {e}")
                 raise
     
-    async def get_pool_by_id(self, pool_id: str) -> Optional[PoolModel]:
+    async def get_pool_by_id(self, pool_id: str):
         """
         Get a pool by ID (database model).
         
@@ -1895,7 +1922,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             
             with self.connection.get_session() as session:
                 # First try exact match
-                pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                pool = session.query(self.PoolModel).filter_by(id=pool_id).first()
                 if pool:
                     return pool
                 
@@ -1904,14 +1931,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 if network:
                     # Try without network prefix
-                    pool = session.query(PoolModel).filter_by(id=address).first()
+                    pool = session.query(self.PoolModel).filter_by(id=address).first()
                     if pool:
                         return pool
                 else:
                     # Try with common network prefixes
                     for net in ['solana', 'ethereum', 'bsc', 'polygon']:
                         prefixed_id = f"{net}_{pool_id}"
-                        pool = session.query(PoolModel).filter_by(id=prefixed_id).first()
+                        pool = session.query(self.PoolModel).filter_by(id=prefixed_id).first()
                         if pool:
                             return pool
                 
@@ -1920,7 +1947,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             logger.error(f"Error getting pool by ID {pool_id}: {e}")
             return None
     
-    async def store_pool(self, pool: PoolModel) -> None:
+    async def store_pool(self, pool) -> None:
         """
         Store a single pool record.
         
@@ -1981,7 +2008,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
 
     # Discovery-specific database operations
     
-    async def bulk_store_pools(self, pools: List[PoolModel]) -> Dict[str, int]:
+    async def bulk_store_pools(self, pools) -> Dict[str, int]:
         """
         Bulk store pools with efficient upsert logic for discovery operations.
         
@@ -2034,7 +2061,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return stats
     
-    async def bulk_store_tokens(self, tokens: List[TokenModel]) -> Dict[str, int]:
+    async def bulk_store_tokens(self, tokens) -> Dict[str, int]:
         """
         Bulk store tokens with efficient upsert logic for discovery operations.
         
@@ -2138,7 +2165,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         min_score: Optional[Decimal] = None,
         max_score: Optional[Decimal] = None,
         limit: Optional[int] = None
-    ) -> List[PoolModel]:
+    ):
         """
         Get pools filtered by activity score range.
         
@@ -2170,7 +2197,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         self, 
         priority: str,
         limit: Optional[int] = None
-    ) -> List[PoolModel]:
+    ):
         """
         Get pools by collection priority.
         
@@ -2196,7 +2223,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         self, 
         source: str,
         limit: Optional[int] = None
-    ) -> List[PoolModel]:
+    ):
         """
         Get pools by discovery source.
         
@@ -2378,7 +2405,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         return deleted_count
     
-    async def ensure_foreign_key_dependencies(self, pools: List[PoolModel]) -> Dict[str, int]:
+    async def ensure_foreign_key_dependencies(self, pools) -> Dict[str, int]:
         """
         Ensure all foreign key dependencies exist before storing pools.
         Creates missing DEX records as needed to support discovery flow.
@@ -2458,7 +2485,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             # Default to solana as it's the primary network in this system
             return 'solana'
     
-    async def store_discovery_metadata(self, metadata: DiscoveryMetadataModel) -> None:
+    async def store_discovery_metadata(self, metadata) -> None:
         """
         Store discovery operation metadata.
         
@@ -2532,7 +2559,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             }
     
     # Discovery metadata operations
-    async def store_discovery_metadata(self, discovery_metadata: DiscoveryMetadataModel) -> None:
+    async def store_discovery_metadata(self, discovery_metadata) -> None:
         """
         Store discovery metadata record.
         
@@ -2556,7 +2583,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         limit: Optional[int] = None
-    ) -> List[DiscoveryMetadataModel]:
+    ):
         """
         Get discovery metadata records with optional filtering.
         
@@ -2592,7 +2619,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             
             return query.all()
     
-    async def get_latest_discovery_metadata(self, discovery_type: str, target_dex: Optional[str] = None) -> Optional[DiscoveryMetadataModel]:
+    async def get_latest_discovery_metadata(self, discovery_type: str, target_dex: Optional[str] = None):
         """
         Get the most recent discovery metadata record for a specific type and optional DEX.
         

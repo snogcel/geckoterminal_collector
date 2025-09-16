@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool, StaticPool
 
 from gecko_terminal_collector.config.models import DatabaseConfig
-from gecko_terminal_collector.database.models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +153,14 @@ class DatabaseConnection:
             raise RuntimeError("Database not initialized")
         
         logger.info("Creating database tables")
+        
+        # Import the correct Base depending on database type
+        db_url = str(self.engine.url)
+        if db_url.startswith(('postgresql://', 'postgres://')):
+            from gecko_terminal_collector.database.postgresql_models import Base
+        else:
+            from gecko_terminal_collector.database.models import Base
+            
         Base.metadata.create_all(bind=self.engine)
         logger.info("Database tables created successfully")
     
@@ -163,6 +170,14 @@ class DatabaseConnection:
             raise RuntimeError("Async database not initialized")
         
         logger.info("Creating database tables (async)")
+        
+        # Import the correct Base depending on database type
+        db_url = str(self.async_engine.url)
+        if db_url.startswith(('postgresql://', 'postgres://')):
+            from gecko_terminal_collector.database.postgresql_models import Base
+        else:
+            from gecko_terminal_collector.database.models import Base
+            
         async with self.async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully (async)")
