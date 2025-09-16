@@ -1,0 +1,72 @@
+
+https://dexscreener.com/solana/cnd9cktg6meujqku9nkseriagzpsbqpzv5qwq5b44spz
+
+pool_id: Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz
+ExfkY8EwGfNkJWns2CApCGa6PsQYuJiM6NudRcFNpump
+
+gecko-cli add-watchlist --pool-id solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz --symbol "UNEMPLOYED/SOL" --name "UNEMPLOYED/SOL" --network-addressExfkY8EwGfNkJWns2CApCGa6PsQYuJiM6NudRcFNpump --active true
+
+
+
+Elevator Pitch Idea:
+
+In a sea of bullshit tokens, how does one go about finding diamonds in the rough?
+
+With a proven data collection platform, and world class analytics, I can predict unnatural market movements.
+
+More information soon to come, at blackcircletechnologies.com.
+
+__ continue collecting data, for a few days on new tokens.
+
+__ collect data on existing tokens, and progress on this project. [X]
+
+
+python -m gecko_terminal_collector.cli add-watchlist --pool-id solana_ --symbol "" --name "" --network-address  --active true
+
+
+_________________
+
+In a sea of bullshit tokens, how does one go about finding hidden gems? How does one sift through the nonsense and clarify it into sharp signals.
+
+With a proven data collection platform, and world class analytics, I can predict unnatural market movements.
+
+More information soon to come, at blackcircletechnologies.com.
+
+________________
+
+
+
+In a quickly evolving financial space, how does one go about filtering out the noise? How does one sift through the nonsense and clarify it into sharp signals. With a proven data collection platform, and world class analytics, I can predict unnatural market movements.
+
+More information soon to come, potentially at blackcircletechnologies.com.
+
+
+
+
+________________
+
+As a sole proprietor:
+
+In a quickly evolving financial space, how does one go about filtering out the noise? How does one sift through the nonsense and clarify it into sharp signals. With a proven data collection platform, and world class analytics, I can predict unnatural market movements.
+
+Found 1 matching record(s).  Viewing page 1 of 1. # 	ID Number 	Document Number 	Name Click here to sort in ascending order. 	Event 	Status 	Form 	Formation Date
+1 	20171009600  	20171009600  	Black Circle Technologies, LLC 	Articles of Organization  	Good Standing  	DLLC  	01/04/2017  
+
+
+Details
+Name 	Black Circle Technologies, LLC
+Status 	Good Standing 	Formation date 	01/04/2017
+ID number 	20171009600 	Form 	Limited Liability Company
+Periodic report month 	January 	Jurisdiction 	Colorado
+Principal office street address 	2145 E 103rd Pl, Thornton, CO 80229, US
+Principal office mailing address 	2145 E 103rd Pl, Thornton, CO 80229, US
+Registered Agent
+Name 	Jonathan Kindel
+Street address 	2145 E 103rd Pl, Thornton, CO 80229, US
+Mailing address 	2145 E 103rd Pl, Thornton, CO 80229, US
+
+________________
+
+
+
+

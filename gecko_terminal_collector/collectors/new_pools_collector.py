@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from gecko_terminal_collector.collectors.base import BaseDataCollector
 from gecko_terminal_collector.models.core import CollectionResult, ValidationResult
-from gecko_terminal_collector.database.models import Pool, NewPoolsHistory
+from gecko_terminal_collector.database.models import Pool as PoolModel, NewPoolsHistory
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
 
@@ -304,7 +304,7 @@ class NewPoolsCollector(BaseDataCollector):
                 return False
             
             # Create new pool record with optimized storage
-            pool = Pool(**pool_info)
+            pool = PoolModel(**pool_info)
             
             # Use optimized storage if available
             if hasattr(self.db_manager, 'store_pools_optimized'):

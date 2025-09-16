@@ -281,15 +281,37 @@ class DiscoveryMetadata(Base):
 
 
 class NewPoolsHistory(Base):
-    """New pools history model for PostgreSQL."""
+    """New pools history model for PostgreSQL with comprehensive tracking."""
     
     __tablename__ = 'new_pools_history'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    pool_id = Column(String(200), ForeignKey('pools.id'), nullable=False)
+    pool_id = Column(String(200), nullable=False)
+    type = Column(String(20), default='pool')
+    name = Column(String(255))
+    base_token_price_usd = Column(Numeric(20, 10))
+    base_token_price_native_currency = Column(Numeric(20, 10))
+    quote_token_price_usd = Column(Numeric(20, 10))
+    quote_token_price_native_currency = Column(Numeric(20, 10))
+    address = Column(String(255))
+    reserve_in_usd = Column(Numeric(20, 4))
+    pool_created_at = Column(TIMESTAMP(timezone=True))
+    fdv_usd = Column(Numeric(20, 4))
+    market_cap_usd = Column(Numeric(20, 4))
+    price_change_percentage_h1 = Column(Numeric(10, 4))
+    price_change_percentage_h24 = Column(Numeric(10, 4))
+    transactions_h1_buys = Column(Integer)
+    transactions_h1_sells = Column(Integer)
+    transactions_h24_buys = Column(Integer)
+    transactions_h24_sells = Column(Integer)
+    volume_usd_h24 = Column(Numeric(20, 4))
+    dex_id = Column(String(100))
+    base_token_id = Column(String(255))
+    quote_token_id = Column(String(255))
+    network_id = Column(String(50))
     collected_at = Column(TIMESTAMP(timezone=True), nullable=False, default=func.now())
     
-    # Discovery metadata
+    # Discovery metadata (optional fields for backward compatibility)
     discovery_source = Column(String(50))
     api_response_data = Column(JSONB)
     
@@ -298,6 +320,8 @@ class NewPoolsHistory(Base):
         UniqueConstraint('pool_id', 'collected_at', name='uq_new_pools_history_pool_collected'),
         Index('idx_new_pools_history_pool_id', 'pool_id'),
         Index('idx_new_pools_history_collected_at', 'collected_at'),
+        Index('idx_new_pools_history_network_id', 'network_id'),
+        Index('idx_new_pools_history_dex_id', 'dex_id'),
     )
 
 

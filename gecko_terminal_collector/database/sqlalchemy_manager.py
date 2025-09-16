@@ -244,10 +244,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             try:
                 for pool in pools:
                     # Check if DEX exists, create if not
-                    dex = session.query(DEXModel).filter_by(id=pool.dex_id).first()
+                    dex = session.query(self.DEXModel).filter_by(id=pool.dex_id).first()
                     if not dex:
                         # Create a basic DEX entry - this should ideally be handled by DEX collector
-                        dex = DEXModel(
+                        dex = self.DEXModel(
                             id=pool.dex_id,
                             name=pool.dex_id.title(),  # Use ID as name for now
                             network="solana"  # Default to Solana
@@ -255,7 +255,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         session.add(dex)
                     
                     # Upsert pool
-                    existing_pool = session.query(PoolModel).filter_by(id=pool.id).first()
+                    existing_pool = session.query(self.PoolModel).filter_by(id=pool.id).first()
                     if existing_pool:
                         # Update existing pool
                         existing_pool.address = pool.address
@@ -266,7 +266,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         existing_pool.last_updated = datetime.utcnow()
                     else:
                         # Create new pool
-                        new_pool = PoolModel(
+                        new_pool = self.PoolModel(
                             id=pool.id,
                             address=pool.address,
                             name=pool.name,
@@ -315,7 +315,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     # Convert to PoolModel instances for bulk insert
                     pool_models = []
                     for pool in new_pools:
-                        pool_model = PoolModel(
+                        pool_model = self.PoolModel(
                             id=pool.id,
                             address=pool.address,
                             name=pool.name,
@@ -339,7 +339,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     # Fall back to individual upserts
                     for pool in new_pools:
                         try:
-                            pool_model = PoolModel(
+                            pool_model = self.PoolModel(
                                 id=pool.id,
                                 address=pool.address,
                                 name=pool.name,
@@ -360,7 +360,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     # Convert to PoolModel instances for bulk update
                     pool_models = []
                     for pool in update_pools:
-                        pool_model = PoolModel(
+                        pool_model = self.PoolModel(
                             id=pool.id,
                             address=pool.address,
                             name=pool.name,
@@ -383,7 +383,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     # Fall back to individual updates
                     for pool in update_pools:
-                        pool_model = PoolModel(
+                        pool_model = self.PoolModel(
                             id=pool.id,
                             address=pool.address,
                             name=pool.name,
@@ -408,8 +408,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.optimized_session(read_only=True) as session:
             try:
-                result = session.query(PoolModel.id).filter(
-                    PoolModel.id.in_(pool_ids)
+                result = session.query(self.PoolModel.id).filter(
+                    self.PoolModel.id.in_(pool_ids)
                 ).all()
                 existing_ids = {row.id for row in result}
             except Exception as e:
@@ -439,7 +439,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     async def get_pool(self, pool_id: str) -> Optional[Pool]:
         """Get a pool by ID."""
         with self.connection.get_session() as session:
-            pool_model = session.query(PoolModel).filter_by(id=pool_id).first()
+            pool_model = session.query(self.PoolModel).filter_by(id=pool_id).first()
             if pool_model:
                 return Pool(
                     id=pool_model.id,
@@ -463,7 +463,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         pools = []
         
         with self.connection.get_session() as session:
-            pool_models = session.query(PoolModel).filter_by(dex_id=dex_id).all()
+            pool_models = session.query(self.PoolModel).filter_by(dex_id=dex_id).all()
             
             for pool_model in pool_models:
                 pools.append(Pool(
@@ -499,19 +499,19 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 # Query for pools needing activity updates
-                query = session.query(PoolModel).filter(
+                query = session.query(self.PoolModel).filter(
                     and_(
                         # Only auto-discovered pools
                         or_(
-                            PoolModel.discovery_source == 'auto',
-                            PoolModel.discovery_source == 'auto_new'
+                            self.PoolModel.discovery_source == 'auto',
+                            self.PoolModel.discovery_source == 'auto_new'
                         ),
                         # Not paused
-                        PoolModel.collection_priority != 'paused',
+                        self.PoolModel.collection_priority != 'paused',
                         # Not checked recently or never checked
                         or_(
-                            PoolModel.last_activity_check.is_(None),
-                            PoolModel.last_activity_check < cutoff_time
+                            self.PoolModel.last_activity_check.is_(None),
+                            self.PoolModel.last_activity_check < cutoff_time
                         )
                     )
                 ).limit(100)  # Limit to prevent overwhelming the system
@@ -546,7 +546,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     print(token.id)
                     print("---")
 
-                    existing_token = session.query(TokenModel).filter_by(id=token.id).first()
+                    existing_token = session.query(self.TokenModel).filter_by(id=token.id).first()
 
                     print("---")
                     print("existing_token: ", vars(existing_token) if existing_token else None)
@@ -568,7 +568,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
 
                     else:
                         # Create new token
-                        new_token = TokenModel(
+                        new_token = self.TokenModel(
                             id=token.id,
                             address=token.address,
                             name=token.name,
@@ -599,7 +599,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         lookup_id = prefix + '_' + token_id
 
         with self.connection.get_session() as session:
-            token_model = session.query(TokenModel).filter_by(id=lookup_id).first()
+            token_model = session.query(self.TokenModel).filter_by(id=lookup_id).first()
             
             #print("--retrieved token_model: ")
             #print(vars(token_model))
@@ -628,7 +628,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """
         try:
             with self.connection.get_session() as session:
-                return session.query(TokenModel).filter_by(id=token_id).first()
+                return session.query(self.TokenModel).filter_by(id=token_id).first()
         except Exception as e:
             logger.error(f"Error getting token by ID {token_id}: {e}")
             return None
@@ -648,7 +648,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except IntegrityError:
                 session.rollback()
                 # Token already exists, update it
-                existing = session.query(TokenModel).filter_by(id=token.id).first()
+                existing = session.query(self.TokenModel).filter_by(id=token.id).first()
                 if existing:
                     existing.address = token.address
                     existing.name = token.name
@@ -674,7 +674,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 for dex in dexes:
-                    existing_dex = session.query(DEXModel).filter_by(id=dex.id).first()
+                    existing_dex = session.query(self.DEXModel).filter_by(id=dex.id).first()
                     if existing_dex:
                         # Update existing DEX
                         existing_dex.name = dex.name
@@ -698,7 +698,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     async def get_dex_by_id(self, dex_id: str):
         """Get a DEX by ID."""
         with self.connection.get_session() as session:
-            return session.query(DEXModel).filter_by(id=dex_id).first()
+            return session.query(self.DEXModel).filter_by(id=dex_id).first()
     
     async def store_dex(self, dex) -> None:
         """
@@ -715,7 +715,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except IntegrityError:
                 session.rollback()
                 # DEX already exists, update it
-                existing = session.query(DEXModel).filter_by(id=dex.id).first()
+                existing = session.query(self.DEXModel).filter_by(id=dex.id).first()
                 if existing:
                     existing.name = dex.name
                     existing.network = dex.network
@@ -730,7 +730,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     async def get_dexes_by_network(self, network: str):
         """Get all DEXes for a specific network."""
         with self.connection.get_session() as session:
-            return session.query(DEXModel).filter_by(network=network).all()
+            return session.query(self.DEXModel).filter_by(network=network).all()
     
     # OHLCV operations
     async def store_ohlcv_data(self, data: List[OHLCVRecord]) -> int:
@@ -781,11 +781,11 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     )
                     
                     # Check if record exists to determine if it's an insert or update
-                    existing = session.query(OHLCVDataModel).filter(
+                    existing = session.query(self.OHLCVDataModel).filter(
                         and_(
-                            OHLCVDataModel.pool_id == record.pool_id,
-                            OHLCVDataModel.timeframe == record.timeframe,
-                            OHLCVDataModel.timestamp == record.timestamp
+                            self.OHLCVDataModel.pool_id == record.pool_id,
+                            self.OHLCVDataModel.timeframe == record.timeframe,
+                            self.OHLCVDataModel.timestamp == record.timestamp
                         )
                     ).first()
                     
@@ -854,19 +854,19 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         records = []
         
         with self.connection.get_session() as session:
-            query = session.query(OHLCVDataModel).filter(
+            query = session.query(self.OHLCVDataModel).filter(
                 and_(
-                    OHLCVDataModel.pool_id == pool_id,
-                    OHLCVDataModel.timeframe == timeframe
+                    self.OHLCVDataModel.pool_id == pool_id,
+                    self.OHLCVDataModel.timeframe == timeframe
                 )
             )
             
             if start_time:
-                query = query.filter(OHLCVDataModel.datetime >= start_time)
+                query = query.filter(self.OHLCVDataModel.datetime >= start_time)
             if end_time:
-                query = query.filter(OHLCVDataModel.datetime <= end_time)
+                query = query.filter(self.OHLCVDataModel.datetime <= end_time)
             
-            query = query.order_by(OHLCVDataModel.datetime)
+            query = query.order_by(self.OHLCVDataModel.datetime)
             
             for record_model in query.all():
                 records.append(OHLCVRecord(
@@ -902,14 +902,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             # Get all records in the time range, ordered by datetime
-            records = session.query(OHLCVDataModel).filter(
+            records = session.query(self.OHLCVDataModel).filter(
                 and_(
-                    OHLCVDataModel.pool_id == pool_id,
-                    OHLCVDataModel.timeframe == timeframe,
-                    OHLCVDataModel.datetime >= start,
-                    OHLCVDataModel.datetime <= end
+                    self.OHLCVDataModel.pool_id == pool_id,
+                    self.OHLCVDataModel.timeframe == timeframe,
+                    self.OHLCVDataModel.datetime >= start,
+                    self.OHLCVDataModel.datetime <= end
                 )
-            ).order_by(OHLCVDataModel.datetime).all()
+            ).order_by(self.OHLCVDataModel.datetime).all()
             
             if not records:
                 # No data at all - entire range is a gap
@@ -1045,13 +1045,13 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 ids_to_check = []                
 
-                #existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
+                #existing_ids = session.query(self.TradeModel.id).filter(self.TradeModel.id.in_(ids_to_check)).all()
                 #existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
                 
                 for record in data:
                     ids_to_check.append(record.id)
                 
-                existing_ids = session.query(TradeModel.id).filter(TradeModel.id.in_(ids_to_check)).all()
+                existing_ids = session.query(self.TradeModel.id).filter(self.TradeModel.id.in_(ids_to_check)).all()
                 existing_ids_set = {id_tuple[0] for id_tuple in existing_ids}
                 non_existent_ids = [id_val for id_val in ids_to_check if id_val not in existing_ids_set]
 
@@ -1078,7 +1078,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     #print(pool_id_with_prefix)
                     #print("---")
 
-                    new_trade = TradeModel(
+                    new_trade = self.TradeModel(
                                 id=record.id,
                                 pool_id=pool_id_with_prefix,
                                 block_number=record.block_number,
@@ -1136,10 +1136,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         # Check if trade already exists
                         
                         # causing issues by overloading SQLite
-                        existing_trade = session.query(TradeModel).filter_by(id=record.id).first()
+                        existing_trade = session.query(self.TradeModel).filter_by(id=record.id).first()
                         
                         if not existing_trade:
-                            new_trade = TradeModel(
+                            new_trade = self.TradeModel(
                                 id=record.id,
                                 pool_id=record.pool_id,
                                 block_number=record.block_number,
@@ -1246,8 +1246,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             with self.optimized_session(read_only=True) as session:
                 try:
                     # Use efficient query with index
-                    result = session.query(TradeModel.id).filter(
-                        TradeModel.id.in_(batch_ids)
+                    result = session.query(self.TradeModel.id).filter(
+                        self.TradeModel.id.in_(batch_ids)
                     ).all()
                     
                     batch_existing = {row.id for row in result}
@@ -1305,7 +1305,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
                 else:
                     # Fallback to regular insert
-                    stmt = TradeModel.__table__.insert().values(trade_data)
+                    stmt = self.TradeModel.__table__.insert().values(trade_data)
                 
                 result = session.execute(stmt)
                 stored_count = result.rowcount
@@ -1364,16 +1364,16 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         records = []
         
         with self.connection.get_session() as session:
-            query = session.query(TradeModel).filter(TradeModel.pool_id == pool_id)
+            query = session.query(self.TradeModel).filter(self.TradeModel.pool_id == pool_id)
             
             if start_time:
-                query = query.filter(TradeModel.block_timestamp >= start_time)
+                query = query.filter(self.TradeModel.block_timestamp >= start_time)
             if end_time:
-                query = query.filter(TradeModel.block_timestamp <= end_time)
+                query = query.filter(self.TradeModel.block_timestamp <= end_time)
             if min_volume_usd:
-                query = query.filter(TradeModel.volume_usd >= min_volume_usd)
+                query = query.filter(self.TradeModel.volume_usd >= min_volume_usd)
             
-            query = query.order_by(desc(TradeModel.block_timestamp))
+            query = query.order_by(desc(self.TradeModel.block_timestamp))
             
             for record_model in query.all():
                 records.append(TradeRecord(
@@ -1397,7 +1397,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """Add or update a watchlist entry."""
         with self.connection.get_session() as session:
             try:
-                existing_entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                existing_entry = session.query(self.WatchlistEntryModel).filter_by(pool_id=pool_id).first()
                 if existing_entry:
                     # Update existing entry
                     existing_entry.token_symbol = metadata.get('token_symbol')
@@ -1406,7 +1406,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     existing_entry.is_active = True
                 else:
                     # Create new entry
-                    new_entry = WatchlistEntryModel(
+                    new_entry = self.WatchlistEntryModel(
                         pool_id=pool_id,
                         token_symbol=metadata.get('token_symbol'),
                         token_name=metadata.get('token_name'),
@@ -1449,7 +1449,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """Update the active status of a watchlist entry."""
         with self.connection.get_session() as session:
             try:
-                entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                entry = session.query(self.WatchlistEntryModel).filter_by(pool_id=pool_id).first()
                 if entry:
                     entry.is_active = is_active
                     session.commit()
@@ -1467,7 +1467,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         pool_ids = []
         
         with self.connection.get_session() as session:
-            entries = session.query(WatchlistEntryModel).filter_by(is_active=True).all()
+            entries = session.query(self.WatchlistEntryModel).filter_by(is_active=True).all()
             pool_ids = [entry.pool_id for entry in entries]
         
         return pool_ids
@@ -1475,18 +1475,18 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     async def get_all_watchlist_entries(self):
         """Get all watchlist entries."""
         with self.connection.get_session() as session:
-            return session.query(WatchlistEntryModel).all()
+            return session.query(self.WatchlistEntryModel).all()
     
     async def get_active_watchlist_entries(self):
         """Get all active watchlist entries."""
         with self.connection.get_session() as session:
-            return session.query(WatchlistEntryModel).filter_by(is_active=True).all()
+            return session.query(self.WatchlistEntryModel).filter_by(is_active=True).all()
     
     async def update_watchlist_entry_fields(self, pool_id: str, update_data: Dict[str, Any]) -> None:
         """Update specific fields of a watchlist entry."""
         with self.connection.get_session() as session:
             try:
-                entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                entry = session.query(self.WatchlistEntryModel).filter_by(pool_id=pool_id).first()
                 
                 if entry:
                     for field, value in update_data.items():
@@ -1507,7 +1507,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """Remove a pool from the watchlist."""
         with self.connection.get_session() as session:
             try:
-                entry = session.query(WatchlistEntryModel).filter_by(pool_id=pool_id).first()
+                entry = session.query(self.WatchlistEntryModel).filter_by(pool_id=pool_id).first()
                 if entry:
                     entry.is_active = False
                     session.commit()
@@ -1529,7 +1529,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         """Update collection run metadata."""
         with self.connection.get_session() as session:
             try:
-                metadata = session.query(CollectionMetadataModel).filter_by(
+                metadata = session.query(self.CollectionMetadataModel).filter_by(
                     collector_type=collector_type
                 ).first()
                 
@@ -1544,7 +1544,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         metadata.last_error = error_message
                 else:
                     # Create new metadata
-                    metadata = CollectionMetadataModel(
+                    metadata = self.CollectionMetadataModel(
                         collector_type=collector_type,
                         last_run=last_run,
                         last_success=last_run if success else None,
@@ -1565,7 +1565,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     async def get_collection_metadata(self, collector_type: str) -> Optional[Dict[str, Any]]:
         """Get collection metadata for a collector type."""
         with self.connection.get_session() as session:
-            metadata = session.query(CollectionMetadataModel).filter_by(
+            metadata = session.query(self.CollectionMetadataModel).filter_by(
                 collector_type=collector_type
             ).first()
             
@@ -1598,7 +1598,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             # Check if pool exists
-            pool = session.query(PoolModel).filter_by(id=pool_id).first()
+            pool = session.query(self.PoolModel).filter_by(id=pool_id).first()
             if not pool:
                 integrity_report['issues_found'].append(f"Pool {pool_id} not found")
                 integrity_report['data_quality_score'] = 0.0
@@ -1631,14 +1631,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         issues = []
         
         # Check for invalid price relationships
-        invalid_prices = session.query(OHLCVDataModel).filter(
+        invalid_prices = session.query(self.OHLCVDataModel).filter(
             and_(
-                OHLCVDataModel.pool_id == pool_id,
+                self.OHLCVDataModel.pool_id == pool_id,
                 or_(
-                    OHLCVDataModel.high_price < OHLCVDataModel.low_price,
-                    OHLCVDataModel.open_price < 0,
-                    OHLCVDataModel.close_price < 0,
-                    OHLCVDataModel.volume_usd < 0
+                    self.OHLCVDataModel.high_price < self.OHLCVDataModel.low_price,
+                    self.OHLCVDataModel.open_price < 0,
+                    self.OHLCVDataModel.close_price < 0,
+                    self.OHLCVDataModel.volume_usd < 0
                 )
             )
         ).count()
@@ -1648,17 +1648,17 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         # Check for duplicate timestamps
         duplicate_timestamps = session.query(
-            OHLCVDataModel.pool_id,
-            OHLCVDataModel.timeframe,
-            OHLCVDataModel.timestamp,
-            func.count(OHLCVDataModel.id).label('count')
+            self.OHLCVDataModel.pool_id,
+            self.OHLCVDataModel.timeframe,
+            self.OHLCVDataModel.timestamp,
+            func.count(self.OHLCVDataModel.id).label('count')
         ).filter(
-            OHLCVDataModel.pool_id == pool_id
+            self.OHLCVDataModel.pool_id == pool_id
         ).group_by(
-            OHLCVDataModel.pool_id,
-            OHLCVDataModel.timeframe,
-            OHLCVDataModel.timestamp
-        ).having(func.count(OHLCVDataModel.id) > 1).all()
+            self.OHLCVDataModel.pool_id,
+            self.OHLCVDataModel.timeframe,
+            self.OHLCVDataModel.timestamp
+        ).having(func.count(self.OHLCVDataModel.id) > 1).all()
         
         if duplicate_timestamps:
             issues.append(f"Found {len(duplicate_timestamps)} duplicate OHLCV timestamps")
@@ -1670,12 +1670,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         issues = []
         
         # Check for invalid trade amounts
-        invalid_trades = session.query(TradeModel).filter(
+        invalid_trades = session.query(self.TradeModel).filter(
             and_(
-                TradeModel.pool_id == pool_id,
+                self.TradeModel.pool_id == pool_id,
                 or_(
-                    TradeModel.volume_usd < 0,
-                    TradeModel.price_usd < 0
+                    self.TradeModel.volume_usd < 0,
+                    self.TradeModel.price_usd < 0
                 )
             )
         ).count()
@@ -1684,12 +1684,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             issues.append(f"Found {invalid_trades} trade records with invalid amounts")
         
         # Check for trades with missing critical data
-        incomplete_trades = session.query(TradeModel).filter(
+        incomplete_trades = session.query(self.TradeModel).filter(
             and_(
-                TradeModel.pool_id == pool_id,
+                self.TradeModel.pool_id == pool_id,
                 or_(
-                    TradeModel.block_timestamp.is_(None),
-                    TradeModel.volume_usd.is_(None)
+                    self.TradeModel.block_timestamp.is_(None),
+                    self.TradeModel.volume_usd.is_(None)
                 )
             )
         ).count()
@@ -1715,15 +1715,15 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             # OHLCV statistics
-            ohlcv_count = session.query(OHLCVDataModel).filter_by(pool_id=pool_id).count()
+            ohlcv_count = session.query(self.OHLCVDataModel).filter_by(pool_id=pool_id).count()
             stats['ohlcv_stats']['total_records'] = ohlcv_count
             
             if ohlcv_count > 0:
                 # Get timeframe distribution
                 timeframe_dist = session.query(
-                    OHLCVDataModel.timeframe,
-                    func.count(OHLCVDataModel.id).label('count')
-                ).filter_by(pool_id=pool_id).group_by(OHLCVDataModel.timeframe).all()
+                    self.OHLCVDataModel.timeframe,
+                    func.count(self.OHLCVDataModel.id).label('count')
+                ).filter_by(pool_id=pool_id).group_by(self.OHLCVDataModel.timeframe).all()
                 
                 stats['ohlcv_stats']['timeframe_distribution'] = {
                     tf: count for tf, count in timeframe_dist
@@ -1731,8 +1731,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 # Get date range
                 date_range = session.query(
-                    func.min(OHLCVDataModel.datetime).label('earliest'),
-                    func.max(OHLCVDataModel.datetime).label('latest')
+                    func.min(self.OHLCVDataModel.datetime).label('earliest'),
+                    func.max(self.OHLCVDataModel.datetime).label('latest')
                 ).filter_by(pool_id=pool_id).first()
                 
                 stats['ohlcv_stats']['date_range'] = {
@@ -1741,15 +1741,15 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 }
             
             # Trade statistics
-            trade_count = session.query(TradeModel).filter_by(pool_id=pool_id).count()
+            trade_count = session.query(self.TradeModel).filter_by(pool_id=pool_id).count()
             stats['trade_stats']['total_records'] = trade_count
             
             if trade_count > 0:
                 # Get volume statistics
                 volume_stats = session.query(
-                    func.sum(TradeModel.volume_usd).label('total_volume'),
-                    func.avg(TradeModel.volume_usd).label('avg_volume'),
-                    func.max(TradeModel.volume_usd).label('max_volume')
+                    func.sum(self.TradeModel.volume_usd).label('total_volume'),
+                    func.avg(self.TradeModel.volume_usd).label('avg_volume'),
+                    func.max(self.TradeModel.volume_usd).label('max_volume')
                 ).filter_by(pool_id=pool_id).first()
                 
                 stats['trade_stats']['volume'] = {
@@ -1760,8 +1760,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 # Get date range
                 trade_date_range = session.query(
-                    func.min(TradeModel.block_timestamp).label('earliest'),
-                    func.max(TradeModel.block_timestamp).label('latest')
+                    func.min(self.TradeModel.block_timestamp).label('earliest'),
+                    func.max(self.TradeModel.block_timestamp).label('latest')
                 ).filter_by(pool_id=pool_id).first()
                 
                 stats['trade_stats']['date_range'] = {
@@ -1791,14 +1791,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 # Delete old OHLCV data
-                ohlcv_deleted = session.query(OHLCVDataModel).filter(
-                    OHLCVDataModel.datetime < cutoff_date
+                ohlcv_deleted = session.query(self.OHLCVDataModel).filter(
+                    self.OHLCVDataModel.datetime < cutoff_date
                 ).delete()
                 cleanup_stats['ohlcv_deleted'] = ohlcv_deleted
                 
                 # Delete old trade data
-                trades_deleted = session.query(TradeModel).filter(
-                    TradeModel.block_timestamp < cutoff_date
+                trades_deleted = session.query(self.TradeModel).filter(
+                    self.TradeModel.block_timestamp < cutoff_date
                 ).delete()
                 cleanup_stats['trades_deleted'] = trades_deleted
                 
@@ -1841,17 +1841,17 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         try:
             with self.connection.get_session() as session:
                 if table_name == 'pools':
-                    return session.query(PoolModel).count()
+                    return session.query(self.PoolModel).count()
                 elif table_name == 'tokens':
-                    return session.query(TokenModel).count()
+                    return session.query(self.TokenModel).count()
                 elif table_name == 'ohlcv_data':
-                    return session.query(OHLCVDataModel).count()
+                    return session.query(self.OHLCVDataModel).count()
                 elif table_name == 'trades':
-                    return session.query(TradeModel).count()
+                    return session.query(self.TradeModel).count()
                 elif table_name == 'watchlist':
-                    return session.query(WatchlistEntryModel).count()
+                    return session.query(self.WatchlistEntryModel).count()
                 elif table_name == 'dexes':
-                    return session.query(DEXModel).count()
+                    return session.query(self.DEXModel).count()
                 elif table_name == 'new_pools_history':
                     from gecko_terminal_collector.database.models import NewPoolsHistory
                     return session.query(NewPoolsHistory).count()
@@ -1877,7 +1877,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except IntegrityError:
                 session.rollback()
                 # Entry already exists, update it
-                existing = session.query(WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
+                existing = session.query(self.WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
                 if existing:
                     existing.token_symbol = entry.token_symbol
                     existing.token_name = entry.token_name
@@ -1962,7 +1962,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             except IntegrityError:
                 session.rollback()
                 # Pool already exists, update it
-                existing = session.query(PoolModel).filter_by(id=pool.id).first()
+                existing = session.query(self.PoolModel).filter_by(id=pool.id).first()
                 if existing:
                     existing.address = pool.address
                     existing.name = pool.name
@@ -2027,8 +2027,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             try:
                 # Get existing pool IDs in batch
                 pool_ids = [pool.id for pool in pools]
-                existing_pools = session.query(PoolModel.id).filter(
-                    PoolModel.id.in_(pool_ids)
+                existing_pools = session.query(self.PoolModel.id).filter(
+                    self.PoolModel.id.in_(pool_ids)
                 ).all()
                 existing_ids = {pool_id[0] for pool_id in existing_pools}
                 
@@ -2080,8 +2080,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             try:
                 # Get existing token IDs in batch
                 token_ids = [token.id for token in tokens]
-                existing_tokens = session.query(TokenModel.id).filter(
-                    TokenModel.id.in_(token_ids)
+                existing_tokens = session.query(self.TokenModel.id).filter(
+                    self.TokenModel.id.in_(token_ids)
                 ).all()
                 existing_ids = {token_id[0] for token_id in existing_tokens}
                 
@@ -2133,7 +2133,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             try:
                 for pool_data in pools_data:
                     pool_id = pool_data['id']
-                    existing_pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    existing_pool = session.query(self.PoolModel).filter_by(id=pool_id).first()
                     
                     if existing_pool:
                         # Update existing pool with discovery data
@@ -2144,7 +2144,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         stats['updated'] += 1
                     else:
                         # Create new pool with discovery data
-                        new_pool = PoolModel(**pool_data)
+                        new_pool = self.PoolModel(**pool_data)
                         if not hasattr(new_pool, 'created_at') or new_pool.created_at is None:
                             new_pool.created_at = datetime.utcnow()
                         session.add(new_pool)
@@ -2178,15 +2178,15 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             List of PoolModel instances matching criteria
         """
         with self.connection.get_session() as session:
-            query = session.query(PoolModel)
+            query = session.query(self.PoolModel)
             
             if min_score is not None:
-                query = query.filter(PoolModel.activity_score >= min_score)
+                query = query.filter(self.PoolModel.activity_score >= min_score)
             if max_score is not None:
-                query = query.filter(PoolModel.activity_score <= max_score)
+                query = query.filter(self.PoolModel.activity_score <= max_score)
             
             # Order by activity score descending (highest first)
-            query = query.order_by(desc(PoolModel.activity_score))
+            query = query.order_by(desc(self.PoolModel.activity_score))
             
             if limit:
                 query = query.limit(limit)
@@ -2209,10 +2209,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             List of PoolModel instances with specified priority
         """
         with self.connection.get_session() as session:
-            query = session.query(PoolModel).filter_by(collection_priority=priority)
+            query = session.query(self.PoolModel).filter_by(collection_priority=priority)
             
             # Order by activity score descending within priority
-            query = query.order_by(desc(PoolModel.activity_score))
+            query = query.order_by(desc(self.PoolModel.activity_score))
             
             if limit:
                 query = query.limit(limit)
@@ -2235,10 +2235,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             List of PoolModel instances from specified source
         """
         with self.connection.get_session() as session:
-            query = session.query(PoolModel).filter_by(discovery_source=source)
+            query = session.query(self.PoolModel).filter_by(discovery_source=source)
             
             # Order by discovery time descending (most recent first)
-            query = query.order_by(desc(PoolModel.auto_discovered_at))
+            query = query.order_by(desc(self.PoolModel.auto_discovered_at))
             
             if limit:
                 query = query.limit(limit)
@@ -2263,7 +2263,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 for pool_id, score in pool_scores.items():
-                    pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    pool = session.query(self.PoolModel).filter_by(id=pool_id).first()
                     if pool:
                         pool.activity_score = score
                         pool.last_activity_check = datetime.utcnow()
@@ -2297,7 +2297,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 for pool_id, priority in pool_priorities.items():
-                    pool = session.query(PoolModel).filter_by(id=pool_id).first()
+                    pool = session.query(self.PoolModel).filter_by(id=pool_id).first()
                     if pool:
                         pool.collection_priority = priority
                         pool.last_updated = datetime.utcnow()
@@ -2338,15 +2338,15 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 # Find pools that haven't been active recently
-                inactive_pools = session.query(PoolModel).filter(
+                inactive_pools = session.query(self.PoolModel).filter(
                     and_(
-                        PoolModel.discovery_source.in_(['auto', 'auto_new']),  # Only auto-discovered
-                        PoolModel.collection_priority != 'paused',  # Not already paused
+                        self.PoolModel.discovery_source.in_(['auto', 'auto_new']),  # Only auto-discovered
+                        self.PoolModel.collection_priority != 'paused',  # Not already paused
                         or_(
-                            PoolModel.last_activity_check < cutoff_date,
+                            self.PoolModel.last_activity_check < cutoff_date,
                             and_(
-                                PoolModel.activity_score.isnot(None),
-                                PoolModel.activity_score < min_activity_score
+                                self.PoolModel.activity_score.isnot(None),
+                                self.PoolModel.activity_score < min_activity_score
                             )
                         )
                     )
@@ -2391,8 +2391,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             try:
-                deleted_count = session.query(DiscoveryMetadataModel).filter(
-                    DiscoveryMetadataModel.created_at < cutoff_date
+                deleted_count = session.query(self.DiscoveryMetadataModel).filter(
+                    self.DiscoveryMetadataModel.created_at < cutoff_date
                 ).delete()
                 
                 session.commit()
@@ -2430,8 +2430,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     return stats
                 
                 # Check which DEXes already exist
-                existing_dexes = session.query(DEXModel.id).filter(
-                    DEXModel.id.in_(dex_ids)
+                existing_dexes = session.query(self.DEXModel.id).filter(
+                    self.DEXModel.id.in_(dex_ids)
                 ).all()
                 existing_dex_ids = {dex_id[0] for dex_id in existing_dexes}
                 
@@ -2442,7 +2442,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 for dex_id in missing_dex_ids:
                     # Create basic DEX record - this should ideally be populated by discovery
-                    new_dex = DEXModel(
+                    new_dex = self.DEXModel(
                         id=dex_id,
                         name=dex_id.replace('_', ' ').title(),  # Basic name from ID
                         network=self._infer_network_from_dex_id(dex_id),
@@ -2520,12 +2520,12 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         cutoff_date = datetime.utcnow() - timedelta(days=days_back)
         
         with self.connection.get_session() as session:
-            query = session.query(DiscoveryMetadataModel).filter(
-                DiscoveryMetadataModel.created_at >= cutoff_date
+            query = session.query(self.DiscoveryMetadataModel).filter(
+                self.DiscoveryMetadataModel.created_at >= cutoff_date
             )
             
             if discovery_type:
-                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+                query = query.filter(self.DiscoveryMetadataModel.discovery_type == discovery_type)
             
             records = query.all()
             
@@ -2598,21 +2598,21 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             List of DiscoveryMetadata records
         """
         with self.connection.get_session() as session:
-            query = session.query(DiscoveryMetadataModel)
+            query = session.query(self.DiscoveryMetadataModel)
             
             if discovery_type:
-                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+                query = query.filter(self.DiscoveryMetadataModel.discovery_type == discovery_type)
             
             if target_dex:
-                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+                query = query.filter(self.DiscoveryMetadataModel.target_dex == target_dex)
             
             if start_time:
-                query = query.filter(DiscoveryMetadataModel.discovery_time >= start_time)
+                query = query.filter(self.DiscoveryMetadataModel.discovery_time >= start_time)
             
             if end_time:
-                query = query.filter(DiscoveryMetadataModel.discovery_time <= end_time)
+                query = query.filter(self.DiscoveryMetadataModel.discovery_time <= end_time)
             
-            query = query.order_by(desc(DiscoveryMetadataModel.discovery_time))
+            query = query.order_by(desc(self.DiscoveryMetadataModel.discovery_time))
             
             if limit:
                 query = query.limit(limit)
@@ -2631,14 +2631,14 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             Most recent DiscoveryMetadata record or None
         """
         with self.connection.get_session() as session:
-            query = session.query(DiscoveryMetadataModel).filter(
-                DiscoveryMetadataModel.discovery_type == discovery_type
+            query = session.query(self.DiscoveryMetadataModel).filter(
+                self.DiscoveryMetadataModel.discovery_type == discovery_type
             )
             
             if target_dex:
-                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+                query = query.filter(self.DiscoveryMetadataModel.target_dex == target_dex)
             
-            return query.order_by(desc(DiscoveryMetadataModel.discovery_time)).first()
+            return query.order_by(desc(self.DiscoveryMetadataModel.discovery_time)).first()
     
     async def get_discovery_statistics(
         self,
@@ -2661,15 +2661,15 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         start_time = end_time - timedelta(days=days)
         
         with self.connection.get_session() as session:
-            query = session.query(DiscoveryMetadataModel).filter(
-                DiscoveryMetadataModel.discovery_time >= start_time
+            query = session.query(self.DiscoveryMetadataModel).filter(
+                self.DiscoveryMetadataModel.discovery_time >= start_time
             )
             
             if discovery_type:
-                query = query.filter(DiscoveryMetadataModel.discovery_type == discovery_type)
+                query = query.filter(self.DiscoveryMetadataModel.discovery_type == discovery_type)
             
             if target_dex:
-                query = query.filter(DiscoveryMetadataModel.target_dex == target_dex)
+                query = query.filter(self.DiscoveryMetadataModel.target_dex == target_dex)
             
             records = query.all()
             
@@ -2720,8 +2720,8 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         
         with self.connection.get_session() as session:
             try:
-                deleted_count = session.query(DiscoveryMetadataModel).filter(
-                    DiscoveryMetadataModel.created_at < cutoff_time
+                deleted_count = session.query(self.DiscoveryMetadataModel).filter(
+                    self.DiscoveryMetadataModel.created_at < cutoff_time
                 ).delete()
                 
                 session.commit()
