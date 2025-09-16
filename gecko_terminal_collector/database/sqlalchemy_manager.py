@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Any, Set
 from sqlalchemy import and_, desc, func, or_, select, text
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
@@ -71,15 +72,17 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         # Create tables if they don't exist
         self.connection.create_tables()
         
-        # Apply SQLite optimizations
-        self._apply_sqlite_optimizations()
+        # Apply database optimizations
+        self._apply_database_optimizations()
         
         logger.info("SQLAlchemy database manager initialized")
     
-    def _apply_sqlite_optimizations(self):
-        """Apply SQLite-specific optimizations for better concurrency."""
+    def _apply_database_optimizations(self):
+        """Apply database-specific optimizations for better performance."""
         try:
-            if "sqlite" in str(self.connection.engine.url):
+            db_url = str(self.connection.engine.url)
+            
+            if "sqlite" in db_url:
                 with self.connection.engine.connect() as conn:
                     # Enable WAL mode for better concurrency
                     conn.execute(text("PRAGMA journal_mode=WAL"))
@@ -95,20 +98,54 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     conn.commit()
                 logger.info("Applied SQLite concurrency optimizations")
+                
+            elif "postgresql" in db_url:
+                # PostgreSQL is already optimized by default
+                # Could add specific PostgreSQL optimizations here if needed
+                logger.info("Using PostgreSQL database - no additional optimizations needed")
+                
         except Exception as e:
-            logger.warning(f"Failed to apply SQLite optimizations: {e}")
+            logger.warning(f"Failed to apply database optimizations: {e}")
+    
+    def _create_upsert_statement(self, model_class, values, conflict_columns, update_columns):
+        """Create database-specific upsert statement."""
+        db_url = str(self.connection.engine.url)
+        
+        if "sqlite" in db_url:
+            # SQLite upsert
+            stmt = sqlite_insert(model_class).values(values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=conflict_columns,
+                set_={col: getattr(stmt.excluded, col) for col in update_columns}
+            )
+        elif "postgresql" in db_url:
+            # PostgreSQL upsert
+            stmt = postgresql_insert(model_class).values(values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=conflict_columns,
+                set_={col: getattr(stmt.excluded, col) for col in update_columns}
+            )
+        else:
+            # Fallback to regular insert
+            stmt = model_class.__table__.insert().values(values)
+            
+        return stmt
     
     @contextmanager
     def optimized_session(self, read_only=False):
         """Get database session with optimized settings for lock avoidance."""
         session = self.connection.get_session()
         try:
-            if read_only:
-                # For read operations, use shared cache
-                session.execute(text("PRAGMA query_only=1"))
-            else:
-                # For write operations, use immediate transaction
-                session.execute(text("BEGIN IMMEDIATE"))
+            db_url = str(self.connection.engine.url)
+            
+            if "sqlite" in db_url:
+                if read_only:
+                    # For read operations, use shared cache
+                    session.execute(text("PRAGMA query_only=1"))
+                else:
+                    # For write operations, use immediate transaction
+                    session.execute(text("BEGIN IMMEDIATE"))
+            # PostgreSQL doesn't need special session configuration
             
             yield session
             
@@ -698,17 +735,22 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     
                     database_id = "solana_"+record.pool_id
                     
-                    # Use SQLite's INSERT OR REPLACE for atomic upsert
-                    stmt = sqlite_insert(OHLCVDataModel).values(
-                        pool_id=record.pool_id,
-                        timeframe=record.timeframe,
-                        timestamp=record.timestamp,
-                        open_price=record.open_price,
-                        high_price=record.high_price,
-                        low_price=record.low_price,
-                        close_price=record.close_price,
-                        volume_usd=record.volume_usd,
-                        datetime=record.datetime,
+                    # Use database-specific upsert for atomic operations
+                    stmt = self._create_upsert_statement(
+                        OHLCVDataModel,
+                        {
+                            'pool_id': record.pool_id,
+                            'timeframe': record.timeframe,
+                            'timestamp': record.timestamp,
+                            'open_price': record.open_price,
+                            'high_price': record.high_price,
+                            'low_price': record.low_price,
+                            'close_price': record.close_price,
+                            'volume_usd': record.volume_usd,
+                            'datetime': record.datetime,
+                        },
+                        conflict_columns=['pool_id', 'timeframe', 'timestamp'],
+                        update_columns=['open_price', 'high_price', 'low_price', 'close_price', 'volume_usd', 'datetime']
                     )
                     
                     # Check if record exists to determine if it's an insert or update
@@ -721,18 +763,6 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     ).first()
                     
                     if existing:
-                        # Update existing record
-                        stmt = stmt.on_conflict_do_update(
-                            index_elements=['pool_id', 'timeframe', 'timestamp'],
-                            set_=dict(
-                                open_price=stmt.excluded.open_price,
-                                high_price=stmt.excluded.high_price,
-                                low_price=stmt.excluded.low_price,
-                                close_price=stmt.excluded.close_price,
-                                volume_usd=stmt.excluded.volume_usd,
-                                datetime=stmt.excluded.datetime,
-                            )
-                        )
                         updated_count += 1
                     else:
                         stored_count += 1
@@ -1237,9 +1267,18 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         'block_timestamp': record.block_timestamp,
                     })
                 
-                # Use SQLite's INSERT OR IGNORE for atomic conflict handling
-                stmt = sqlite_insert(TradeModel).values(trade_data)
-                stmt = stmt.on_conflict_do_nothing()
+                # Use database-specific INSERT OR IGNORE for atomic conflict handling
+                db_url = str(self.connection.engine.url)
+                
+                if "sqlite" in db_url:
+                    stmt = sqlite_insert(TradeModel).values(trade_data)
+                    stmt = stmt.on_conflict_do_nothing()
+                elif "postgresql" in db_url:
+                    stmt = postgresql_insert(TradeModel).values(trade_data)
+                    stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
+                else:
+                    # Fallback to regular insert
+                    stmt = TradeModel.__table__.insert().values(trade_data)
                 
                 result = session.execute(stmt)
                 stored_count = result.rowcount
@@ -2688,22 +2727,35 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 metrics['query_latency_ms'] = (time.time() - start_time) * 1000
                 metrics['connection_status'] = 'healthy'
                 
-                # Check SQLite configuration
-                journal_result = session.execute(text("PRAGMA journal_mode")).fetchone()
-                metrics['journal_mode'] = journal_result[0] if journal_result else 'unknown'
-                metrics['wal_mode_enabled'] = metrics['journal_mode'].upper() == 'WAL'
+                # Check database-specific configuration
+                db_url = str(self.connection.engine.url)
                 
-                timeout_result = session.execute(text("PRAGMA busy_timeout")).fetchone()
-                metrics['busy_timeout_ms'] = timeout_result[0] if timeout_result else 0
-                
-                cache_result = session.execute(text("PRAGMA cache_size")).fetchone()
-                metrics['cache_size'] = cache_result[0] if cache_result else 0
-                
-                # Determine optimization status
-                if metrics['wal_mode_enabled'] and metrics['busy_timeout_ms'] > 0:
-                    metrics['optimization_status'] = 'optimized'
-                else:
-                    metrics['optimization_status'] = 'needs_optimization'
+                if "sqlite" in db_url:
+                    # SQLite configuration checks
+                    journal_result = session.execute(text("PRAGMA journal_mode")).fetchone()
+                    metrics['journal_mode'] = journal_result[0] if journal_result else 'unknown'
+                    metrics['wal_mode_enabled'] = metrics['journal_mode'].upper() == 'WAL'
+                    
+                    timeout_result = session.execute(text("PRAGMA busy_timeout")).fetchone()
+                    metrics['busy_timeout_ms'] = timeout_result[0] if timeout_result else 0
+                    
+                    cache_result = session.execute(text("PRAGMA cache_size")).fetchone()
+                    metrics['cache_size'] = cache_result[0] if cache_result else 0
+                    
+                    # Determine optimization status
+                    if metrics['wal_mode_enabled'] and metrics['busy_timeout_ms'] > 0:
+                        metrics['optimization_status'] = 'optimized'
+                    else:
+                        metrics['optimization_status'] = 'needs_optimization'
+                        
+                elif "postgresql" in db_url:
+                    # PostgreSQL configuration checks
+                    version_result = session.execute(text("SELECT version()")).fetchone()
+                    metrics['database_version'] = version_result[0] if version_result else 'unknown'
+                    
+                    # Check connection pool status
+                    metrics['optimization_status'] = 'optimized'  # PostgreSQL is optimized by default
+                    metrics['database_type'] = 'postgresql'
                 
         except OperationalError as e:
             if "database is locked" in str(e).lower():

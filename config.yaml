@@ -37,7 +37,7 @@ timeframes:
 
 # Database Configuration
 database:
-  url: "sqlite:///gecko_data.db"  # Database connection URL
+  url: "postgresql://gecko_collector:12345678!@localhost:5432/gecko_terminal_collector"  # Database connection URL
   pool_size: 10                   # Connection pool size
   echo: false                     # Enable SQL query logging
   timeout: 30                     # Connection timeout (seconds)
