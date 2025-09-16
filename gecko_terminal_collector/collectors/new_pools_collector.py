@@ -163,6 +163,7 @@ class NewPoolsCollector(BaseDataCollector):
     def _extract_pool_info(self, pool_data: Dict) -> Optional[Dict]:
         """
         Extract essential pool information for the Pools table.
+        Handles both nested (attributes) and flat data formats.
         
         Args:
             pool_data: Raw pool data from API
@@ -173,7 +174,13 @@ class NewPoolsCollector(BaseDataCollector):
         try:
             from gecko_terminal_collector.utils.pool_id_utils import PoolIDUtils
             
+            # Handle both data formats: nested in 'attributes' or flat structure
             attributes = pool_data.get('attributes', {})
+            
+            # Helper function to get field from either attributes or root level
+            def get_field(field_name, default=''):
+                # Try attributes first, then root level
+                return attributes.get(field_name, pool_data.get(field_name, default))
             
             # Validate required fields
             pool_id = pool_data.get('id')
@@ -185,14 +192,14 @@ class NewPoolsCollector(BaseDataCollector):
             pool_id = PoolIDUtils.normalize_pool_id(pool_id, self.network)
             
             # Validate DEX ID - this is required for foreign key constraint
-            dex_id = attributes.get('dex_id', '').strip()
+            dex_id = get_field('dex_id', '').strip()
             if not dex_id:
                 self.logger.warning(f"Pool {pool_id} has empty dex_id, skipping")
                 return None
             
             # Parse pool creation timestamp
             pool_created_at = None
-            created_at_str = attributes.get('pool_created_at')
+            created_at_str = get_field('pool_created_at')
             if created_at_str:
                 try:
                     # Handle ISO format with Z suffix
@@ -203,10 +210,10 @@ class NewPoolsCollector(BaseDataCollector):
                     self.logger.warning(f"Failed to parse pool_created_at '{created_at_str}': {e}")
             
             # Clean and validate other fields
-            address = attributes.get('address', '').strip()
-            name = attributes.get('name', '').strip()
-            base_token_id = attributes.get('base_token_id', '').strip()
-            quote_token_id = attributes.get('quote_token_id', '').strip()
+            address = get_field('address', '').strip()
+            name = get_field('name', '').strip()
+            base_token_id = get_field('base_token_id', '').strip()
+            quote_token_id = get_field('quote_token_id', '').strip()
             
             return {
                 'id': pool_id,
@@ -215,7 +222,7 @@ class NewPoolsCollector(BaseDataCollector):
                 'dex_id': dex_id,
                 'base_token_id': base_token_id if base_token_id else None,
                 'quote_token_id': quote_token_id if quote_token_id else None,
-                'reserve_usd': Decimal(str(attributes.get('reserve_in_usd', 0))),
+                'reserve_usd': Decimal(str(get_field('reserve_in_usd', 0))),
                 'created_at': pool_created_at,
                 'last_updated': datetime.now()
             }
@@ -227,6 +234,7 @@ class NewPoolsCollector(BaseDataCollector):
     def _create_history_record(self, pool_data: Dict) -> Optional[Dict]:
         """
         Create comprehensive historical record for predictive modeling.
+        Handles both nested (attributes) and flat data formats.
         
         Args:
             pool_data: Raw pool data from API
@@ -235,11 +243,17 @@ class NewPoolsCollector(BaseDataCollector):
             Dictionary with history record data or None if creation fails
         """
         try:
+            # Handle both data formats: nested in 'attributes' or flat structure
             attributes = pool_data.get('attributes', {})
+            
+            # Helper function to get field from either attributes or root level
+            def get_field(field_name, default=None):
+                # Try attributes first, then root level
+                return attributes.get(field_name, pool_data.get(field_name, default))
             
             # Parse pool creation timestamp
             pool_created_at = None
-            created_at_str = attributes.get('pool_created_at')
+            created_at_str = get_field('pool_created_at')
             if created_at_str:
                 try:
                     if created_at_str.endswith('Z'):
@@ -270,27 +284,27 @@ class NewPoolsCollector(BaseDataCollector):
             return {
                 'pool_id': pool_data.get('id'),
                 'type': pool_data.get('type', 'pool'),
-                'name': attributes.get('name'),
-                'base_token_price_usd': safe_decimal(attributes.get('base_token_price_usd')),
-                'base_token_price_native_currency': safe_decimal(attributes.get('base_token_price_native_currency')),
-                'quote_token_price_usd': safe_decimal(attributes.get('quote_token_price_usd')),
-                'quote_token_price_native_currency': safe_decimal(attributes.get('quote_token_price_native_currency')),
-                'address': attributes.get('address'),
-                'reserve_in_usd': safe_decimal(attributes.get('reserve_in_usd')),
+                'name': get_field('name'),
+                'base_token_price_usd': safe_decimal(get_field('base_token_price_usd')),
+                'base_token_price_native_currency': safe_decimal(get_field('base_token_price_native_currency')),
+                'quote_token_price_usd': safe_decimal(get_field('quote_token_price_usd')),
+                'quote_token_price_native_currency': safe_decimal(get_field('quote_token_price_native_currency')),
+                'address': get_field('address'),
+                'reserve_in_usd': safe_decimal(get_field('reserve_in_usd')),
                 'pool_created_at': pool_created_at,
-                'fdv_usd': safe_decimal(attributes.get('fdv_usd')),
-                'market_cap_usd': safe_decimal(attributes.get('market_cap_usd')),
-                'price_change_percentage_h1': safe_decimal(attributes.get('price_change_percentage_h1')),
-                'price_change_percentage_h24': safe_decimal(attributes.get('price_change_percentage_h24')),
-                'transactions_h1_buys': safe_int(attributes.get('transactions_h1_buys')),
-                'transactions_h1_sells': safe_int(attributes.get('transactions_h1_sells')),
-                'transactions_h24_buys': safe_int(attributes.get('transactions_h24_buys')),
-                'transactions_h24_sells': safe_int(attributes.get('transactions_h24_sells')),
-                'volume_usd_h24': safe_decimal(attributes.get('volume_usd_h24')),
-                'dex_id': attributes.get('dex_id'),
-                'base_token_id': attributes.get('base_token_id'),
-                'quote_token_id': attributes.get('quote_token_id'),
-                'network_id': attributes.get('network_id', self.network),
+                'fdv_usd': safe_decimal(get_field('fdv_usd')),
+                'market_cap_usd': safe_decimal(get_field('market_cap_usd')),
+                'price_change_percentage_h1': safe_decimal(get_field('price_change_percentage_h1')),
+                'price_change_percentage_h24': safe_decimal(get_field('price_change_percentage_h24')),
+                'transactions_h1_buys': safe_int(get_field('transactions_h1_buys')),
+                'transactions_h1_sells': safe_int(get_field('transactions_h1_sells')),
+                'transactions_h24_buys': safe_int(get_field('transactions_h24_buys')),
+                'transactions_h24_sells': safe_int(get_field('transactions_h24_sells')),
+                'volume_usd_h24': safe_decimal(get_field('volume_usd_h24')),
+                'dex_id': get_field('dex_id'),
+                'base_token_id': get_field('base_token_id'),
+                'quote_token_id': get_field('quote_token_id'),
+                'network_id': get_field('network_id', self.network),
                 'collected_at': datetime.now()
             }
             

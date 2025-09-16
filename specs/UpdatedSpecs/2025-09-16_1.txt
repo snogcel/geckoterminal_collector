@@ -140,3 +140,42 @@ Expected Results:
 The system should now handle new pools collection smoothly, automatically creating any missing dependencies and properly validating data before insertion into PostgreSQL.
 
 
+Perfect! The fixes have been applied and the IDE has auto-formatted the file. The implementation should now handle both issues:
+
+🎯 What We Fixed
+1. TradeModel Import Issue ✅
+Confirmed the import works correctly
+No code changes needed - was likely a transient issue
+2. Foreign Key Constraint Violation ✅
+Added robust validation to prevent empty dex_id values
+Implemented automatic DEX and token creation
+Enhanced error handling and logging
+🧪 Ready for Testing
+The system is now ready for testing. When you run your new pools collection, you should see:
+
+Expected Behavior:
+✅ Pools with empty dex_id will be skipped with a warning log
+✅ Valid pools will have their DEX automatically created if missing
+✅ Tokens will be auto-created with placeholder data if missing
+✅ No more foreign key constraint violations
+✅ Better logging showing what's happening
+Test Commands:
+# Test new pools collection
+gecko-cli collect-new-pools --network solana
+
+# Or test with the enhanced collector
+gecko-cli run-collector new-pools --network solana --auto-watchlist
+What to Look For:
+Warning logs for pools with empty dex_id (these will be skipped)
+Debug logs showing DEX/token creation: "Created new DEX: pump-fun"
+Success logs for pool creation: "Created new pool: solana_xxxxx"
+No database constraint errors
+The fixes are comprehensive and should handle the edge cases that were causing issues in your PostgreSQL upgrade. Let me know how the testing goes!
+
+
+
+
+How to execute this with scheduler?
+
+python examples/cli_with_scheduler.py start
+
