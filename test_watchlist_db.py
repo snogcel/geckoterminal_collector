@@ -36,9 +36,9 @@ async def test_watchlist_db():
         else:
             for entry in all_entries:
                 status = "🟢 Active" if entry.is_active else "🔴 Inactive"
-                print(f"   {status} {entry.symbol} ({entry.pool_id})")
-                print(f"      Name: {entry.name or 'N/A'}")
-                print(f"      Added: {entry.added_at}")
+                print(f"   {status} {entry.token_symbol or 'N/A'} ({entry.pool_id})")
+                print(f"      Name: {entry.token_name or 'N/A'}")
+                print(f"      Added: {entry.created_at}")
                 print()
         
         # Get only active entries
@@ -49,7 +49,7 @@ async def test_watchlist_db():
             print("   No active entries found")
         else:
             for entry in active_entries:
-                print(f"   {entry.symbol} - {entry.name or 'N/A'}")
+                print(f"   {entry.token_symbol or 'N/A'} - {entry.token_name or 'N/A'}")
         
         print(f"\n📊 Summary:")
         print(f"   Total entries: {len(all_entries)}")
