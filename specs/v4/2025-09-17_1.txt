@@ -1,0 +1,334 @@
+
+TODO:
+
+## Work on Updated Test Scripts for system data workflow:
+
+
+
+# watchlist --> new_pools_history: integrated test suite
+
+This script tests all watchlist operations:
+
+Adding entries with all fields
+Listing in different formats (table, CSV, JSON)
+Updating specific fields
+Removing entries
+Verification of changes
+
+###
+
+###
+# Document most important functions in system, as well as CLI architecture
+# Review all documentation and organize it into a single unified resource (too scattered right now)
+
+
+
+
+
+###
+# extract trade, ohlcv data from database for CaseStudy_1 (in progress)
+
+SELECT * FROM ohlcv_data;
+SELECT * FROM trades;
+
+#
+
+
+
+
+python examples/cli_with_scheduler.py start
+gecko-cli add-watchlist --pool-id solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC --symbol "Xoai / SOL" --name "Xoai / SOL" --network-address 6zRAjv9VUyouvDYuJYE8FBsj2rrhSneMr7gcZpFtafXp --active true
+
+# Backup
+python quick_backup.py
+
+
+# Create Backup Before Migration:
+python quick_backup.py
+python simple_backup.py --list
+
+
+# Run the Signal Analysis Migration:
+python migrations/add_signal_fields_to_new_pools_history.py
+
+# Test the New System:
+python test_signal_analysis_system.py
+
+# If Issues Occur, Restore:
+python restore_database_backup.py ./backups/quick_backup_YYYYMMDD_HHMMSS
+
+#### Brainstorming
+# new_pools_history -- do I want to capture history records here for data collection purposes?
+
+Database Migration
+✅ Successfully added 6 new signal analysis fields to new_pools_history
+✅ Created optimized indexes for signal queries
+✅ Zero data loss during migration
+
+Signal Analysis Engine
+✅ NewPoolsSignalAnalyzer working perfectly
+✅ 5 signal components: volume, liquidity, momentum, activity, volatility
+✅ Weighted scoring system (0-100)
+✅ Auto-watchlist integration
+
+Enhanced Data Collection
+✅ NewPoolsCollector enhanced with signal analysis
+✅ Increased collection frequency (30m → 10m)
+✅ Real-time signal calculation and storage
+✅ Auto-watchlist functionality
+
+
+
+
+# Organize Documentation
+
+# DATABASE_BACKUP_GUIDE.md
+
+
+
+
+python -m gecko_terminal_collector.cli collect-new-pools --network solana --auto-watchlist
+
+
+python simple_backup.py --list  # Check backups
+# Monitor logs for signal detections
+
+
+
+843	solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC	2025-09-16 20:00:29			9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC	6zRAjv9VUyouvDYuJYE8FBsj2rrhSneMr7gcZpFtafXp	0.0000000291	0.0000068720	pump-fun	6872.0198		Xoai / SOL	solana	2025-09-16 19:59:23	3.7300	3.7300	So11111111111111111111111111111111111111112	1.0000000000	236.2671344924	5449.3803	2	2	2	2	pool	676.2247
+
+
+
+
+
+
+
+
+python migrations/add_signal_fields_to_new_pools_history.py
+
+
+
+## top_pools_solana
+#
+
+
+
+## new_pools_solana
+#
+SELECT * FROM pools;
+
+
+
+## trade_collector
+#
+SELECT * FROM trades;
+
+
+
+## watchlist_monitor
+#
+SELECT * FROM watchlist;
+
+
+
+## dex_monitoring_solana
+#
+SELECT * FROM dexes;
+
+
+
+## watchlist_collector
+#
+SELECT * FROM watchlist;
+
+
+
+## ohlcv_collector
+#
+SELECT * FROM ohlcv_data;
+
+
+
+#2 
+
+# 1. Run the comprehensive test script
+python examples/test_enhanced_watchlist_cli.py
+
+# 2. Check database directly
+python test_watchlist_db.py
+
+# 3. Test with real data collection
+python -m gecko_terminal_collector.cli collect-new-pools --network solana --auto-watchlist --dry-run
+
+# 4. Verify the results
+python -m gecko_terminal_collector.cli list-watchlist --format table
+
+
+TODO:
+
+#1 Test Watchlist Functionality (with mental clarity)
+
+(c:\Projects\geckoterminal_collector\.conda) C:\Projects\geckoterminal_collector>python examples/test_enhanced_watchlist_cli.py
+🧪 Testing Enhanced Watchlist CLI Functionality
+============================================================
+
+1️⃣ Testing add-watchlist with all fields
+----------------------------------------
+
+Adding entry 1: CBRL
+❌ Failed to add CBRL
+   Error: INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+Adding entry 2: TROLL
+❌ Failed to add TROLL
+   Error: INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+
+2️⃣ Testing list-watchlist with different formats
+--------------------------------------------------
+
+Listing entries in table format:
+✅ Successfully listed entries in table format
+Output:
+ID    Pool ID                                            Symbol     Name                           Active   Added
+-----------------------------------------------------------------------------------------------------------------------------
+1     solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz UNEMPLOYED/SOL UNEMPLOYED/SOL                 True     2025-09-15 19:01:16
+3     solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC Xoai / SOL Xoai / SOL                     True     2025-09-16 20:09:59
+
+Total entries: 2
+Active entries: 2
+
+
+Listing entries in csv format:
+✅ Successfully listed entries in csv format
+Output:
+id,pool_id,token_symbol,token_name,network_address,created_at,is_active
+1,solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz,UNEMPLOYED/SOL,UNEMPLOYED/SOL,ExfkY8EwGfNkJWns2CApCGa6PsQYuJiM6NudRcFNpump,2025-09-15T19:01:16.792964-06:00,True 
+3,solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC,Xoai / SOL,Xoai / SOL,6zRAjv9VUyouvDYuJYE8FBsj2rrhSneMr7gcZpFtafXp,2025-09-16T20:09:59.875877-06:00,True
+
+
+Listing entries in json format:
+✅ Successfully listed entries in json format
+Output:
+[
+  {
+    "id": 1,
+    "pool_id": "solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz",
+    "token_symbol": "UNEMPLOYED/SOL",
+    "token_name": "UNEMPLOYED/SOL",
+    "network_address": "ExfkY8EwGfNkJWns2CApCGa6PsQYuJiM6NudRcFNpump",
+    "created_at": "2025-09-15T19:01:16.792964-06:00",
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "pool_id": "solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC",
+    "token_symbol": "Xoai / SOL",
+    "token_name": "Xoai / SOL",
+    "network_address": "6zRAjv9VUyouvDYuJYE8FBsj2rrhSneMr7gcZpFtafXp",
+    "created_at": "2025-09-16T20:09:59.875877-06:00",
+    "is_active": true
+  }
+]
+
+
+
+3️⃣ Testing list-watchlist --active-only
+----------------------------------------
+✅ Successfully listed active entries
+Output:
+ID    Pool ID                                            Symbol     Name                           Active   Added
+-----------------------------------------------------------------------------------------------------------------------------
+1     solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz UNEMPLOYED/SOL UNEMPLOYED/SOL                 True     2025-09-15 19:01:16
+3     solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC Xoai / SOL Xoai / SOL                     True     2025-09-16 20:09:59
+
+Total entries: 2
+Active entries: 2
+
+
+
+4️⃣ Testing update-watchlist
+------------------------------
+
+Updating CBRL - changing name and setting inactive
+❌ Failed to update CBRL
+   Error: INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+
+5️⃣ Testing list after update
+------------------------------
+✅ Successfully listed entries after update
+Output:
+ID    Pool ID                                            Symbol     Name                           Active   Added
+-----------------------------------------------------------------------------------------------------------------------------
+1     solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz UNEMPLOYED/SOL UNEMPLOYED/SOL                 True     2025-09-15 19:01:16
+3     solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC Xoai / SOL Xoai / SOL                     True     2025-09-16 20:09:59
+
+Total entries: 2
+Active entries: 2
+
+
+
+6️⃣ Testing remove-watchlist
+------------------------------
+
+Removing entry: CBRL
+❌ Failed to remove CBRL
+   Error: INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+Removing entry: TROLL
+❌ Failed to remove TROLL
+   Error: INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+
+
+7️⃣ Testing list after removal
+------------------------------
+✅ Successfully listed entries after removal
+Output:
+ID    Pool ID                                            Symbol     Name                           Active   Added
+-----------------------------------------------------------------------------------------------------------------------------
+1     solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz UNEMPLOYED/SOL UNEMPLOYED/SOL                 True     2025-09-15 19:01:16
+3     solana_9T8xix8dctFdJgtAcEEKeqJwqxHc7ecLdLGwTqUFCPLC Xoai / SOL Xoai / SOL                     True     2025-09-16 20:09:59
+
+Total entries: 2
+Active entries: 2
+
+
+============================================================
+🎉 Enhanced Watchlist CLI Testing Complete!
+
+New CLI commands available:
+  • gecko-cli add-watchlist --pool-id <id> --symbol <sym> [--name <name>] [--network-address <addr>] [--active true/false]
+  • gecko-cli list-watchlist [--active-only] [--format table/csv/json]
+  • gecko-cli update-watchlist --pool-id <id> [--symbol <sym>] [--name <name>] [--network-address <addr>] [--active true/false]
+  • gecko-cli remove-watchlist --pool-id <id> [--force]
