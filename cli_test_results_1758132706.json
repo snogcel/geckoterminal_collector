@@ -1,0 +1,264 @@
+{
+  "summary": {
+    "total_tests": 31,
+    "passed_tests": 31,
+    "failed_tests": 0,
+    "success_rate": 100.0,
+    "total_time": 5.494325399398804,
+    "all_issues": [],
+    "critical_issues": [],
+    "missing_commands": [],
+    "timestamp": "2025-09-17T12:11:46.317633"
+  },
+  "recommendations": [],
+  "detailed_results": [
+    {
+      "command_name": "--help",
+      "success": true,
+      "execution_time": 0.17978215217590332,
+      "issues": [],
+      "output_length": 4253,
+      "error_length": 0
+    },
+    {
+      "command_name": "--version",
+      "success": true,
+      "execution_time": 0.170149564743042,
+      "issues": [],
+      "output_length": 31,
+      "error_length": 0
+    },
+    {
+      "command_name": "command-structure",
+      "success": true,
+      "execution_time": 0.17109060287475586,
+      "issues": [],
+      "output_length": 371,
+      "error_length": 0
+    },
+    {
+      "command_name": "init --help",
+      "success": true,
+      "execution_time": 0.16844487190246582,
+      "issues": [],
+      "output_length": 334,
+      "error_length": 0
+    },
+    {
+      "command_name": "validate --help",
+      "success": true,
+      "execution_time": 0.18002843856811523,
+      "issues": [],
+      "output_length": 255,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-setup --help",
+      "success": true,
+      "execution_time": 0.16004586219787598,
+      "issues": [],
+      "output_length": 263,
+      "error_length": 0
+    },
+    {
+      "command_name": "start --help",
+      "success": true,
+      "execution_time": 0.17599701881408691,
+      "issues": [],
+      "output_length": 441,
+      "error_length": 0
+    },
+    {
+      "command_name": "stop --help",
+      "success": true,
+      "execution_time": 0.17923855781555176,
+      "issues": [],
+      "output_length": 288,
+      "error_length": 0
+    },
+    {
+      "command_name": "status --help",
+      "success": true,
+      "execution_time": 0.16934704780578613,
+      "issues": [],
+      "output_length": 242,
+      "error_length": 0
+    },
+    {
+      "command_name": "run-collector --help",
+      "success": true,
+      "execution_time": 0.17023515701293945,
+      "issues": [],
+      "output_length": 1513,
+      "error_length": 0
+    },
+    {
+      "command_name": "backfill --help",
+      "success": true,
+      "execution_time": 0.17465949058532715,
+      "issues": [],
+      "output_length": 557,
+      "error_length": 0
+    },
+    {
+      "command_name": "export --help",
+      "success": true,
+      "execution_time": 0.15733885765075684,
+      "issues": [],
+      "output_length": 772,
+      "error_length": 0
+    },
+    {
+      "command_name": "cleanup --help",
+      "success": true,
+      "execution_time": 0.18446755409240723,
+      "issues": [],
+      "output_length": 448,
+      "error_length": 0
+    },
+    {
+      "command_name": "health-check --help",
+      "success": true,
+      "execution_time": 0.17307305335998535,
+      "issues": [],
+      "output_length": 179,
+      "error_length": 0
+    },
+    {
+      "command_name": "metrics --help",
+      "success": true,
+      "execution_time": 0.17745161056518555,
+      "issues": [],
+      "output_length": 375,
+      "error_length": 0
+    },
+    {
+      "command_name": "logs --help",
+      "success": true,
+      "execution_time": 0.1832265853881836,
+      "issues": [],
+      "output_length": 405,
+      "error_length": 0
+    },
+    {
+      "command_name": "backup --help",
+      "success": true,
+      "execution_time": 0.17153072357177734,
+      "issues": [],
+      "output_length": 706,
+      "error_length": 0
+    },
+    {
+      "command_name": "restore --help",
+      "success": true,
+      "execution_time": 0.16191864013671875,
+      "issues": [],
+      "output_length": 740,
+      "error_length": 0
+    },
+    {
+      "command_name": "build-ohlcv --help",
+      "success": true,
+      "execution_time": 0.18073725700378418,
+      "issues": [],
+      "output_length": 1154,
+      "error_length": 0
+    },
+    {
+      "command_name": "validate-workflow --help",
+      "success": true,
+      "execution_time": 0.17736029624938965,
+      "issues": [],
+      "output_length": 1288,
+      "error_length": 0
+    },
+    {
+      "command_name": "migrate-pool-ids --help",
+      "success": true,
+      "execution_time": 0.1732497215270996,
+      "issues": [],
+      "output_length": 449,
+      "error_length": 0
+    },
+    {
+      "command_name": "add-watchlist --help",
+      "success": true,
+      "execution_time": 0.16932415962219238,
+      "issues": [],
+      "output_length": 817,
+      "error_length": 0
+    },
+    {
+      "command_name": "list-watchlist --help",
+      "success": true,
+      "execution_time": 0.17311358451843262,
+      "issues": [],
+      "output_length": 438,
+      "error_length": 0
+    },
+    {
+      "command_name": "update-watchlist --help",
+      "success": true,
+      "execution_time": 0.17177128791809082,
+      "issues": [],
+      "output_length": 742,
+      "error_length": 0
+    },
+    {
+      "command_name": "remove-watchlist --help",
+      "success": true,
+      "execution_time": 0.19196701049804688,
+      "issues": [],
+      "output_length": 400,
+      "error_length": 0
+    },
+    {
+      "command_name": "collect-new-pools --help",
+      "success": true,
+      "execution_time": 0.19312667846679688,
+      "issues": [],
+      "output_length": 1416,
+      "error_length": 0
+    },
+    {
+      "command_name": "analyze-pool-discovery --help",
+      "success": true,
+      "execution_time": 0.19815325736999512,
+      "issues": [],
+      "output_length": 594,
+      "error_length": 0
+    },
+    {
+      "command_name": "analyze-pool-signals --help",
+      "success": true,
+      "execution_time": 0.20013833045959473,
+      "issues": [],
+      "output_length": 883,
+      "error_length": 0
+    },
+    {
+      "command_name": "monitor-pool-signals --help",
+      "success": true,
+      "execution_time": 0.1794576644897461,
+      "issues": [],
+      "output_length": 937,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-health --help",
+      "success": true,
+      "execution_time": 0.18596482276916504,
+      "issues": [],
+      "output_length": 522,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-monitor --help",
+      "success": true,
+      "execution_time": 0.1829519271850586,
+      "issues": [],
+      "output_length": 954,
+      "error_length": 0
+    }
+  ]
+}
