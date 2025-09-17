@@ -193,16 +193,25 @@ class CLITestSuite:
         in_commands_section = False
         
         for line in lines:
-            if 'positional arguments:' in line or '{' in line:
+            # Start parsing when we see positional arguments section
+            if 'positional arguments:' in line:
                 in_commands_section = True
                 continue
+            
+            # Stop parsing when we reach options or examples section
+            if in_commands_section and ('options:' in line or 'Examples:' in line):
+                break
+                
             if in_commands_section and line.strip():
-                if line.startswith('  ') and not line.startswith('    '):
+                # Look for command lines that start with 4 spaces (individual commands)
+                if line.startswith('    ') and not line.startswith('      '):
                     # This looks like a command line
                     parts = line.strip().split()
                     if parts:
                         cmd = parts[0].rstrip(',')
-                        if cmd and not cmd.startswith('-'):
+                        # Skip the command choices line and help text
+                        if (cmd and not cmd.startswith('-') and not cmd.startswith('{') 
+                            and cmd != 'Available' and cmd != 'commands'):
                             available_commands.append(cmd)
         
         # Check for missing expected commands
