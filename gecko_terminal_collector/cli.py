@@ -419,6 +419,224 @@ def _add_monitor_pool_signals_command(subparsers):
     monitor_signals_parser.set_defaults(func=monitor_pool_signals_command)
 
 
+async def analyze_pool_signals_command(args):
+    """Analyze pool signals from new pools history."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
+        from datetime import datetime, timedelta
+        import json
+        
+        # Load configuration
+        config_manager = ConfigManager(args.config)
+        config = config_manager.load_config()
+        
+        # Initialize database manager
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        # Initialize signal analyzer
+        signal_config = config.new_pools.get('signal_detection', {})
+        analyzer = NewPoolsSignalAnalyzer(signal_config)
+        
+        print(f"Analyzing pool signals for network: {args.network}")
+        print(f"Time window: {args.hours} hours")
+        print(f"Minimum signal score: {args.min_signal_score}")
+        print("-" * 60)
+        
+        # Get pools with signals from the last N hours
+        cutoff_time = datetime.now() - timedelta(hours=args.hours)
+        
+        # Query new_pools_history for recent records with signal data
+        from gecko_terminal_collector.database.models import NewPoolsHistory
+        
+        with db_manager.connection.get_session() as session:
+            query = session.query(NewPoolsHistory).filter(
+                NewPoolsHistory.network_id == args.network,
+                NewPoolsHistory.collected_at >= cutoff_time,
+                NewPoolsHistory.signal_score >= args.min_signal_score
+            ).order_by(NewPoolsHistory.signal_score.desc()).limit(args.limit)
+            
+            records = query.all()
+        
+        if not records:
+            print("No pools found with significant signals in the specified time window.")
+            return 0
+        
+        # Format output
+        if args.format == 'json':
+            results = []
+            for record in records:
+                results.append({
+                    'pool_id': record.pool_id,
+                    'signal_score': float(record.signal_score) if record.signal_score else 0,
+                    'volume_trend': record.volume_trend,
+                    'liquidity_trend': record.liquidity_trend,
+                    'momentum_indicator': float(record.momentum_indicator) if record.momentum_indicator else 0,
+                    'activity_score': float(record.activity_score) if record.activity_score else 0,
+                    'volume_24h': float(record.volume_usd_h24) if record.volume_usd_h24 else 0,
+                    'liquidity': float(record.reserve_in_usd) if record.reserve_in_usd else 0,
+                    'collected_at': record.collected_at.isoformat()
+                })
+            print(json.dumps(results, indent=2))
+            
+        elif args.format == 'csv':
+            print("pool_id,signal_score,volume_trend,liquidity_trend,momentum_indicator,activity_score,volume_24h,liquidity,collected_at")
+            for record in records:
+                print(f"{record.pool_id},{record.signal_score or 0},{record.volume_trend or ''},{record.liquidity_trend or ''},{record.momentum_indicator or 0},{record.activity_score or 0},{record.volume_usd_h24 or 0},{record.reserve_in_usd or 0},{record.collected_at}")
+                
+        else:  # table format
+            print(f"{'Pool ID':<20} {'Signal':<8} {'Vol Trend':<12} {'Liq Trend':<12} {'Momentum':<10} {'Activity':<10} {'Volume 24h':<12} {'Collected At':<20}")
+            print("-" * 120)
+            
+            for record in records:
+                pool_id_short = record.pool_id[:18] + "..." if len(record.pool_id) > 20 else record.pool_id
+                signal_score = f"{record.signal_score:.1f}" if record.signal_score else "0.0"
+                momentum = f"{record.momentum_indicator:.1f}" if record.momentum_indicator else "0.0"
+                activity = f"{record.activity_score:.1f}" if record.activity_score else "0.0"
+                volume = f"${record.volume_usd_h24:,.0f}" if record.volume_usd_h24 else "$0"
+                collected = record.collected_at.strftime("%m-%d %H:%M")
+                
+                print(f"{pool_id_short:<20} {signal_score:<8} {record.volume_trend or 'unknown':<12} {record.liquidity_trend or 'unknown':<12} {momentum:<10} {activity:<10} {volume:<12} {collected:<20}")
+        
+        print(f"\nFound {len(records)} pools with signals >= {args.min_signal_score}")
+        
+        await db_manager.close()
+        return 0
+        
+    except Exception as e:
+        print(f"Error analyzing pool signals: {e}")
+        return 1
+
+
+async def monitor_pool_signals_command(args):
+    """Monitor pools for signal conditions."""
+    try:
+        from gecko_terminal_collector.config.manager import ConfigManager
+        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
+        from datetime import datetime, timedelta
+        import asyncio
+        import signal
+        
+        # Load configuration
+        config_manager = ConfigManager(args.config)
+        config = config_manager.load_config()
+        
+        # Initialize database manager
+        db_manager = SQLAlchemyDatabaseManager(config.database)
+        await db_manager.initialize()
+        
+        # Initialize signal analyzer
+        signal_config = config.new_pools.get('signal_detection', {})
+        analyzer = NewPoolsSignalAnalyzer(signal_config)
+        
+        print(f"Starting pool signal monitoring...")
+        print(f"Network: {args.network}")
+        print(f"Alert threshold: {args.alert_threshold}")
+        print(f"Check interval: {args.interval} seconds")
+        if args.pool_id:
+            print(f"Monitoring specific pool: {args.pool_id}")
+        print(f"Started at: {datetime.now()}")
+        print("-" * 60)
+        
+        # Set up signal handling for graceful shutdown
+        shutdown_event = asyncio.Event()
+        
+        def signal_handler(signum, frame):
+            print(f"\nReceived signal {signum}, shutting down gracefully...")
+            shutdown_event.set()
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        start_time = datetime.now()
+        check_count = 0
+        alerts_sent = 0
+        
+        try:
+            while not shutdown_event.is_set():
+                check_count += 1
+                current_time = datetime.now()
+                
+                # Check if duration limit reached
+                if args.duration:
+                    elapsed_minutes = (current_time - start_time).total_seconds() / 60
+                    if elapsed_minutes >= args.duration:
+                        print(f"Duration limit ({args.duration} minutes) reached. Stopping monitoring.")
+                        break
+                
+                print(f"[{current_time.strftime('%H:%M:%S')}] Check #{check_count} - Scanning for signals...")
+                
+                # Query for recent high-signal pools
+                from gecko_terminal_collector.database.models import NewPoolsHistory
+                
+                # Look for signals in the last 2 check intervals
+                lookback_minutes = (args.interval * 2) / 60
+                cutoff_time = current_time - timedelta(minutes=lookback_minutes)
+                
+                with db_manager.connection.get_session() as session:
+                    query = session.query(NewPoolsHistory).filter(
+                        NewPoolsHistory.collected_at >= cutoff_time,
+                        NewPoolsHistory.signal_score >= args.alert_threshold
+                    )
+                    
+                    if args.network:
+                        query = query.filter(NewPoolsHistory.network_id == args.network)
+                    
+                    if args.pool_id:
+                        query = query.filter(NewPoolsHistory.pool_id == args.pool_id)
+                    
+                    query = query.order_by(NewPoolsHistory.signal_score.desc())
+                    
+                    records = query.all()
+                
+                if records:
+                    print(f"🚨 ALERT: Found {len(records)} pools with strong signals!")
+                    print("-" * 40)
+                    
+                    for record in records:
+                        alerts_sent += 1
+                        pool_id_short = record.pool_id[:15] + "..." if len(record.pool_id) > 18 else record.pool_id
+                        
+                        print(f"Pool: {pool_id_short}")
+                        print(f"  Signal Score: {record.signal_score:.1f}")
+                        print(f"  Volume Trend: {record.volume_trend or 'unknown'}")
+                        print(f"  Liquidity Trend: {record.liquidity_trend or 'unknown'}")
+                        print(f"  Volume 24h: ${record.volume_usd_h24:,.0f}" if record.volume_usd_h24 else "  Volume 24h: $0")
+                        print(f"  Detected: {record.collected_at.strftime('%H:%M:%S')}")
+                        print()
+                    
+                    print("-" * 40)
+                else:
+                    print("No significant signals detected.")
+                
+                # Wait for next check or shutdown
+                try:
+                    await asyncio.wait_for(shutdown_event.wait(), timeout=args.interval)
+                    break  # Shutdown event was set
+                except asyncio.TimeoutError:
+                    continue  # Continue monitoring
+                    
+        except KeyboardInterrupt:
+            print("\nMonitoring interrupted by user.")
+        
+        # Print summary
+        elapsed_time = datetime.now() - start_time
+        print(f"\nMonitoring Summary:")
+        print(f"Duration: {elapsed_time}")
+        print(f"Checks performed: {check_count}")
+        print(f"Alerts generated: {alerts_sent}")
+        
+        await db_manager.close()
+        return 0
+        
+    except Exception as e:
+        print(f"Error monitoring pool signals: {e}")
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -520,8 +738,8 @@ Examples:
     _add_analyze_pool_discovery_command(subparsers)
     
     # Signal analysis commands
-    # _add_analyze_pool_signals_command(subparsers)  # Temporarily disabled
-    # _add_monitor_pool_signals_command(subparsers)  # Temporarily disabled
+    _add_analyze_pool_signals_command(subparsers)
+    _add_monitor_pool_signals_command(subparsers)
     
     # Database health and monitoring commands
     _add_db_health_command(subparsers)
@@ -571,8 +789,8 @@ Examples:
         "analyze-pool-discovery": analyze_pool_discovery_command,
         "db-health": db_health_command,
         "db-monitor": db_monitor_command,
-        # "analyze-pool-signals": analyze_pool_signals_command,  # Temporarily disabled
-        # "monitor-pool-signals": monitor_pool_signals_command,  # Temporarily disabled
+        "analyze-pool-signals": analyze_pool_signals_command,
+        "monitor-pool-signals": monitor_pool_signals_command,
     }
     
     handler = command_handlers.get(args.command)
@@ -1086,7 +1304,7 @@ def _add_validate_workflow_command(subparsers):
     validate_parser = subparsers.add_parser(
         "validate-workflow",
         help="Validate complete watchlist-to-QLib workflow",
-        description="Test end-to-end workflow: watchlist CSV → token collection → OHLCV collection → QLib export"
+        description="Test end-to-end workflow: watchlist CSV -> token collection -> OHLCV collection -> QLib export"
     )
     validate_parser.add_argument(
         "--watchlist-file",
@@ -3224,20 +3442,20 @@ async def update_watchlist_command(args):
             update_data = {}
             if args.symbol is not None:
                 update_data['token_symbol'] = args.symbol
-                print(f"  Symbol: {existing_entry.token_symbol} → {args.symbol}")
+                print(f"  Symbol: {existing_entry.token_symbol} -> {args.symbol}")
             
             if args.name is not None:
                 update_data['token_name'] = args.name
-                print(f"  Name: {existing_entry.token_name or 'None'} → {args.name}")
+                print(f"  Name: {existing_entry.token_name or 'None'} -> {args.name}")
             
             if args.network_address is not None:
                 update_data['network_address'] = args.network_address
-                print(f"  Network Address: {existing_entry.network_address or 'None'} → {args.network_address}")
+                print(f"  Network Address: {existing_entry.network_address or 'None'} -> {args.network_address}")
             
             if args.active is not None:
                 is_active = args.active.lower() == 'true'
                 update_data['is_active'] = is_active
-                print(f"  Active: {existing_entry.is_active} → {is_active}")
+                print(f"  Active: {existing_entry.is_active} -> {is_active}")
             
             if not update_data:
                 print("❌ No fields specified for update. Use --symbol, --name, --network-address, or --active.")
@@ -3664,283 +3882,3 @@ async def db_monitor_command(args):
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
-
-async def analyze_pool_signals_command(args):
-    """Analyze pool signals from new pools history."""
-    try:
-        from gecko_terminal_collector.config.manager import ConfigManager
-        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-        from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
-        from datetime import datetime, timedelta
-        import json
-        
-        # Load configuration
-        config_manager = ConfigManager(args.config)
-        config = config_manager.load_config()
-        
-        # Initialize database manager
-        db_manager = SQLAlchemyDatabaseManager(config.database)
-        await db_manager.initialize()
-        
-        # Initialize signal analyzer
-        signal_config = config.new_pools.get('signal_detection', {})
-        analyzer = NewPoolsSignalAnalyzer(signal_config)
-        
-        print(f"Analyzing pool signals for network: {args.network}")
-        print(f"Time window: {args.hours} hours")
-        print(f"Minimum signal score: {args.min_signal_score}")
-        print("-" * 60)
-        
-        # Get pools with signals from the last N hours
-        cutoff_time = datetime.now() - timedelta(hours=args.hours)
-        
-        # Query new_pools_history for recent records with signal data
-        from gecko_terminal_collector.database.models import NewPoolsHistory
-        
-        with db_manager.connection.get_session() as session:
-            query = session.query(NewPoolsHistory).filter(
-                NewPoolsHistory.network_id == args.network,
-                NewPoolsHistory.collected_at >= cutoff_time,
-                NewPoolsHistory.signal_score >= args.min_signal_score
-            ).order_by(NewPoolsHistory.signal_score.desc()).limit(args.limit)
-            
-            records = query.all()
-        
-        if not records:
-            print("No pools found with significant signals in the specified time window.")
-            return 0
-        
-        # Format output
-        if args.format == 'json':
-            results = []
-            for record in records:
-                results.append({
-                    'pool_id': record.pool_id,
-                    'signal_score': float(record.signal_score) if record.signal_score else 0,
-                    'volume_trend': record.volume_trend,
-                    'liquidity_trend': record.liquidity_trend,
-                    'momentum_indicator': float(record.momentum_indicator) if record.momentum_indicator else 0,
-                    'activity_score': float(record.activity_score) if record.activity_score else 0,
-                    'volume_24h': float(record.volume_usd_h24) if record.volume_usd_h24 else 0,
-                    'liquidity': float(record.reserve_in_usd) if record.reserve_in_usd else 0,
-                    'collected_at': record.collected_at.isoformat()
-                })
-            print(json.dumps(results, indent=2))
-            
-        elif args.format == 'csv':
-            print("pool_id,signal_score,volume_trend,liquidity_trend,momentum_indicator,activity_score,volume_24h,liquidity,collected_at")
-            for record in records:
-                print(f"{record.pool_id},{record.signal_score or 0},{record.volume_trend or ''},{record.liquidity_trend or ''},{record.momentum_indicator or 0},{record.activity_score or 0},{record.volume_usd_h24 or 0},{record.reserve_in_usd or 0},{record.collected_at}")
-                
-        else:  # table format
-            print(f"{'Pool ID':<20} {'Signal':<8} {'Vol Trend':<12} {'Liq Trend':<12} {'Momentum':<10} {'Activity':<10} {'Volume 24h':<12} {'Collected At':<20}")
-            print("-" * 120)
-            
-            for record in records:
-                pool_id_short = record.pool_id[:18] + "..." if len(record.pool_id) > 20 else record.pool_id
-                signal_score = f"{record.signal_score:.1f}" if record.signal_score else "0.0"
-                momentum = f"{record.momentum_indicator:.1f}" if record.momentum_indicator else "0.0"
-                activity = f"{record.activity_score:.1f}" if record.activity_score else "0.0"
-                volume = f"${record.volume_usd_h24:,.0f}" if record.volume_usd_h24 else "$0"
-                collected = record.collected_at.strftime("%m-%d %H:%M")
-                
-                print(f"{pool_id_short:<20} {signal_score:<8} {record.volume_trend or 'unknown':<12} {record.liquidity_trend or 'unknown':<12} {momentum:<10} {activity:<10} {volume:<12} {collected:<20}")
-        
-        print(f"\nFound {len(records)} pools with signals >= {args.min_signal_score}")
-        
-        await db_manager.close()
-        return 0
-        
-    except Exception as e:
-        print(f"Error analyzing pool signals: {e}")
-        return 1
-
-
-async def monitor_pool_signals_command(args):
-    """Monitor pools for signal conditions."""
-    try:
-        from gecko_terminal_collector.config.manager import ConfigManager
-        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-        from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
-        from datetime import datetime, timedelta
-        import asyncio
-        import signal
-        
-        # Load configuration
-        config_manager = ConfigManager(args.config)
-        config = config_manager.load_config()
-        
-        # Initialize database manager
-        db_manager = SQLAlchemyDatabaseManager(config.database)
-        await db_manager.initialize()
-        
-        # Initialize signal analyzer
-        signal_config = config.new_pools.get('signal_detection', {})
-        analyzer = NewPoolsSignalAnalyzer(signal_config)
-        
-        print(f"Starting pool signal monitoring...")
-        print(f"Network: {args.network}")
-        print(f"Alert threshold: {args.alert_threshold}")
-        print(f"Check interval: {args.interval} seconds")
-        if args.pool_id:
-            print(f"Monitoring specific pool: {args.pool_id}")
-        print(f"Started at: {datetime.now()}")
-        print("-" * 60)
-        
-        # Set up signal handling for graceful shutdown
-        shutdown_event = asyncio.Event()
-        
-        def signal_handler(signum, frame):
-            print(f"\nReceived signal {signum}, shutting down gracefully...")
-            shutdown_event.set()
-        
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-        
-        start_time = datetime.now()
-        check_count = 0
-        alerts_sent = 0
-        
-        try:
-            while not shutdown_event.is_set():
-                check_count += 1
-                current_time = datetime.now()
-                
-                # Check if duration limit reached
-                if args.duration:
-                    elapsed_minutes = (current_time - start_time).total_seconds() / 60
-                    if elapsed_minutes >= args.duration:
-                        print(f"Duration limit ({args.duration} minutes) reached. Stopping monitoring.")
-                        break
-                
-                print(f"[{current_time.strftime('%H:%M:%S')}] Check #{check_count} - Scanning for signals...")
-                
-                # Query for recent high-signal pools
-                from gecko_terminal_collector.database.models import NewPoolsHistory
-                
-                # Look for signals in the last 2 check intervals
-                lookback_minutes = (args.interval * 2) / 60
-                cutoff_time = current_time - timedelta(minutes=lookback_minutes)
-                
-                with db_manager.connection.get_session() as session:
-                    query = session.query(NewPoolsHistory).filter(
-                        NewPoolsHistory.collected_at >= cutoff_time,
-                        NewPoolsHistory.signal_score >= args.alert_threshold
-                    )
-                    
-                    if args.network:
-                        query = query.filter(NewPoolsHistory.network_id == args.network)
-                    
-                    if args.pool_id:
-                        query = query.filter(NewPoolsHistory.pool_id == args.pool_id)
-                    
-                    query = query.order_by(NewPoolsHistory.signal_score.desc())
-                    
-                    records = query.all()
-                
-                if records:
-                    print(f"🚨 ALERT: Found {len(records)} pools with strong signals!")
-                    print("-" * 40)
-                    
-                    for record in records:
-                        alerts_sent += 1
-                        pool_id_short = record.pool_id[:15] + "..." if len(record.pool_id) > 18 else record.pool_id
-                        
-                        print(f"Pool: {pool_id_short}")
-                        print(f"  Signal Score: {record.signal_score:.1f}")
-                        print(f"  Volume Trend: {record.volume_trend or 'unknown'}")
-                        print(f"  Liquidity Trend: {record.liquidity_trend or 'unknown'}")
-                        print(f"  Volume 24h: ${record.volume_usd_h24:,.0f}" if record.volume_usd_h24 else "  Volume 24h: $0")
-                        print(f"  Detected: {record.collected_at.strftime('%H:%M:%S')}")
-                        print()
-                    
-                    print("-" * 40)
-                else:
-                    print("No significant signals detected.")
-                
-                # Wait for next check or shutdown
-                try:
-                    await asyncio.wait_for(shutdown_event.wait(), timeout=args.interval)
-                    break  # Shutdown event was set
-                except asyncio.TimeoutError:
-                    continue  # Continue monitoring
-                    
-        except KeyboardInterrupt:
-            print("\nMonitoring interrupted by user.")
-        
-        # Print summary
-        elapsed_time = datetime.now() - start_time
-        print(f"\nMonitoring Summary:")
-        print(f"Duration: {elapsed_time}")
-        print(f"Checks performed: {check_count}")
-        print(f"Alerts generated: {alerts_sent}")
-        
-        await db_manager.close()
-        return 0
-        
-    except Exception as e:
-        print(f"Error monitoring pool signals: {e}")
-        return 1
-
-
-async def list_backups_command(args):
-    """List available database backups."""
-    try:
-        # Import our backup manager
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.abspath(__file__ + '/../..')))
-        
-        from create_database_backup import DatabaseBackupManager
-        import json
-        
-        # Initialize backup manager
-        backup_manager = DatabaseBackupManager(args.config)
-        
-        print("📋 Available Database Backups")
-        print("=" * 60)
-        
-        # Get list of backups
-        backups = await backup_manager.list_backups()
-        
-        if not backups:
-            print("No backups found.")
-            print(f"\n💡 Create a backup with:")
-            print(f"   gecko-cli backup /path/to/backup")
-            return 0
-        
-        if args.format == 'json':
-            print(json.dumps(backups, indent=2, default=str))
-        else:
-            # Table format
-            print(f"{'Name':<25} {'Created':<20} {'Size':<10} {'Type':<12}")
-            print("-" * 70)
-            
-            for backup in backups:
-                name = backup['name'][:23] + "..." if len(backup['name']) > 25 else backup['name']
-                created = backup.get('created_at', 'unknown')
-                if created != 'unknown' and 'T' in created:
-                    # Format datetime
-                    from datetime import datetime
-                    try:
-                        dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
-                        created = dt.strftime('%Y-%m-%d %H:%M')
-                    except:
-                        created = created[:16]  # Truncate if parsing fails
-                
-                size = backup['size']
-                db_type = backup.get('database_type', 'unknown')
-                
-                print(f"{name:<25} {created:<20} {size:<10} {db_type:<12}")
-            
-            print(f"\nTotal backups: {len(backups)}")
-            print(f"\n💡 To restore a backup, use:")
-            print(f"   gecko-cli restore <backup_path>")
-        
-        return 0
-        
-    except Exception as e:
-        print(f"❌ Error listing backups: {e}")
-        return 1

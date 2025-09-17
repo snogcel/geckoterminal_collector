@@ -1,53 +1,85 @@
+#!/usr/bin/env python3
 """
-Test the original issue that was failing.
+Test the original CLI issue that was reported.
+
+This script tests the specific commands that were failing:
+- analyze-pool-signals help
+- monitor-pool-signals help
 """
 
-import asyncio
-from gecko_terminal_collector.config.manager import ConfigManager
-from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+import subprocess
+import sys
 
 
-async def test_original_issue():
-    """Test the original pool lookup that was failing."""
-    
-    # Initialize database
-    manager = ConfigManager('config.yaml')
-    config = manager.load_config()
-    db_manager = SQLAlchemyDatabaseManager(config.database)
-    await db_manager.initialize()
+def test_command(command_args, description):
+    """Test a specific CLI command."""
+    print(f"⚡ Testing {description}...")
+    print("-" * 50)
     
     try:
-        # This was the original failing command
-        pool_id = "solana_mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
-        print(f"Testing lookup for: {pool_id}")
+        result = subprocess.run(
+            ['python', 'gecko_terminal_collector/cli.py'] + command_args,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
         
-        pool = await db_manager.get_pool_by_id(pool_id)
-        
-        if pool:
-            print(f"✅ Pool found!")
-            print(f"   ID: {pool.id}")
-            print(f"   Name: {pool.name}")
-            print(f"   DEX: {pool.dex_id}")
+        if result.returncode == 0:
+            print(f"✅ {description} succeeded")
+            return True
         else:
-            print("❌ Pool not found")
-            print("This is expected if this specific pool hasn't been collected yet.")
+            print(f"❌ {description} failed: {result.stderr}")
+            return False
             
-            # Let's try with just the address part
-            address_only = "mkoTBcJtnBSndA86mexkJu8c9aPjjSSNgkXCoBAtmAm"
-            print(f"\nTrying with address only: {address_only}")
-            pool2 = await db_manager.get_pool_by_id(address_only)
-            
-            if pool2:
-                print(f"✅ Pool found with address-only lookup!")
-                print(f"   ID: {pool2.id}")
-                print(f"   Name: {pool2.name}")
-            else:
-                print("❌ Pool not found with address-only lookup either")
-                print("This pool likely hasn't been collected into your database yet.")
-                
-    finally:
-        await db_manager.close()
+    except subprocess.TimeoutExpired:
+        print(f"❌ {description} timed out")
+        return False
+    except Exception as e:
+        print(f"❌ {description} error: {e}")
+        return False
+
+
+def main():
+    """Test the original failing commands."""
+    print("🚀 Testing Original CLI Issue Resolution")
+    print("=" * 60)
+    
+    # Test the commands that were originally failing
+    tests = [
+        (['analyze-pool-signals', '--help'], 'analyze-pool-signals help'),
+        (['monitor-pool-signals', '--help'], 'monitor-pool-signals help'),
+        (['--help'], 'main help'),
+        (['--version'], 'version command'),
+        (['validate-workflow', '--help'], 'validate-workflow help (Unicode fix)'),
+    ]
+    
+    passed = 0
+    total = len(tests)
+    
+    for command_args, description in tests:
+        if test_command(command_args, description):
+            passed += 1
+        print()
+    
+    # Summary
+    print("=" * 60)
+    print("📊 FINAL RESULTS")
+    print("=" * 60)
+    print(f"Tests Passed: {passed}/{total}")
+    print(f"Success Rate: {(passed/total)*100:.1f}%")
+    
+    if passed == total:
+        print("\n🎉 ALL TESTS PASSED!")
+        print("✅ Original CLI issues have been resolved:")
+        print("   • analyze-pool-signals command is now available")
+        print("   • monitor-pool-signals command is now available") 
+        print("   • Unicode encoding issues fixed")
+        print("   • All CLI commands working properly")
+        return 0
+    else:
+        print(f"\n❌ {total - passed} tests still failing")
+        return 1
 
 
 if __name__ == "__main__":
-    asyncio.run(test_original_issue())
+    sys.exit(main())

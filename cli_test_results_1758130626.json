@@ -1,0 +1,274 @@
+{
+  "summary": {
+    "total_tests": 31,
+    "passed_tests": 30,
+    "failed_tests": 1,
+    "success_rate": 96.7741935483871,
+    "total_time": 5.885293006896973,
+    "all_issues": [
+      "command-structure: Missing expected commands: init, validate, db-setup, start, stop, status, run-collector, backfill, export, cleanup, health-check, metrics, logs, backup, restore, build-ohlcv, validate-workflow, migrate-pool-ids, add-watchlist, list-watchlist, update-watchlist, remove-watchlist, collect-new-pools, analyze-pool-discovery, analyze-pool-signals, monitor-pool-signals, db-health, db-monitor",
+      "command-structure: Unexpected commands found: gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli"
+    ],
+    "critical_issues": [
+      "command-structure: Missing expected commands: init, validate, db-setup, start, stop, status, run-collector, backfill, export, cleanup, health-check, metrics, logs, backup, restore, build-ohlcv, validate-workflow, migrate-pool-ids, add-watchlist, list-watchlist, update-watchlist, remove-watchlist, collect-new-pools, analyze-pool-discovery, analyze-pool-signals, monitor-pool-signals, db-health, db-monitor"
+    ],
+    "missing_commands": [],
+    "timestamp": "2025-09-17T11:37:06.431569"
+  },
+  "recommendations": [
+    "Command structure issues detected - review main() function parser setup"
+  ],
+  "detailed_results": [
+    {
+      "command_name": "--help",
+      "success": true,
+      "execution_time": 0.19018316268920898,
+      "issues": [],
+      "output_length": 4253,
+      "error_length": 0
+    },
+    {
+      "command_name": "--version",
+      "success": true,
+      "execution_time": 0.1819906234741211,
+      "issues": [],
+      "output_length": 31,
+      "error_length": 0
+    },
+    {
+      "command_name": "command-structure",
+      "success": false,
+      "execution_time": 0.18021106719970703,
+      "issues": [
+        "Missing expected commands: init, validate, db-setup, start, stop, status, run-collector, backfill, export, cleanup, health-check, metrics, logs, backup, restore, build-ohlcv, validate-workflow, migrate-pool-ids, add-watchlist, list-watchlist, update-watchlist, remove-watchlist, collect-new-pools, analyze-pool-discovery, analyze-pool-signals, monitor-pool-signals, db-health, db-monitor",
+        "Unexpected commands found: gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli, gecko-cli"
+      ],
+      "output_length": 229,
+      "error_length": 0
+    },
+    {
+      "command_name": "init --help",
+      "success": true,
+      "execution_time": 0.17879509925842285,
+      "issues": [],
+      "output_length": 334,
+      "error_length": 0
+    },
+    {
+      "command_name": "validate --help",
+      "success": true,
+      "execution_time": 0.19271135330200195,
+      "issues": [],
+      "output_length": 255,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-setup --help",
+      "success": true,
+      "execution_time": 0.18491816520690918,
+      "issues": [],
+      "output_length": 263,
+      "error_length": 0
+    },
+    {
+      "command_name": "start --help",
+      "success": true,
+      "execution_time": 0.18187546730041504,
+      "issues": [],
+      "output_length": 441,
+      "error_length": 0
+    },
+    {
+      "command_name": "stop --help",
+      "success": true,
+      "execution_time": 0.18899917602539062,
+      "issues": [],
+      "output_length": 288,
+      "error_length": 0
+    },
+    {
+      "command_name": "status --help",
+      "success": true,
+      "execution_time": 0.17894220352172852,
+      "issues": [],
+      "output_length": 242,
+      "error_length": 0
+    },
+    {
+      "command_name": "run-collector --help",
+      "success": true,
+      "execution_time": 0.1942901611328125,
+      "issues": [],
+      "output_length": 1513,
+      "error_length": 0
+    },
+    {
+      "command_name": "backfill --help",
+      "success": true,
+      "execution_time": 0.1857595443725586,
+      "issues": [],
+      "output_length": 557,
+      "error_length": 0
+    },
+    {
+      "command_name": "export --help",
+      "success": true,
+      "execution_time": 0.18954205513000488,
+      "issues": [],
+      "output_length": 772,
+      "error_length": 0
+    },
+    {
+      "command_name": "cleanup --help",
+      "success": true,
+      "execution_time": 0.20000028610229492,
+      "issues": [],
+      "output_length": 448,
+      "error_length": 0
+    },
+    {
+      "command_name": "health-check --help",
+      "success": true,
+      "execution_time": 0.18119430541992188,
+      "issues": [],
+      "output_length": 179,
+      "error_length": 0
+    },
+    {
+      "command_name": "metrics --help",
+      "success": true,
+      "execution_time": 0.19081497192382812,
+      "issues": [],
+      "output_length": 375,
+      "error_length": 0
+    },
+    {
+      "command_name": "logs --help",
+      "success": true,
+      "execution_time": 0.1980135440826416,
+      "issues": [],
+      "output_length": 405,
+      "error_length": 0
+    },
+    {
+      "command_name": "backup --help",
+      "success": true,
+      "execution_time": 0.19392609596252441,
+      "issues": [],
+      "output_length": 706,
+      "error_length": 0
+    },
+    {
+      "command_name": "restore --help",
+      "success": true,
+      "execution_time": 0.19502472877502441,
+      "issues": [],
+      "output_length": 740,
+      "error_length": 0
+    },
+    {
+      "command_name": "build-ohlcv --help",
+      "success": true,
+      "execution_time": 0.1937556266784668,
+      "issues": [],
+      "output_length": 1154,
+      "error_length": 0
+    },
+    {
+      "command_name": "validate-workflow --help",
+      "success": true,
+      "execution_time": 0.19932198524475098,
+      "issues": [],
+      "output_length": 1288,
+      "error_length": 0
+    },
+    {
+      "command_name": "migrate-pool-ids --help",
+      "success": true,
+      "execution_time": 0.17974019050598145,
+      "issues": [],
+      "output_length": 449,
+      "error_length": 0
+    },
+    {
+      "command_name": "add-watchlist --help",
+      "success": true,
+      "execution_time": 0.20496273040771484,
+      "issues": [],
+      "output_length": 817,
+      "error_length": 0
+    },
+    {
+      "command_name": "list-watchlist --help",
+      "success": true,
+      "execution_time": 0.18500566482543945,
+      "issues": [],
+      "output_length": 438,
+      "error_length": 0
+    },
+    {
+      "command_name": "update-watchlist --help",
+      "success": true,
+      "execution_time": 0.18758511543273926,
+      "issues": [],
+      "output_length": 742,
+      "error_length": 0
+    },
+    {
+      "command_name": "remove-watchlist --help",
+      "success": true,
+      "execution_time": 0.19399499893188477,
+      "issues": [],
+      "output_length": 400,
+      "error_length": 0
+    },
+    {
+      "command_name": "collect-new-pools --help",
+      "success": true,
+      "execution_time": 0.18598628044128418,
+      "issues": [],
+      "output_length": 1416,
+      "error_length": 0
+    },
+    {
+      "command_name": "analyze-pool-discovery --help",
+      "success": true,
+      "execution_time": 0.17960906028747559,
+      "issues": [],
+      "output_length": 594,
+      "error_length": 0
+    },
+    {
+      "command_name": "analyze-pool-signals --help",
+      "success": true,
+      "execution_time": 0.20486927032470703,
+      "issues": [],
+      "output_length": 883,
+      "error_length": 0
+    },
+    {
+      "command_name": "monitor-pool-signals --help",
+      "success": true,
+      "execution_time": 0.19519996643066406,
+      "issues": [],
+      "output_length": 937,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-health --help",
+      "success": true,
+      "execution_time": 0.19022297859191895,
+      "issues": [],
+      "output_length": 522,
+      "error_length": 0
+    },
+    {
+      "command_name": "db-monitor --help",
+      "success": true,
+      "execution_time": 0.1950092315673828,
+      "issues": [],
+      "output_length": 954,
+      "error_length": 0
+    }
+  ]
+}
