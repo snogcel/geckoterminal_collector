@@ -1,0 +1,56 @@
+{
+  "backup_info": {
+    "created_at": "2025-09-16T22:01:24.060478",
+    "backup_type": "simple_python_backup",
+    "database_type": "postgresql",
+    "tables_backed_up": [
+      "dexes",
+      "tokens",
+      "pools",
+      "trades",
+      "ohlcv_data",
+      "watchlist",
+      "collection_metadata",
+      "discovery_metadata",
+      "new_pools_history"
+    ]
+  },
+  "table_statistics": {
+    "dexes": {
+      "row_count": 21,
+      "backed_up": true
+    },
+    "tokens": {
+      "row_count": 634,
+      "backed_up": true
+    },
+    "pools": {
+      "row_count": 723,
+      "backed_up": true
+    },
+    "trades": {
+      "row_count": 5305,
+      "backed_up": true
+    },
+    "ohlcv_data": {
+      "row_count": 2275,
+      "backed_up": true
+    },
+    "watchlist": {
+      "row_count": 2,
+      "backed_up": true
+    },
+    "collection_metadata": {
+      "row_count": 7,
+      "backed_up": true
+    },
+    "discovery_metadata": {
+      "row_count": 0,
+      "backed_up": false
+    },
+    "new_pools_history": {
+      "row_count": 632,
+      "backed_up": true
+    }
+  }
+}

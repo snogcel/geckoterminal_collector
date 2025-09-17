@@ -42,11 +42,11 @@ class DatabaseBackupManager:
             Path to the created backup
         """
         try:
-            from gecko_terminal_collector.config.loader import ConfigLoader
+            from gecko_terminal_collector.config.manager import ConfigManager
             
             # Load configuration
-            config_loader = ConfigLoader()
-            config = config_loader.load_config(self.config_path)
+            config_manager = ConfigManager(self.config_path)
+            config = config_manager.load_config()
             
             # Generate backup name
             if not backup_name:
@@ -213,15 +213,15 @@ class DatabaseBackupManager:
         """Get list of tables in PostgreSQL database."""
         try:
             from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-            from gecko_terminal_collector.config.models import DatabaseConfig
+            from gecko_terminal_collector.config.manager import ConfigManager
             
-            # Create database config
-            db_config = DatabaseConfig(
-                url=f"postgresql://{db_info['username']}:{db_info['password']}@{db_info['host']}:{db_info['port']}/{db_info['database']}"
-            )
+            # Create temporary config with database URL
+            temp_config_manager = ConfigManager()
+            temp_config = temp_config_manager.load_config()
+            temp_config.database.url = f"postgresql://{db_info['username']}:{db_info['password']}@{db_info['host']}:{db_info['port']}/{db_info['database']}"
             
             # Initialize database manager
-            db_manager = SQLAlchemyDatabaseManager(db_config)
+            db_manager = SQLAlchemyDatabaseManager(temp_config.database)
             await db_manager.initialize()
             
             # Get table names
@@ -291,15 +291,15 @@ class DatabaseBackupManager:
         """Get table row counts and sizes."""
         try:
             from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-            from gecko_terminal_collector.config.models import DatabaseConfig
+            from gecko_terminal_collector.config.manager import ConfigManager
             
-            # Create database config
-            db_config = DatabaseConfig(
-                url=f"postgresql://{db_info['username']}:{db_info['password']}@{db_info['host']}:{db_info['port']}/{db_info['database']}"
-            )
+            # Create temporary config with database URL
+            temp_config_manager = ConfigManager()
+            temp_config = temp_config_manager.load_config()
+            temp_config.database.url = f"postgresql://{db_info['username']}:{db_info['password']}@{db_info['host']}:{db_info['port']}/{db_info['database']}"
             
             # Initialize database manager
-            db_manager = SQLAlchemyDatabaseManager(db_config)
+            db_manager = SQLAlchemyDatabaseManager(temp_config.database)
             await db_manager.initialize()
             
             stats = {}

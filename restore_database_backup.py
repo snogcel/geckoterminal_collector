@@ -58,9 +58,9 @@ class DatabaseRestoreManager:
                 print("✅ Backup verification passed")
             
             # Load current configuration
-            from gecko_terminal_collector.config.loader import ConfigLoader
-            config_loader = ConfigLoader()
-            config = config_loader.load_config(self.config_path)
+            from gecko_terminal_collector.config.manager import ConfigManager
+            config_manager = ConfigManager(self.config_path)
+            config = config_manager.load_config()
             
             # Parse database info
             db_info = self._parse_database_url(config.database.url)

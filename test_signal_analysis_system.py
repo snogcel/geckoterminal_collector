@@ -109,7 +109,7 @@ async def test_signal_analyzer():
 
 async def test_enhanced_collector():
     """Test the enhanced new pools collector with signal analysis."""
-    from gecko_terminal_collector.config.loader import ConfigLoader
+    from gecko_terminal_collector.config.manager import ConfigManager
     from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
     from gecko_terminal_collector.collectors.new_pools_collector import NewPoolsCollector
     
@@ -118,8 +118,8 @@ async def test_enhanced_collector():
     
     try:
         # Load configuration
-        config_loader = ConfigLoader()
-        config = config_loader.load_config('config.yaml')
+        config_manager = ConfigManager('config.yaml')
+        config = config_manager.load_config()
         
         # Initialize database manager
         db_manager = SQLAlchemyDatabaseManager(config.database)
@@ -143,7 +143,7 @@ async def test_enhanced_collector():
 
 async def test_database_methods():
     """Test the new database methods for signal analysis."""
-    from gecko_terminal_collector.config.loader import ConfigLoader
+    from gecko_terminal_collector.config.manager import ConfigManager
     from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
     from datetime import datetime, timedelta
     
@@ -152,8 +152,8 @@ async def test_database_methods():
     
     try:
         # Load configuration
-        config_loader = ConfigLoader()
-        config = config_loader.load_config('config.yaml')
+        config_manager = ConfigManager('config.yaml')
+        config = config_manager.load_config()
         
         # Initialize database manager
         db_manager = SQLAlchemyDatabaseManager(config.database)
@@ -172,6 +172,30 @@ async def test_database_methods():
         
         # Test watchlist addition (with test data)
         if not in_watchlist:
+            # First create a test pool to satisfy foreign key constraint
+            from gecko_terminal_collector.database.models import Pool as PoolModel
+            
+            test_pool = PoolModel(
+                id=test_pool_id,
+                address='test_address_123',
+                name='Test Pool',
+                dex_id='test_dex'
+            )
+            
+            # Create test DEX first
+            from gecko_terminal_collector.database.models import DEX as DEXModel
+            test_dex = DEXModel(
+                id='test_dex',
+                name='Test DEX',
+                network='solana'
+            )
+            
+            with db_manager.connection.get_session() as session:
+                # Add DEX and pool
+                session.add(test_dex)
+                session.add(test_pool)
+                session.commit()
+            
             test_watchlist_data = {
                 'pool_id': test_pool_id,
                 'token_symbol': 'TEST',

@@ -1,0 +1,65 @@
+{
+  "backup_info": {
+    "created_at": "2025-09-16T22:00:27.583916",
+    "backup_type": "simple_python_backup",
+    "database_type": "postgresql",
+    "tables_backed_up": [
+      "dexes",
+      "tokens",
+      "pools",
+      "trades",
+      "ohlcv_data",
+      "watchlist",
+      "collection_metadata",
+      "discovery_metadata",
+      "new_pools_history"
+    ]
+  },
+  "table_statistics": {
+    "dexes": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM dexe...' should be explicitly declared as text('SELECT COUNT(*) FROM dexe...')"
+    },
+    "tokens": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM toke...' should be explicitly declared as text('SELECT COUNT(*) FROM toke...')"
+    },
+    "pools": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM pool...' should be explicitly declared as text('SELECT COUNT(*) FROM pool...')"
+    },
+    "trades": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM trad...' should be explicitly declared as text('SELECT COUNT(*) FROM trad...')"
+    },
+    "ohlcv_data": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM ohlc...' should be explicitly declared as text('SELECT COUNT(*) FROM ohlc...')"
+    },
+    "watchlist": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM watc...' should be explicitly declared as text('SELECT COUNT(*) FROM watc...')"
+    },
+    "collection_metadata": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM coll...' should be explicitly declared as text('SELECT COUNT(*) FROM coll...')"
+    },
+    "discovery_metadata": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM disc...' should be explicitly declared as text('SELECT COUNT(*) FROM disc...')"
+    },
+    "new_pools_history": {
+      "row_count": 0,
+      "backed_up": false,
+      "error": "Textual SQL expression 'SELECT COUNT(*) FROM new_...' should be explicitly declared as text('SELECT COUNT(*) FROM new_...')"
+    }
+  }
+}

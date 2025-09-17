@@ -500,7 +500,7 @@ Examples:
     # Backup and restore commands
     _add_backup_command(subparsers)
     _add_restore_command(subparsers)
-    _add_list_backups_command(subparsers)
+    # _add_list_backups_command(subparsers)  # Temporarily disabled
     
     # Workflow validation commands
     _add_build_ohlcv_command(subparsers)
@@ -520,8 +520,8 @@ Examples:
     _add_analyze_pool_discovery_command(subparsers)
     
     # Signal analysis commands
-    _add_analyze_pool_signals_command(subparsers)
-    _add_monitor_pool_signals_command(subparsers)
+    # _add_analyze_pool_signals_command(subparsers)  # Temporarily disabled
+    # _add_monitor_pool_signals_command(subparsers)  # Temporarily disabled
     
     # Database health and monitoring commands
     _add_db_health_command(subparsers)
@@ -559,7 +559,7 @@ Examples:
         "logs": logs_command,
         "backup": backup_command,
         "restore": restore_command,
-        "list-backups": list_backups_command,
+        # "list-backups": list_backups_command,  # Temporarily disabled
         "build-ohlcv": build_ohlcv_command,
         "validate-workflow": validate_workflow_command,
         "migrate-pool-ids": migrate_pool_ids_command,
@@ -571,8 +571,8 @@ Examples:
         "analyze-pool-discovery": analyze_pool_discovery_command,
         "db-health": db_health_command,
         "db-monitor": db_monitor_command,
-        "analyze-pool-signals": analyze_pool_signals_command,
-        "monitor-pool-signals": monitor_pool_signals_command,
+        # "analyze-pool-signals": analyze_pool_signals_command,  # Temporarily disabled
+        # "monitor-pool-signals": monitor_pool_signals_command,  # Temporarily disabled
     }
     
     handler = command_handlers.get(args.command)
@@ -3668,15 +3668,15 @@ if __name__ == "__main__":
 async def analyze_pool_signals_command(args):
     """Analyze pool signals from new pools history."""
     try:
-        from gecko_terminal_collector.config.loader import ConfigLoader
+        from gecko_terminal_collector.config.manager import ConfigManager
         from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
         from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
         from datetime import datetime, timedelta
         import json
         
         # Load configuration
-        config_loader = ConfigLoader()
-        config = config_loader.load_config(args.config)
+        config_manager = ConfigManager(args.config)
+        config = config_manager.load_config()
         
         # Initialize database manager
         db_manager = SQLAlchemyDatabaseManager(config.database)
@@ -3759,7 +3759,7 @@ async def analyze_pool_signals_command(args):
 async def monitor_pool_signals_command(args):
     """Monitor pools for signal conditions."""
     try:
-        from gecko_terminal_collector.config.loader import ConfigLoader
+        from gecko_terminal_collector.config.manager import ConfigManager
         from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
         from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
         from datetime import datetime, timedelta
@@ -3767,8 +3767,8 @@ async def monitor_pool_signals_command(args):
         import signal
         
         # Load configuration
-        config_loader = ConfigLoader()
-        config = config_loader.load_config(args.config)
+        config_manager = ConfigManager(args.config)
+        config = config_manager.load_config()
         
         # Initialize database manager
         db_manager = SQLAlchemyDatabaseManager(config.database)
@@ -3881,8 +3881,9 @@ async def monitor_pool_signals_command(args):
     except Exception as e:
         print(f"Error monitoring pool signals: {e}")
         return 1
-a
-sync def list_backups_command(args):
+
+
+async def list_backups_command(args):
     """List available database backups."""
     try:
         # Import our backup manager

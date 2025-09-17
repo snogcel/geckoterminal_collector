@@ -48,10 +48,21 @@ class NewPoolsCollector(BaseDataCollector):
         super().__init__(config, db_manager, **kwargs)
         
         # Initialize signal analyzer
-        signal_config = getattr(config, 'new_pools', {}).get('signal_detection', {})
+        new_pools_config = getattr(config, 'new_pools', None)
+        if new_pools_config and hasattr(new_pools_config, 'signal_detection'):
+            signal_config = new_pools_config.signal_detection.__dict__ if hasattr(new_pools_config.signal_detection, '__dict__') else {}
+        else:
+            signal_config = {}
+        
         self.signal_analyzer = NewPoolsSignalAnalyzer(signal_config)
         self.signal_analysis_enabled = signal_config.get('enabled', True)
-        self.auto_watchlist_enabled = getattr(config, 'new_pools', {}).get('networks', {}).get(network, {}).get('auto_watchlist_integration', False)
+        
+        # Check auto-watchlist setting
+        self.auto_watchlist_enabled = False
+        if new_pools_config and hasattr(new_pools_config, 'networks'):
+            network_config = new_pools_config.networks.get(network, None)
+            if network_config and hasattr(network_config, 'auto_watchlist_integration'):
+                self.auto_watchlist_enabled = network_config.auto_watchlist_integration
         
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""

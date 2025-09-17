@@ -2106,13 +2106,18 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         with self.connection.get_session() as session:
             try:
                 # Create watchlist entry
+                metadata_json = watchlist_data.get('metadata_json', {})
+                if isinstance(metadata_json, dict):
+                    import json
+                    metadata_json = json.dumps(metadata_json)
+                
                 entry = WatchlistEntry(
                     pool_id=watchlist_data['pool_id'],
                     token_symbol=watchlist_data.get('token_symbol'),
                     token_name=watchlist_data.get('token_name'),
                     network_address=watchlist_data.get('network_address'),
                     is_active=watchlist_data.get('is_active', True),
-                    metadata_json=watchlist_data.get('metadata_json', {})
+                    metadata_json=metadata_json
                 )
                 
                 session.add(entry)

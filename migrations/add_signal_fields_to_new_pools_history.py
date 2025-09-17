@@ -4,7 +4,7 @@ Database migration to add signal analysis fields to new_pools_history table.
 
 import logging
 from sqlalchemy import text
-from gecko_terminal_collector.config.loader import ConfigLoader
+from gecko_terminal_collector.config.manager import ConfigManager
 from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ async def migrate_add_signal_fields():
     """Add signal analysis fields to new_pools_history table."""
     
     # Load configuration
-    config_loader = ConfigLoader()
-    config = config_loader.load_config('config.yaml')
+    config_manager = ConfigManager('config.yaml')
+    config = config_manager.load_config()
     
     # Initialize database manager
     db_manager = SQLAlchemyDatabaseManager(config.database)
