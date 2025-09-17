@@ -433,6 +433,8 @@ Examples:
   gecko-cli run-collector ohlcv            # Run specific collector once
   gecko-cli backfill --days 30             # Backfill 30 days of data
   gecko-cli export --format qlib           # Export data for QLib
+  gecko-cli backup /path/to/backup          # Create comprehensive database backup
+  gecko-cli list-backups                    # List available backups
   gecko-cli db-setup                        # Initialize database schema
   gecko-cli add-watchlist --pool-id solana_ABC123 --symbol YUGE --name "Yuge Token"
   gecko-cli list-watchlist --format table  # List all watchlist entries
@@ -498,6 +500,7 @@ Examples:
     # Backup and restore commands
     _add_backup_command(subparsers)
     _add_restore_command(subparsers)
+    _add_list_backups_command(subparsers)
     
     # Workflow validation commands
     _add_build_ohlcv_command(subparsers)
@@ -556,6 +559,7 @@ Examples:
         "logs": logs_command,
         "backup": backup_command,
         "restore": restore_command,
+        "list-backups": list_backups_command,
         "build-ohlcv": build_ohlcv_command,
         "validate-workflow": validate_workflow_command,
         "migrate-pool-ids": migrate_pool_ids_command,
@@ -993,6 +997,27 @@ def _add_restore_command(subparsers):
         action="store_true",
         help="Verify backup before restoring"
     )
+
+
+def _add_list_backups_command(subparsers):
+    """Add list-backups command parser."""
+    list_backups_parser = subparsers.add_parser(
+        'list-backups',
+        help='List available database backups',
+        description='Display all available database backups with metadata'
+    )
+    list_backups_parser.add_argument(
+        '--format',
+        choices=['table', 'json'],
+        default='table',
+        help='Output format (default: table)'
+    )
+    list_backups_parser.add_argument(
+        '--config', '-c',
+        default='config.yaml',
+        help='Configuration file path'
+    )
+    list_backups_parser.set_defaults(func=list_backups_command)
 
 
 def _add_build_ohlcv_command(subparsers):
@@ -1882,62 +1907,57 @@ def logs_command(args):
 
 
 async def backup_command(args):
-    """Create data backup."""
+    """Create data backup using enhanced backup system."""
     try:
-        from gecko_terminal_collector.config.manager import ConfigManager
-        from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
-        from gecko_terminal_collector.utils.backup_restore import BackupManager
+        # Import our new backup manager
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__ + '/../..')))
         
-        # Load configuration
-        manager = ConfigManager(args.config)
-        config = manager.load_config()
+        from create_database_backup import DatabaseBackupManager
         
-        # Initialize database
-        db_manager = SQLAlchemyDatabaseManager(config.database)
-        await db_manager.initialize()
+        # Initialize backup manager
+        backup_manager = DatabaseBackupManager(args.config)
         
-        # Create backup manager
-        backup_manager = BackupManager(db_manager, config)
-        
-        print(f"Creating backup at {args.backup_path}...")
+        print(f"🗄️  Creating comprehensive database backup...")
+        print(f"📁 Target location: {args.backup_path}")
         
         if args.data_types:
-            print(f"Data types: {', '.join(args.data_types)}")
+            print(f"📊 Data types: {', '.join(args.data_types)}")
+            print("⚠️  Note: Comprehensive backup includes all data types")
         else:
-            print("Data types: All available")
+            print("📊 Data types: All available")
         
-        print(f"Compression: {'enabled' if args.compress else 'disabled'}")
+        print(f"🗜️  Compression: {'enabled' if args.compress else 'disabled'}")
+        print("-" * 60)
+        
+        # Extract backup name from path
+        backup_name = os.path.basename(args.backup_path)
         
         # Create backup
-        result = await backup_manager.create_backup(
-            backup_path=args.backup_path,
-            include_data_types=args.data_types,
-            compress=args.compress,
-            metadata={
-                "created_by": "gecko-cli",
-                "command_args": vars(args)
-            }
+        backup_path = await backup_manager.create_full_backup(
+            backup_name=backup_name,
+            compress=args.compress
         )
         
-        if result["success"]:
-            print(f"✓ {result['message']}")
-            
-            # Show statistics
-            stats = result["backup_info"]["statistics"]
-            print(f"\nBackup Statistics:")
-            for data_type, count in stats.items():
-                if data_type != "total_records":
-                    print(f"  {data_type}: {count:,} records")
-            print(f"  Total: {stats.get('total_records', 0):,} records")
-        else:
-            print(f"✗ {result['message']}")
-            return 1
+        print(f"\n🎉 Backup completed successfully!")
+        print(f"📁 Backup location: {backup_path}")
         
-        await db_manager.close()
+        # If user specified a different path, move the backup
+        if os.path.abspath(backup_path) != os.path.abspath(args.backup_path):
+            import shutil
+            if os.path.exists(args.backup_path):
+                shutil.rmtree(args.backup_path)
+            shutil.move(backup_path, args.backup_path)
+            print(f"📦 Moved backup to: {args.backup_path}")
+        
+        print(f"\n💡 To restore this backup later, use:")
+        print(f"   gecko-cli restore {args.backup_path}")
+        
         return 0
         
     except Exception as e:
-        print(f"Error creating backup: {e}")
+        print(f"❌ Error creating backup: {e}")
         return 1
 
 
@@ -3860,4 +3880,64 @@ async def monitor_pool_signals_command(args):
         
     except Exception as e:
         print(f"Error monitoring pool signals: {e}")
+        return 1
+a
+sync def list_backups_command(args):
+    """List available database backups."""
+    try:
+        # Import our backup manager
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__ + '/../..')))
+        
+        from create_database_backup import DatabaseBackupManager
+        import json
+        
+        # Initialize backup manager
+        backup_manager = DatabaseBackupManager(args.config)
+        
+        print("📋 Available Database Backups")
+        print("=" * 60)
+        
+        # Get list of backups
+        backups = await backup_manager.list_backups()
+        
+        if not backups:
+            print("No backups found.")
+            print(f"\n💡 Create a backup with:")
+            print(f"   gecko-cli backup /path/to/backup")
+            return 0
+        
+        if args.format == 'json':
+            print(json.dumps(backups, indent=2, default=str))
+        else:
+            # Table format
+            print(f"{'Name':<25} {'Created':<20} {'Size':<10} {'Type':<12}")
+            print("-" * 70)
+            
+            for backup in backups:
+                name = backup['name'][:23] + "..." if len(backup['name']) > 25 else backup['name']
+                created = backup.get('created_at', 'unknown')
+                if created != 'unknown' and 'T' in created:
+                    # Format datetime
+                    from datetime import datetime
+                    try:
+                        dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                        created = dt.strftime('%Y-%m-%d %H:%M')
+                    except:
+                        created = created[:16]  # Truncate if parsing fails
+                
+                size = backup['size']
+                db_type = backup.get('database_type', 'unknown')
+                
+                print(f"{name:<25} {created:<20} {size:<10} {db_type:<12}")
+            
+            print(f"\nTotal backups: {len(backups)}")
+            print(f"\n💡 To restore a backup, use:")
+            print(f"   gecko-cli restore <backup_path>")
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Error listing backups: {e}")
         return 1
