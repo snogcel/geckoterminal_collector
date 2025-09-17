@@ -79,12 +79,25 @@ new_pools:
   networks:
     solana:
       enabled: true               # Enable new pools collection for Solana
-      interval: "30m"             # Collection interval for Solana
+      interval: "10m"             # Collection interval for Solana (increased frequency)
       rate_limit_key: "new_pools_solana"  # Rate limiter key for Solana
+      signal_analysis: true       # Enable signal analysis for collected pools
+      auto_watchlist_integration: true  # Auto-add high-signal pools to watchlist
     #ethereum:
     #  enabled: false              # Enable new pools collection for Ethereum
-    #  interval: "30m"             # Collection interval for Ethereum
+    #  interval: "15m"             # Collection interval for Ethereum
     #  rate_limit_key: "new_pools_ethereum"  # Rate limiter key for Ethereum
+    #  signal_analysis: true       # Enable signal analysis for collected pools
+    #  auto_watchlist_integration: true  # Auto-add high-signal pools to watchlist
+  
+  # Signal Detection Configuration
+  signal_detection:
+    enabled: true                 # Enable signal detection system
+    min_signal_score: 60.0        # Minimum signal score for alerts
+    volume_spike_threshold: 2.0   # Volume spike detection (2x increase)
+    liquidity_growth_threshold: 1.5  # Liquidity growth threshold (1.5x increase)
+    momentum_lookback_hours: 6    # Hours to look back for momentum calculation
+    auto_watchlist_threshold: 75.0  # Signal score threshold for auto-watchlist addition
 
 # Environment Variable Overrides:
 # You can override any configuration value using environment variables:

@@ -281,7 +281,7 @@ class DiscoveryMetadata(Base):
 
 
 class NewPoolsHistory(Base):
-    """New pools history model for PostgreSQL with comprehensive tracking."""
+    """New pools history model for PostgreSQL with comprehensive tracking and signal analysis."""
     
     __tablename__ = 'new_pools_history'
     
@@ -311,6 +311,14 @@ class NewPoolsHistory(Base):
     network_id = Column(String(50))
     collected_at = Column(TIMESTAMP(timezone=True), nullable=False, default=func.now())
     
+    # Signal Analysis Fields
+    signal_score = Column(Numeric(10, 4), index=True)  # Overall signal strength (0-100)
+    volume_trend = Column(String(20))  # 'increasing', 'decreasing', 'stable', 'spike'
+    liquidity_trend = Column(String(20))  # 'growing', 'shrinking', 'stable'
+    momentum_indicator = Column(Numeric(10, 4))  # Price momentum indicator
+    activity_score = Column(Numeric(10, 4))  # Trading activity score
+    volatility_score = Column(Numeric(10, 4))  # Price volatility score
+    
     # Discovery metadata (optional fields for backward compatibility)
     discovery_source = Column(String(50))
     api_response_data = Column(JSONB)
@@ -322,6 +330,12 @@ class NewPoolsHistory(Base):
         Index('idx_new_pools_history_collected_at', 'collected_at'),
         Index('idx_new_pools_history_network_id', 'network_id'),
         Index('idx_new_pools_history_dex_id', 'dex_id'),
+        
+        # Signal analysis indexes
+        Index('idx_new_pools_history_signal_score', 'signal_score', postgresql_using='btree', postgresql_ops={'signal_score': 'DESC NULLS LAST'}),
+        Index('idx_new_pools_history_volume_trend', 'volume_trend'),
+        Index('idx_new_pools_history_activity_score', 'activity_score', postgresql_using='btree', postgresql_ops={'activity_score': 'DESC NULLS LAST'}),
+        Index('idx_new_pools_history_pool_signal_time', 'pool_id', 'signal_score', 'collected_at'),
     )
 
 

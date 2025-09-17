@@ -1,10 +1,10 @@
 """
-New pools collector for systematic collection and historical tracking.
+New pools collector for systematic collection and historical tracking with signal analysis.
 """
 
 import logging
 import decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
@@ -13,6 +13,7 @@ from gecko_terminal_collector.models.core import CollectionResult, ValidationRes
 from gecko_terminal_collector.database.models import Pool as PoolModel, NewPoolsHistory
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
+from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer, SignalResult
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,12 @@ class NewPoolsCollector(BaseDataCollector):
         # Set network before calling super() to avoid logger initialization issues
         self.network = network
         super().__init__(config, db_manager, **kwargs)
+        
+        # Initialize signal analyzer
+        signal_config = getattr(config, 'new_pools', {}).get('signal_detection', {})
+        self.signal_analyzer = NewPoolsSignalAnalyzer(signal_config)
+        self.signal_analysis_enabled = signal_config.get('enabled', True)
+        self.auto_watchlist_enabled = getattr(config, 'new_pools', {}).get('networks', {}).get(network, {}).get('auto_watchlist_integration', False)
         
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
@@ -121,8 +128,17 @@ class NewPoolsCollector(BaseDataCollector):
                     if pool_created:
                         pools_created += 1
                     
+                    # Perform signal analysis if enabled
+                    signal_result = None
+                    if self.signal_analysis_enabled:
+                        signal_result = await self._analyze_pool_signals(pool_data)
+                        
+                        # Auto-add to watchlist if signal is strong enough
+                        if self.auto_watchlist_enabled and signal_result:
+                            await self._handle_auto_watchlist(pool_data, signal_result)
+                    
                     # Always create historical record for predictive modeling
-                    history_record = self._create_history_record(pool_data)
+                    history_record = self._create_history_record(pool_data, signal_result)
                     if history_record:
                         await self._store_history_record(history_record)
                         history_records += 1
@@ -231,7 +247,7 @@ class NewPoolsCollector(BaseDataCollector):
             self.logger.error(f"Error extracting pool info: {e}")
             return None
     
-    def _create_history_record(self, pool_data: Dict) -> Optional[Dict]:
+    def _create_history_record(self, pool_data: Dict, signal_result: Optional[SignalResult] = None) -> Optional[Dict]:
         """
         Create comprehensive historical record for predictive modeling.
         Handles both nested (attributes) and flat data formats.
@@ -281,7 +297,8 @@ class NewPoolsCollector(BaseDataCollector):
                 except (ValueError, TypeError):
                     return default
             
-            return {
+            # Base record data
+            record_data = {
                 'pool_id': pool_data.get('id'),
                 'type': pool_data.get('type', 'pool'),
                 'name': get_field('name'),
@@ -307,6 +324,19 @@ class NewPoolsCollector(BaseDataCollector):
                 'network_id': get_field('network_id', self.network),
                 'collected_at': datetime.now()
             }
+            
+            # Add signal analysis data if available
+            if signal_result:
+                record_data.update({
+                    'signal_score': safe_decimal(signal_result.signal_score),
+                    'volume_trend': signal_result.volume_trend,
+                    'liquidity_trend': signal_result.liquidity_trend,
+                    'momentum_indicator': safe_decimal(signal_result.momentum_indicator),
+                    'activity_score': safe_decimal(signal_result.activity_score),
+                    'volatility_score': safe_decimal(signal_result.volatility_score)
+                })
+            
+            return record_data
             
         except Exception as e:
             self.logger.error(f"Error creating history record: {e}")
@@ -472,6 +502,149 @@ class NewPoolsCollector(BaseDataCollector):
         except Exception as e:
             self.logger.error(f"Error storing history record for {history_record.get('pool_id')}: {e}")
             raise
+    
+    async def _analyze_pool_signals(self, pool_data: Dict) -> Optional[SignalResult]:
+        """
+        Analyze pool data for trading signals.
+        
+        Args:
+            pool_data: Current pool data from API
+            
+        Returns:
+            SignalResult with analysis or None if analysis fails
+        """
+        try:
+            pool_id = pool_data.get('id')
+            if not pool_id:
+                return None
+            
+            # Get historical data for the pool (last 24 hours)
+            historical_data = await self._get_pool_historical_data(pool_id, hours=24)
+            
+            # Perform signal analysis
+            signal_result = self.signal_analyzer.analyze_pool_signals(pool_data, historical_data)
+            
+            # Log significant signals
+            if signal_result.signal_score >= self.signal_analyzer.min_signal_score:
+                alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
+                self.logger.info(f"Strong signal detected: {alert_message}")
+            
+            return signal_result
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing signals for pool {pool_data.get('id')}: {e}")
+            return None
+    
+    async def _get_pool_historical_data(self, pool_id: str, hours: int = 24) -> List[Dict]:
+        """
+        Get historical data for a pool from the new_pools_history table.
+        
+        Args:
+            pool_id: Pool identifier
+            hours: Number of hours to look back
+            
+        Returns:
+            List of historical data dictionaries
+        """
+        try:
+            # Calculate cutoff time
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+            
+            # Get historical records from database
+            if hasattr(self.db_manager, 'get_pool_history'):
+                return await self.db_manager.get_pool_history(pool_id, cutoff_time)
+            else:
+                # Fallback: return empty list if method not available
+                self.logger.debug(f"No historical data method available for pool {pool_id}")
+                return []
+                
+        except Exception as e:
+            self.logger.error(f"Error getting historical data for pool {pool_id}: {e}")
+            return []
+    
+    async def _handle_auto_watchlist(self, pool_data: Dict, signal_result: SignalResult) -> None:
+        """
+        Handle automatic watchlist addition for pools with strong signals.
+        
+        Args:
+            pool_data: Pool data from API
+            signal_result: Signal analysis result
+        """
+        try:
+            pool_id = pool_data.get('id')
+            if not pool_id:
+                return
+            
+            # Check if signal is strong enough for watchlist addition
+            if not self.signal_analyzer.should_add_to_watchlist(signal_result):
+                return
+            
+            # Check if pool is already in watchlist
+            if hasattr(self.db_manager, 'is_pool_in_watchlist'):
+                if await self.db_manager.is_pool_in_watchlist(pool_id):
+                    self.logger.debug(f"Pool {pool_id} already in watchlist")
+                    return
+            
+            # Extract token information for watchlist entry
+            attributes = pool_data.get('attributes', {})
+            
+            # Create watchlist entry
+            watchlist_data = {
+                'pool_id': pool_id,
+                'token_symbol': self._extract_token_symbol(pool_data),
+                'token_name': attributes.get('name', f"Pool {pool_id[:8]}..."),
+                'network_address': attributes.get('address', ''),
+                'is_active': True,
+                'metadata_json': {
+                    'auto_added': True,
+                    'signal_score': float(signal_result.signal_score),
+                    'added_at': datetime.now().isoformat(),
+                    'source': 'new_pools_signal_detection'
+                }
+            }
+            
+            # Add to watchlist
+            if hasattr(self.db_manager, 'add_to_watchlist'):
+                await self.db_manager.add_to_watchlist(watchlist_data)
+                self.logger.info(f"Auto-added pool {pool_id} to watchlist (signal score: {signal_result.signal_score:.1f})")
+            else:
+                self.logger.warning("Watchlist functionality not available in database manager")
+                
+        except Exception as e:
+            self.logger.error(f"Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+    
+    def _extract_token_symbol(self, pool_data: Dict) -> str:
+        """
+        Extract a reasonable token symbol from pool data.
+        
+        Args:
+            pool_data: Pool data from API
+            
+        Returns:
+            Token symbol string
+        """
+        try:
+            attributes = pool_data.get('attributes', {})
+            
+            # Try to extract from name
+            name = attributes.get('name', '')
+            if name and '/' in name:
+                # Handle "TOKEN/SOL" format
+                return name.split('/')[0].strip().upper()
+            elif name:
+                # Use first word of name
+                return name.split()[0].upper()
+            
+            # Fallback to pool ID prefix
+            pool_id = pool_data.get('id', '')
+            if pool_id:
+                return f"POOL{pool_id[:6].upper()}"
+            
+            return "UNKNOWN"
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting token symbol: {e}")
+            return "UNKNOWN"
     
     async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]:
         """

@@ -73,6 +73,21 @@ class DatabaseManager(ABC):
         pass
     
     @abstractmethod
+    async def get_pool_history(self, pool_id: str, cutoff_time: Any) -> List[Dict]:
+        """Get historical data for a pool."""
+        pass
+    
+    @abstractmethod
+    async def is_pool_in_watchlist(self, pool_id: str) -> bool:
+        """Check if pool is already in watchlist."""
+        pass
+    
+    @abstractmethod
+    async def add_to_watchlist(self, watchlist_data: Dict) -> None:
+        """Add pool to watchlist."""
+        pass
+    
+    @abstractmethod
     async def get_pools_by_dex(self, dex_id: str) -> List[Pool]:
         """Get all pools for a specific DEX."""
         pass

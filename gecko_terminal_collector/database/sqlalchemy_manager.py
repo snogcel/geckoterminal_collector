@@ -2024,6 +2024,106 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 session.rollback()
                 logger.error(f"Error storing new pools history record: {e}")
                 raise
+    
+    async def get_pool_history(self, pool_id: str, cutoff_time: Any) -> List[Dict]:
+        """
+        Get historical data for a pool from new_pools_history table.
+        
+        Args:
+            pool_id: Pool identifier
+            cutoff_time: Datetime cutoff for historical data
+            
+        Returns:
+            List of historical data dictionaries
+        """
+        from gecko_terminal_collector.database.models import NewPoolsHistory
+        
+        with self.connection.get_session() as session:
+            try:
+                # Query historical records
+                query = session.query(NewPoolsHistory).filter(
+                    NewPoolsHistory.pool_id == pool_id,
+                    NewPoolsHistory.collected_at >= cutoff_time
+                ).order_by(NewPoolsHistory.collected_at.desc())
+                
+                records = query.all()
+                
+                # Convert to dictionaries
+                history_data = []
+                for record in records:
+                    history_data.append({
+                        'volume_usd_h24': float(record.volume_usd_h24) if record.volume_usd_h24 else 0,
+                        'reserve_in_usd': float(record.reserve_in_usd) if record.reserve_in_usd else 0,
+                        'price_change_percentage_h1': float(record.price_change_percentage_h1) if record.price_change_percentage_h1 else 0,
+                        'price_change_percentage_h24': float(record.price_change_percentage_h24) if record.price_change_percentage_h24 else 0,
+                        'transactions_h1_buys': record.transactions_h1_buys or 0,
+                        'transactions_h1_sells': record.transactions_h1_sells or 0,
+                        'transactions_h24_buys': record.transactions_h24_buys or 0,
+                        'transactions_h24_sells': record.transactions_h24_sells or 0,
+                        'collected_at': record.collected_at
+                    })
+                
+                logger.debug(f"Retrieved {len(history_data)} historical records for pool {pool_id}")
+                return history_data
+                
+            except Exception as e:
+                logger.error(f"Error getting pool history for {pool_id}: {e}")
+                return []
+    
+    async def is_pool_in_watchlist(self, pool_id: str) -> bool:
+        """
+        Check if pool is already in watchlist.
+        
+        Args:
+            pool_id: Pool identifier
+            
+        Returns:
+            True if pool is in watchlist
+        """
+        from gecko_terminal_collector.database.models import WatchlistEntry
+        
+        with self.connection.get_session() as session:
+            try:
+                exists = session.query(WatchlistEntry).filter(
+                    WatchlistEntry.pool_id == pool_id
+                ).first() is not None
+                
+                return exists
+                
+            except Exception as e:
+                logger.error(f"Error checking watchlist for pool {pool_id}: {e}")
+                return False
+    
+    async def add_to_watchlist(self, watchlist_data: Dict) -> None:
+        """
+        Add pool to watchlist.
+        
+        Args:
+            watchlist_data: Watchlist entry data
+        """
+        from gecko_terminal_collector.database.models import WatchlistEntry
+        
+        with self.connection.get_session() as session:
+            try:
+                # Create watchlist entry
+                entry = WatchlistEntry(
+                    pool_id=watchlist_data['pool_id'],
+                    token_symbol=watchlist_data.get('token_symbol'),
+                    token_name=watchlist_data.get('token_name'),
+                    network_address=watchlist_data.get('network_address'),
+                    is_active=watchlist_data.get('is_active', True),
+                    metadata_json=watchlist_data.get('metadata_json', {})
+                )
+                
+                session.add(entry)
+                session.commit()
+                
+                logger.info(f"Added pool {watchlist_data['pool_id']} to watchlist")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error adding pool to watchlist: {e}")
+                raise
 
     # Discovery-specific database operations
     
