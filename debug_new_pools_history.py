@@ -12,6 +12,14 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Any
 
 
+def execute_query_with_session(db_manager, query):
+    """Helper function to execute queries using the database session."""
+    from sqlalchemy import text
+    with db_manager.connection.get_session() as session:
+        result = session.execute(text(query))
+        return result.fetchall()
+
+
 async def debug_new_pools_history():
     """Debug new pools history data capture process."""
     
@@ -21,11 +29,14 @@ async def debug_new_pools_history():
     try:
         # Load config
         with open('config.yaml', 'r') as f:
-            config = yaml.safe_load(f)
+            config_dict = yaml.safe_load(f)
         
         from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
+        from gecko_terminal_collector.config.models import DatabaseConfig
         
-        db_manager = SQLAlchemyDatabaseManager(config['database'])
+        # Convert dict to DatabaseConfig object
+        db_config = DatabaseConfig(**config_dict['database'])
+        db_manager = SQLAlchemyDatabaseManager(db_config)
         await db_manager.initialize()
         
         # Debug 1: Check table structure
@@ -61,7 +72,7 @@ async def debug_table_structure(db_manager):
     
     try:
         # Check if table exists
-        table_check = await db_manager.execute_query("""
+        table_check = execute_query_with_session(db_manager, """
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
@@ -83,7 +94,7 @@ async def debug_table_structure(db_manager):
         ORDER BY ordinal_position
         """
         
-        columns = await db_manager.execute_query(columns_query)
+        columns = execute_query_with_session(db_manager, columns_query)
         
         print(f"📊 Table has {len(columns)} columns:")
         for col in columns:
@@ -98,7 +109,7 @@ async def debug_table_structure(db_manager):
         WHERE tablename = 'new_pools_history'
         """
         
-        indexes = await db_manager.execute_query(indexes_query)
+        indexes = execute_query_with_session(db_manager, indexes_query)
         
         if indexes:
             print(f"\n📋 Table indexes ({len(indexes)}):")
@@ -130,7 +141,7 @@ async def debug_collection_patterns(db_manager):
         LIMIT 12
         """
         
-        frequency_data = await db_manager.execute_query(frequency_query)
+        frequency_data = execute_query_with_session(db_manager, frequency_query)
         
         if frequency_data:
             print("📊 Collection frequency (last 12 hours):")
@@ -161,7 +172,7 @@ async def debug_collection_patterns(db_manager):
         ORDER BY he.expected_hour
         """
         
-        gaps = await db_manager.execute_query(gaps_query)
+        gaps = execute_query_with_session(db_manager, gaps_query)
         
         if gaps:
             print(f"\n⚠️  Found {len(gaps)} collection gaps in last 24 hours:")
@@ -194,7 +205,7 @@ async def debug_data_quality(db_manager):
         WHERE collected_at > NOW() - INTERVAL '6 hours'
         """
         
-        quality_result = await db_manager.execute_query(quality_query)
+        quality_result = execute_query_with_session(db_manager, quality_query)
         
         if quality_result:
             stats = quality_result[0]
@@ -255,7 +266,7 @@ async def debug_data_quality(db_manager):
         AND pool_created_at < NOW() - INTERVAL '30 days'
         """
         
-        anomalies = await db_manager.execute_query(anomalies_query)
+        anomalies = execute_query_with_session(db_manager, anomalies_query)
         
         if anomalies:
             print(f"\n🔍 Data anomalies detected:")
@@ -288,7 +299,7 @@ async def debug_signal_analysis(db_manager):
         WHERE collected_at > NOW() - INTERVAL '6 hours'
         """
         
-        signal_result = await db_manager.execute_query(signal_query)
+        signal_result = execute_query_with_session(db_manager, signal_query)
         
         if signal_result:
             stats = signal_result[0]
@@ -317,7 +328,7 @@ async def debug_signal_analysis(db_manager):
         ORDER BY count DESC
         """
         
-        trends = await db_manager.execute_query(trend_query)
+        trends = execute_query_with_session(db_manager, trend_query)
         
         if trends:
             print(f"\n📊 Volume trend distribution:")
@@ -358,7 +369,7 @@ async def debug_collection_gaps(db_manager):
         LIMIT 10
         """
         
-        gaps = await db_manager.execute_query(gaps_query)
+        gaps = execute_query_with_session(db_manager, gaps_query)
         
         if gaps:
             print(f"⚠️  Found {len(gaps)} significant collection gaps (>1 hour):")
@@ -383,7 +394,7 @@ async def debug_collection_gaps(db_manager):
         ORDER BY day DESC
         """
         
-        consistency = await db_manager.execute_query(consistency_query)
+        consistency = execute_query_with_session(db_manager, consistency_query)
         
         if consistency:
             print(f"\n📊 Daily collection consistency (last 7 days):")
@@ -423,7 +434,7 @@ async def debug_pool_lifecycle(db_manager):
         FROM pool_appearances
         """
         
-        lifecycle_result = await db_manager.execute_query(lifecycle_query)
+        lifecycle_result = execute_query_with_session(db_manager, lifecycle_query)
         
         if lifecycle_result:
             stats = lifecycle_result[0]
@@ -456,7 +467,7 @@ async def debug_pool_lifecycle(db_manager):
         LIMIT 5
         """
         
-        unusual = await db_manager.execute_query(unusual_query)
+        unusual = execute_query_with_session(db_manager, unusual_query)
         
         if unusual:
             print(f"\n🚨 Pools with unusual volume patterns:")

@@ -1614,6 +1614,7 @@ async def _create_collector(collector_type: str, config, db_manager):
     from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
     from gecko_terminal_collector.collectors.trade_collector import TradeCollector
     from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
+    from gecko_terminal_collector.collectors.new_pools_collector import NewPoolsCollector
     
     collectors = {
         "dex": DEXMonitoringCollector,
@@ -1622,6 +1623,7 @@ async def _create_collector(collector_type: str, config, db_manager):
         "ohlcv": OHLCVCollector,
         "trades": TradeCollector,
         "historical": HistoricalOHLCVCollector,
+        "new-pools": lambda config, db_manager: NewPoolsCollector(config, db_manager, "solana"),
     }
     
     collector_class = collectors.get(collector_type)

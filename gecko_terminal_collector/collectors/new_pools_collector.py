@@ -10,7 +10,8 @@ from decimal import Decimal
 
 from gecko_terminal_collector.collectors.base import BaseDataCollector
 from gecko_terminal_collector.models.core import CollectionResult, ValidationResult
-from gecko_terminal_collector.database.models import Pool as PoolModel, NewPoolsHistory
+from gecko_terminal_collector.database.models import Pool as PoolModel
+from gecko_terminal_collector.database.postgresql_models import NewPoolsHistory
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer, SignalResult

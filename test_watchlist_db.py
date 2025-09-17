@@ -13,10 +13,13 @@ async def test_watchlist_db():
     
     # Load config
     with open('config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+        config_dict = yaml.safe_load(f)
     
-    # Initialize database manager
-    db_manager = SQLAlchemyDatabaseManager(config['database'])
+    from gecko_terminal_collector.config.models import DatabaseConfig
+    
+    # Convert dict to DatabaseConfig object and initialize database manager
+    db_config = DatabaseConfig(**config_dict['database'])
+    db_manager = SQLAlchemyDatabaseManager(db_config)
     
     try:
         # Test database connection
