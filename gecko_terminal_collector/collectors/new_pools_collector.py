@@ -48,6 +48,13 @@ class NewPoolsCollector(BaseDataCollector):
         self.network = network
         super().__init__(config, db_manager, **kwargs)
         
+        # Configure Unicode handling for safe logging
+        try:
+            from gecko_terminal_collector.utils.unicode_utils import UnicodeHandler
+            UnicodeHandler.configure_console_encoding()
+        except Exception as e:
+            self.logger.warning(f"Could not configure Unicode handling: {e}")
+        
         # Initialize signal analyzer
         new_pools_config = getattr(config, 'new_pools', None)
         if new_pools_config and hasattr(new_pools_config, 'signal_detection'):
@@ -156,7 +163,13 @@ class NewPoolsCollector(BaseDataCollector):
                         history_records += 1
                         
                 except Exception as e:
-                    error_msg = f"Error processing pool {pool_data.get('id', 'unknown')}: {str(e)}"
+                    try:
+                        from gecko_terminal_collector.utils.unicode_utils import UnicodeHandler
+                        safe_pool_id = UnicodeHandler.safe_str(pool_data.get('id', 'unknown'))
+                        error_msg = f"Error processing pool {safe_pool_id}: {str(e)}"
+                    except Exception:
+                        error_msg = f"Error processing pool (ID extraction failed): {str(e)}"
+                    
                     self.logger.error(error_msg)
                     errors.append(error_msg)
                     continue
@@ -681,7 +694,16 @@ class NewPoolsCollector(BaseDataCollector):
         # Validate individual pool records
         for i, pool_data in enumerate(data):
 
-            print("pool_data: ", pool_data)
+            # Safe logging instead of print to avoid Unicode encoding issues
+            # Only log detailed info in debug mode to avoid performance impact
+            try:
+                from gecko_terminal_collector.utils.unicode_utils import UnicodeHandler
+                safe_info = UnicodeHandler.safe_format_pool_info(pool_data)
+                self.logger.debug(f"Processing: {safe_info}")
+            except Exception as debug_error:
+                # Fallback if Unicode handling fails
+                pool_id = str(pool_data.get('id', 'unknown'))[:20]
+                self.logger.debug(f"Processing pool: {pool_id}...")
 
             if not isinstance(pool_data, dict):
                 errors.append(f"Pool {i}: Expected dict, got {type(pool_data)}")
