@@ -146,6 +146,7 @@ async def test_database_methods():
     from gecko_terminal_collector.config.manager import ConfigManager
     from gecko_terminal_collector.database.sqlalchemy_manager import SQLAlchemyDatabaseManager
     from datetime import datetime, timedelta
+    import uuid
     
     print("🗄️  Testing Database Methods...")
     print("-" * 50)
@@ -159,8 +160,13 @@ async def test_database_methods():
         db_manager = SQLAlchemyDatabaseManager(config.database)
         await db_manager.initialize()
         
+        # Use unique IDs to avoid conflicts
+        test_suffix = str(uuid.uuid4())[:8]
+        test_pool_id = f"solana_test_pool_{test_suffix}"
+        test_dex_id = f"test_dex_{test_suffix}"
+        test_address = f"test_address_{test_suffix}"
+        
         # Test pool history retrieval
-        test_pool_id = "solana_test_pool_123"
         cutoff_time = datetime.now() - timedelta(hours=24)
         
         history = await db_manager.get_pool_history(test_pool_id, cutoff_time)
@@ -174,47 +180,67 @@ async def test_database_methods():
         if not in_watchlist:
             # First create a test pool to satisfy foreign key constraint
             from gecko_terminal_collector.database.models import Pool as PoolModel
+            from gecko_terminal_collector.database.models import DEX as DEXModel
             
             test_pool = PoolModel(
                 id=test_pool_id,
-                address='test_address_123',
+                address=test_address,
                 name='Test Pool',
-                dex_id='test_dex'
+                dex_id=test_dex_id
             )
             
             # Create test DEX first
-            from gecko_terminal_collector.database.models import DEX as DEXModel
             test_dex = DEXModel(
-                id='test_dex',
+                id=test_dex_id,
                 name='Test DEX',
                 network='solana'
             )
             
             with db_manager.connection.get_session() as session:
-                # Add DEX and pool
-                session.add(test_dex)
-                session.add(test_pool)
-                session.commit()
-            
-            test_watchlist_data = {
-                'pool_id': test_pool_id,
-                'token_symbol': 'TEST',
-                'token_name': 'Test Token',
-                'network_address': 'test_address_123',
-                'is_active': True,
-                'metadata_json': {
-                    'auto_added': True,
-                    'signal_score': 85.5,
-                    'test_entry': True
-                }
-            }
-            
-            await db_manager.add_to_watchlist(test_watchlist_data)
-            print(f"✅ add_to_watchlist: Added test entry")
-            
-            # Verify it was added
-            in_watchlist_after = await db_manager.is_pool_in_watchlist(test_pool_id)
-            print(f"✅ Verification: Pool now in watchlist: {in_watchlist_after}")
+                try:
+                    # Add DEX and pool
+                    session.add(test_dex)
+                    session.add(test_pool)
+                    session.commit()
+                    
+                    test_watchlist_data = {
+                        'pool_id': test_pool_id,
+                        'token_symbol': 'TEST',
+                        'token_name': 'Test Token',
+                        'network_address': test_address,
+                        'is_active': True,
+                        'metadata_json': {
+                            'auto_added': True,
+                            'signal_score': 85.5,
+                            'test_entry': True
+                        }
+                    }
+                    
+                    await db_manager.add_to_watchlist(test_watchlist_data)
+                    print(f"✅ add_to_watchlist: Added test entry")
+                    
+                    # Verify it was added
+                    in_watchlist_after = await db_manager.is_pool_in_watchlist(test_pool_id)
+                    print(f"✅ Verification: Pool now in watchlist: {in_watchlist_after}")
+                    
+                except Exception as e:
+                    session.rollback()
+                    raise e
+                finally:
+                    # Clean up test data
+                    try:
+                        # Remove from watchlist first (due to foreign key constraints)
+                        from gecko_terminal_collector.database.models import WatchlistEntry
+                        session.query(WatchlistEntry).filter_by(pool_id=test_pool_id).delete()
+                        # Remove test pool
+                        session.query(PoolModel).filter_by(id=test_pool_id).delete()
+                        # Remove test DEX
+                        session.query(DEXModel).filter_by(id=test_dex_id).delete()
+                        session.commit()
+                        print(f"✅ Cleanup: Removed test data")
+                    except Exception as cleanup_error:
+                        print(f"⚠️  Cleanup warning: {cleanup_error}")
+                        session.rollback()
         
         await db_manager.close()
         return True
