@@ -2,7 +2,8 @@
 QLib Integration Module for New Pools History Data
 
 This module provides functionality to export new pools history data
-in QLib-compatible format for quantitative analysis and model training.
+in QLib-compatible bin format for quantitative analysis and model training.
+Supports incremental updates and follows QLib-Server data structure requirements.
 """
 
 import pandas as pd
@@ -12,6 +13,10 @@ from typing import Dict, List, Optional, Tuple, Any
 import logging
 from pathlib import Path
 import json
+import shutil
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 
 from sqlalchemy import text
 from gecko_terminal_collector.database.manager import DatabaseManager
@@ -19,62 +24,96 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 logger = logging.getLogger(__name__)
 
 
-class QLibDataExporter:
+class QLibBinDataExporter:
     """
-    Export new pools history data in QLib-compatible format.
+    Export new pools history data in QLib-compatible bin format.
     
-    QLib expects data in specific formats:
-    - Time series data with datetime index
-    - Feature columns with standardized names
-    - Proper handling of missing values
-    - Normalized price and volume data
+    This class follows QLib's bin file structure requirements:
+    - Binary files with date_index + feature data
+    - Proper calendar alignment
+    - Incremental update support
+    - Symbol-based directory structure
     """
     
-    def __init__(self, db_manager: DatabaseManager, output_dir: str = "./qlib_data"):
+    # QLib constants
+    CALENDARS_DIR_NAME = "calendars"
+    FEATURES_DIR_NAME = "features"
+    INSTRUMENTS_DIR_NAME = "instruments"
+    DUMP_FILE_SUFFIX = ".bin"
+    INSTRUMENTS_SEP = "\t"
+    INSTRUMENTS_FILE_NAME = "all.txt"
+    INSTRUMENTS_START_FIELD = "start_datetime"
+    INSTRUMENTS_END_FIELD = "end_datetime"
+    
+    def __init__(
+        self, 
+        db_manager: DatabaseManager, 
+        qlib_dir: str = "./qlib_data",
+        freq: str = "60min",
+        max_workers: int = 16,
+        backup_dir: str = None
+    ):
         self.db_manager = db_manager
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
+        self.qlib_dir = Path(qlib_dir).expanduser()
+        self.freq = freq
+        self.max_workers = max_workers
         
-        # QLib feature mapping
+        # Create backup if specified
+        if backup_dir:
+            self.backup_dir = Path(backup_dir).expanduser()
+            self._backup_qlib_dir()
+        
+        # Initialize directories
+        self._calendars_dir = self.qlib_dir.joinpath(self.CALENDARS_DIR_NAME)
+        self._features_dir = self.qlib_dir.joinpath(self.FEATURES_DIR_NAME)
+        self._instruments_dir = self.qlib_dir.joinpath(self.INSTRUMENTS_DIR_NAME)
+        
+        # QLib feature mapping (database field -> qlib field)
         self.feature_mapping = {
-            # Price features
-            'open': 'open_price_usd',
-            'high': 'high_price_usd', 
-            'low': 'low_price_usd',
-            'close': 'close_price_usd',
-            'volume': 'volume_usd_h24',
-            
-            # Technical indicators
-            'rsi': 'relative_strength_index',
-            'macd': 'moving_average_convergence',
-            'volatility': 'volatility_score',
-            
-            # Market structure
-            'liquidity': 'reserve_in_usd',
-            'market_cap': 'market_cap_usd',
-            'fdv': 'fdv_usd',
-            
-            # Activity metrics
-            'transactions': 'transactions_h24_buys',
-            'activity_score': 'activity_score',
-            'signal_score': 'signal_score',
-            
-            # Price changes
-            'return_1h': 'price_change_percentage_h1',
-            'return_24h': 'price_change_percentage_h24'
+            'open_price_usd': 'open',
+            'high_price_usd': 'high', 
+            'low_price_usd': 'low',
+            'close_price_usd': 'close',
+            'volume_usd_h24': 'volume',
+            'reserve_in_usd': 'liquidity',
+            'market_cap_usd': 'market_cap',
+            'fdv_usd': 'fdv',
+            'relative_strength_index': 'rsi',
+            'moving_average_convergence': 'macd',
+            'volatility_score': 'volatility',
+            'activity_score': 'activity',
+            'signal_score': 'signal',
+            'transactions_h24_buys': 'buy_count',
+            'transactions_h24_sells': 'sell_count',
+            'price_change_percentage_h1': 'return_1h',
+            'price_change_percentage_h24': 'return_24h'
         }
+        
+        # Date format for QLib
+        self.calendar_format = "%Y-%m-%d %H:%M:%S" if freq != "day" else "%Y-%m-%d"
     
-    async def export_training_data(
+    def _backup_qlib_dir(self):
+        """Backup existing QLib directory."""
+        if self.qlib_dir.exists():
+            shutil.copytree(str(self.qlib_dir.resolve()), str(self.backup_dir.resolve()))
+            logger.info(f"Backed up QLib directory to {self.backup_dir}")
+    
+    def _format_datetime(self, datetime_obj: pd.Timestamp) -> str:
+        """Format datetime for QLib calendar."""
+        return datetime_obj.strftime(self.calendar_format)
+    
+    async def export_bin_data(
         self,
         start_date: datetime,
         end_date: datetime,
         networks: List[str] = None,
         min_liquidity_usd: float = 1000,
         min_volume_usd: float = 100,
-        export_name: str = None
+        export_name: str = None,
+        mode: str = "all"  # "all", "update", "fix"
     ) -> Dict[str, Any]:
         """
-        Export training data for QLib models.
+        Export data in QLib bin format for QLib-Server integration.
         
         Args:
             start_date: Start date for data export
@@ -83,15 +122,16 @@ class QLibDataExporter:
             min_liquidity_usd: Minimum liquidity threshold
             min_volume_usd: Minimum volume threshold
             export_name: Name for the export (auto-generated if None)
+            mode: Export mode - "all" (full export), "update" (incremental), "fix" (repair)
             
         Returns:
             Dictionary with export metadata
         """
         try:
             if not export_name:
-                export_name = f"training_data_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}"
+                export_name = f"qlib_bin_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}"
             
-            logger.info(f"Starting QLib training data export: {export_name}")
+            logger.info(f"Starting QLib bin data export: {export_name} (mode: {mode})")
             
             # Get raw data from database
             raw_data = await self._fetch_history_data(
@@ -102,50 +142,44 @@ class QLibDataExporter:
                 logger.warning("No data found for specified criteria")
                 return {'success': False, 'error': 'No data found'}
             
-            # Process data for QLib format
-            qlib_data = self._process_for_qlib(raw_data)
+            logger.info(f"Fetched {len(raw_data)} records for {raw_data['pool_id'].nunique()} unique pools")
             
-            # Generate features
-            feature_data = self._generate_features(qlib_data)
+            # Process data for QLib bin format
+            processed_data = self._process_for_qlib_bin(raw_data)
             
-            # Create labels (target variables)
-            labeled_data = self._create_labels(feature_data)
-            
-            # Split into train/validation/test sets
-            datasets = self._split_datasets(labeled_data)
-            
-            # Save datasets
-            export_paths = await self._save_datasets(datasets, export_name)
-            
-            # Create QLib configuration
-            qlib_config = self._create_qlib_config(datasets, export_name)
-            
-            # Save configuration
-            config_path = self.output_dir / f"{export_name}_config.json"
-            with open(config_path, 'w') as f:
-                json.dump(qlib_config, f, indent=2, default=str)
+            # Export based on mode
+            if mode == "all":
+                result = await self._export_all_bin_data(processed_data, export_name)
+            elif mode == "update":
+                result = await self._export_update_bin_data(processed_data, export_name)
+            elif mode == "fix":
+                result = await self._export_fix_bin_data(processed_data, export_name)
+            else:
+                raise ValueError(f"Unknown export mode: {mode}")
             
             # Record export metadata
             export_metadata = {
-                'success': True,
+                'success': result['success'],
                 'export_name': export_name,
+                'mode': mode,
                 'start_date': start_date,
                 'end_date': end_date,
-                'total_records': len(labeled_data),
-                'unique_pools': labeled_data['pool_id'].nunique(),
+                'total_records': len(raw_data),
+                'unique_pools': raw_data['pool_id'].nunique(),
                 'networks': networks or 'all',
-                'export_paths': export_paths,
-                'config_path': str(config_path),
-                'created_at': datetime.now()
+                'qlib_dir': str(self.qlib_dir),
+                'freq': self.freq,
+                'created_at': datetime.now(),
+                **result
             }
             
             await self._record_export_metadata(export_metadata)
             
-            logger.info(f"QLib export completed: {export_name}")
+            logger.info(f"QLib bin export completed: {export_name}")
             return export_metadata
             
         except Exception as e:
-            logger.error(f"Error exporting QLib training data: {e}")
+            logger.error(f"Error exporting QLib bin data: {e}")
             return {'success': False, 'error': str(e)}
     
     async def _fetch_history_data(
@@ -256,44 +290,487 @@ class QLibDataExporter:
             logger.error(f"Error fetching history data: {e}")
             return pd.DataFrame()
     
-    def _process_for_qlib(self, raw_data: pd.DataFrame) -> pd.DataFrame:
-        """Process raw data for QLib format."""
+    def _process_for_qlib_bin(self, raw_data: pd.DataFrame) -> pd.DataFrame:
+        """Process raw data for QLib bin format."""
         try:
             df = raw_data.copy()
             
             # Convert datetime column to proper datetime type
             df['datetime'] = pd.to_datetime(df['datetime'])
             
-            # Set datetime as index
-            df.set_index('datetime', inplace=True)
-            
             # Sort by pool_id and datetime
             df.sort_values(['pool_id', 'datetime'], inplace=True)
             
-            # Handle missing values
+            # Handle missing values - forward fill then zero fill
             numeric_columns = df.select_dtypes(include=[np.number]).columns
-            df[numeric_columns] = df[numeric_columns].fillna(method='ffill').fillna(0)
+            df[numeric_columns] = df.groupby('pool_id')[numeric_columns].fillna(method='ffill').fillna(0)
             
-            # Normalize price data (convert to returns)
-            price_columns = ['open_price_usd', 'high_price_usd', 'low_price_usd', 'close_price_usd']
-            for col in price_columns:
-                if col in df.columns:
-                    df[f'{col}_return'] = df.groupby('pool_id')[col].pct_change()
+            # Ensure we have required OHLCV columns with valid data
+            required_columns = ['open_price_usd', 'high_price_usd', 'low_price_usd', 'close_price_usd', 'volume_usd_h24']
+            for col in required_columns:
+                if col not in df.columns:
+                    logger.warning(f"Missing required column: {col}")
+                    df[col] = 0.0
+                else:
+                    # Replace any remaining NaN or inf values
+                    df[col] = df[col].replace([np.inf, -np.inf], np.nan).fillna(0.0)
             
-            # Log-transform volume data
-            volume_columns = ['volume_usd_h24', 'volume_usd_h1', 'reserve_in_usd']
-            for col in volume_columns:
-                if col in df.columns:
-                    df[f'{col}_log'] = np.log1p(df[col])
-            
-            # Create QLib-compatible symbol column
+            # Create QLib-compatible symbol from qlib_symbol or pool_id
             df['symbol'] = df['qlib_symbol'].fillna(df['pool_id'])
+            
+            # Ensure symbols are valid (alphanumeric + underscore)
+            df['symbol'] = df['symbol'].str.replace(r'[^a-zA-Z0-9_]', '_', regex=True)
+            
+            # Add date field for QLib compatibility
+            df['date'] = df['datetime']
             
             return df
             
         except Exception as e:
-            logger.error(f"Error processing data for QLib: {e}")
+            logger.error(f"Error processing data for QLib bin: {e}")
             return pd.DataFrame()
+    
+    async def _export_all_bin_data(self, data: pd.DataFrame, export_name: str) -> Dict[str, Any]:
+        """Export all data in QLib bin format (full export)."""
+        try:
+            logger.info("Starting full bin data export...")
+            
+            # Get all unique dates for calendar
+            all_dates = sorted(data['datetime'].unique())
+            calendar_list = [pd.Timestamp(dt) for dt in all_dates]
+            
+            # Save calendar
+            self._save_calendar(calendar_list)
+            
+            # Prepare instruments data
+            instruments_data = self._prepare_instruments_data(data)
+            self._save_instruments(instruments_data)
+            
+            # Export features for each symbol
+            symbols_processed = 0
+            errors = []
+            
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {}
+                
+                for symbol, symbol_data in data.groupby('symbol'):
+                    future = executor.submit(
+                        self._dump_symbol_bin_data, 
+                        symbol, 
+                        symbol_data, 
+                        calendar_list,
+                        "all"
+                    )
+                    futures[future] = symbol
+                
+                with tqdm(total=len(futures), desc="Exporting symbols") as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                            symbols_processed += 1
+                        except Exception as e:
+                            symbol = futures[future]
+                            error_msg = f"Error processing symbol {symbol}: {e}"
+                            logger.error(error_msg)
+                            errors.append(error_msg)
+                        pbar.update(1)
+            
+            return {
+                'success': len(errors) == 0,
+                'symbols_processed': symbols_processed,
+                'calendar_entries': len(calendar_list),
+                'errors': errors
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in full bin export: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def _export_update_bin_data(self, data: pd.DataFrame, export_name: str) -> Dict[str, Any]:
+        """Export incremental updates to existing QLib bin data."""
+        try:
+            logger.info("Starting incremental bin data export...")
+            
+            # Load existing calendar
+            existing_calendar = self._load_existing_calendar()
+            if not existing_calendar:
+                logger.warning("No existing calendar found, falling back to full export")
+                return await self._export_all_bin_data(data, export_name)
+            
+            # Get new dates that aren't in existing calendar
+            all_dates = sorted(data['datetime'].unique())
+            new_dates = [dt for dt in all_dates if pd.Timestamp(dt) not in existing_calendar]
+            
+            if not new_dates:
+                logger.info("No new dates to add")
+                return {'success': True, 'symbols_processed': 0, 'new_dates': 0}
+            
+            # Update calendar
+            updated_calendar = existing_calendar + [pd.Timestamp(dt) for dt in new_dates]
+            updated_calendar = sorted(set(updated_calendar))
+            self._save_calendar(updated_calendar)
+            
+            # Load existing instruments
+            existing_instruments = self._load_existing_instruments()
+            
+            # Update instruments with new symbols and date ranges
+            updated_instruments = self._update_instruments_data(data, existing_instruments)
+            self._save_instruments(updated_instruments)
+            
+            # Export only new data for each symbol
+            symbols_processed = 0
+            errors = []
+            
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {}
+                
+                for symbol, symbol_data in data.groupby('symbol'):
+                    # Filter to only new dates for this symbol
+                    new_symbol_data = symbol_data[symbol_data['datetime'].isin(new_dates)]
+                    if not new_symbol_data.empty:
+                        future = executor.submit(
+                            self._dump_symbol_bin_data, 
+                            symbol, 
+                            new_symbol_data, 
+                            updated_calendar,
+                            "update"
+                        )
+                        futures[future] = symbol
+                
+                with tqdm(total=len(futures), desc="Updating symbols") as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                            symbols_processed += 1
+                        except Exception as e:
+                            symbol = futures[future]
+                            error_msg = f"Error updating symbol {symbol}: {e}"
+                            logger.error(error_msg)
+                            errors.append(error_msg)
+                        pbar.update(1)
+            
+            return {
+                'success': len(errors) == 0,
+                'symbols_processed': symbols_processed,
+                'new_dates': len(new_dates),
+                'errors': errors
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in incremental bin export: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def _export_fix_bin_data(self, data: pd.DataFrame, export_name: str) -> Dict[str, Any]:
+        """Fix/repair existing QLib bin data."""
+        try:
+            logger.info("Starting bin data repair...")
+            
+            # Load existing calendar and instruments
+            existing_calendar = self._load_existing_calendar()
+            existing_instruments = self._load_existing_instruments()
+            
+            if not existing_calendar or not existing_instruments:
+                logger.warning("Missing existing data, falling back to full export")
+                return await self._export_all_bin_data(data, export_name)
+            
+            # Update instruments with any new symbols
+            updated_instruments = self._update_instruments_data(data, existing_instruments)
+            self._save_instruments(updated_instruments)
+            
+            # Process only new symbols that aren't in existing instruments
+            existing_symbols = set(existing_instruments['symbol']) if 'symbol' in existing_instruments.columns else set()
+            new_symbols = set(data['symbol']) - existing_symbols
+            
+            symbols_processed = 0
+            errors = []
+            
+            if new_symbols:
+                logger.info(f"Processing {len(new_symbols)} new symbols")
+                
+                with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                    futures = {}
+                    
+                    for symbol in new_symbols:
+                        symbol_data = data[data['symbol'] == symbol]
+                        future = executor.submit(
+                            self._dump_symbol_bin_data, 
+                            symbol, 
+                            symbol_data, 
+                            existing_calendar,
+                            "all"  # New symbols get full treatment
+                        )
+                        futures[future] = symbol
+                    
+                    with tqdm(total=len(futures), desc="Adding new symbols") as pbar:
+                        for future in as_completed(futures):
+                            try:
+                                future.result()
+                                symbols_processed += 1
+                            except Exception as e:
+                                symbol = futures[future]
+                                error_msg = f"Error adding symbol {symbol}: {e}"
+                                logger.error(error_msg)
+                                errors.append(error_msg)
+                            pbar.update(1)
+            
+            return {
+                'success': len(errors) == 0,
+                'symbols_processed': symbols_processed,
+                'new_symbols': len(new_symbols),
+                'errors': errors
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in bin data repair: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def _dump_symbol_bin_data(
+        self, 
+        symbol: str, 
+        symbol_data: pd.DataFrame, 
+        calendar_list: List[pd.Timestamp],
+        mode: str = "all"
+    ):
+        """Dump binary data for a single symbol."""
+        try:
+            if symbol_data.empty:
+                logger.warning(f"No data for symbol {symbol}")
+                return
+            
+            # Create symbol directory
+            symbol_dir = self._features_dir / symbol.lower()
+            symbol_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Prepare data with calendar alignment
+            aligned_data = self._align_data_with_calendar(symbol_data, calendar_list)
+            
+            if aligned_data.empty:
+                logger.warning(f"No aligned data for symbol {symbol}")
+                return
+            
+            # Get date index for this symbol's data
+            date_index = self._get_date_index(aligned_data, calendar_list)
+            
+            # Export each feature as a bin file
+            for db_field, qlib_field in self.feature_mapping.items():
+                if db_field in aligned_data.columns:
+                    self._write_feature_bin_file(
+                        symbol_dir, 
+                        qlib_field, 
+                        aligned_data[db_field], 
+                        date_index,
+                        mode
+                    )
+            
+        except Exception as e:
+            logger.error(f"Error dumping bin data for symbol {symbol}: {e}")
+            raise
+    
+    def _align_data_with_calendar(self, data: pd.DataFrame, calendar_list: List[pd.Timestamp]) -> pd.DataFrame:
+        """Align symbol data with QLib calendar."""
+        try:
+            # Create calendar DataFrame
+            calendar_df = pd.DataFrame({'datetime': calendar_list})
+            calendar_df['datetime'] = pd.to_datetime(calendar_df['datetime'])
+            
+            # Filter calendar to data range
+            data_start = data['datetime'].min()
+            data_end = data['datetime'].max()
+            
+            filtered_calendar = calendar_df[
+                (calendar_df['datetime'] >= data_start) & 
+                (calendar_df['datetime'] <= data_end)
+            ].copy()
+            
+            # Set datetime as index for both
+            filtered_calendar.set_index('datetime', inplace=True)
+            data_indexed = data.set_index('datetime')
+            
+            # Reindex data to calendar (forward fill missing values)
+            aligned_data = data_indexed.reindex(filtered_calendar.index, method='ffill')
+            
+            return aligned_data
+            
+        except Exception as e:
+            logger.error(f"Error aligning data with calendar: {e}")
+            return pd.DataFrame()
+    
+    def _get_date_index(self, aligned_data: pd.DataFrame, calendar_list: List[pd.Timestamp]) -> int:
+        """Get the starting date index in the calendar."""
+        try:
+            start_date = aligned_data.index.min()
+            return calendar_list.index(start_date)
+        except ValueError:
+            logger.error(f"Start date {start_date} not found in calendar")
+            return 0
+    
+    def _write_feature_bin_file(
+        self, 
+        symbol_dir: Path, 
+        feature_name: str, 
+        feature_data: pd.Series, 
+        date_index: int,
+        mode: str
+    ):
+        """Write feature data to QLib bin file."""
+        try:
+            bin_file = symbol_dir / f"{feature_name.lower()}.{self.freq}{self.DUMP_FILE_SUFFIX}"
+            
+            # Convert data to float32 array
+            data_array = feature_data.fillna(0.0).astype(np.float32).values
+            
+            if mode == "update" and bin_file.exists():
+                # Append mode - just add the new data
+                with bin_file.open("ab") as fp:
+                    data_array.astype("<f").tofile(fp)
+            else:
+                # Full mode - include date index + data
+                full_array = np.hstack([date_index, data_array])
+                full_array.astype("<f").tofile(str(bin_file))
+            
+        except Exception as e:
+            logger.error(f"Error writing bin file for {feature_name}: {e}")
+            raise
+    
+    def _save_calendar(self, calendar_list: List[pd.Timestamp]):
+        """Save QLib calendar file."""
+        try:
+            self._calendars_dir.mkdir(parents=True, exist_ok=True)
+            calendar_file = self._calendars_dir / f"{self.freq}.txt"
+            
+            calendar_strings = [self._format_datetime(dt) for dt in calendar_list]
+            
+            with calendar_file.open('w', encoding='utf-8') as f:
+                for date_str in calendar_strings:
+                    f.write(f"{date_str}\n")
+            
+            logger.info(f"Saved calendar with {len(calendar_strings)} entries")
+            
+        except Exception as e:
+            logger.error(f"Error saving calendar: {e}")
+            raise
+    
+    def _prepare_instruments_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Prepare instruments data for QLib."""
+        try:
+            instruments_list = []
+            
+            for symbol, symbol_data in data.groupby('symbol'):
+                start_date = symbol_data['datetime'].min()
+                end_date = symbol_data['datetime'].max()
+                
+                instruments_list.append({
+                    'symbol': symbol.upper(),
+                    self.INSTRUMENTS_START_FIELD: self._format_datetime(pd.Timestamp(start_date)),
+                    self.INSTRUMENTS_END_FIELD: self._format_datetime(pd.Timestamp(end_date))
+                })
+            
+            return pd.DataFrame(instruments_list)
+            
+        except Exception as e:
+            logger.error(f"Error preparing instruments data: {e}")
+            return pd.DataFrame()
+    
+    def _save_instruments(self, instruments_df: pd.DataFrame):
+        """Save QLib instruments file."""
+        try:
+            self._instruments_dir.mkdir(parents=True, exist_ok=True)
+            instruments_file = self._instruments_dir / self.INSTRUMENTS_FILE_NAME
+            
+            instruments_df.to_csv(
+                instruments_file, 
+                sep=self.INSTRUMENTS_SEP, 
+                header=False, 
+                index=False,
+                encoding='utf-8'
+            )
+            
+            logger.info(f"Saved instruments file with {len(instruments_df)} entries")
+            
+        except Exception as e:
+            logger.error(f"Error saving instruments: {e}")
+            raise
+    
+    def _load_existing_calendar(self) -> List[pd.Timestamp]:
+        """Load existing QLib calendar."""
+        try:
+            calendar_file = self._calendars_dir / f"{self.freq}.txt"
+            if not calendar_file.exists():
+                return []
+            
+            with calendar_file.open('r', encoding='utf-8') as f:
+                dates = [pd.Timestamp(line.strip()) for line in f if line.strip()]
+            
+            return sorted(dates)
+            
+        except Exception as e:
+            logger.error(f"Error loading existing calendar: {e}")
+            return []
+    
+    def _load_existing_instruments(self) -> pd.DataFrame:
+        """Load existing QLib instruments."""
+        try:
+            instruments_file = self._instruments_dir / self.INSTRUMENTS_FILE_NAME
+            if not instruments_file.exists():
+                return pd.DataFrame()
+            
+            df = pd.read_csv(
+                instruments_file,
+                sep=self.INSTRUMENTS_SEP,
+                names=['symbol', self.INSTRUMENTS_START_FIELD, self.INSTRUMENTS_END_FIELD],
+                encoding='utf-8'
+            )
+            
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error loading existing instruments: {e}")
+            return pd.DataFrame()
+    
+    def _update_instruments_data(self, new_data: pd.DataFrame, existing_instruments: pd.DataFrame) -> pd.DataFrame:
+        """Update instruments data with new symbols and date ranges."""
+        try:
+            # Prepare new instruments data
+            new_instruments = self._prepare_instruments_data(new_data)
+            
+            if existing_instruments.empty:
+                return new_instruments
+            
+            # Merge with existing, updating date ranges for existing symbols
+            existing_dict = existing_instruments.set_index('symbol').to_dict('index')
+            
+            for _, row in new_instruments.iterrows():
+                symbol = row['symbol']
+                start_date = row[self.INSTRUMENTS_START_FIELD]
+                end_date = row[self.INSTRUMENTS_END_FIELD]
+                
+                if symbol in existing_dict:
+                    # Update existing symbol's date range
+                    existing_start = existing_dict[symbol][self.INSTRUMENTS_START_FIELD]
+                    existing_end = existing_dict[symbol][self.INSTRUMENTS_END_FIELD]
+                    
+                    # Extend date range if necessary
+                    if pd.Timestamp(start_date) < pd.Timestamp(existing_start):
+                        existing_dict[symbol][self.INSTRUMENTS_START_FIELD] = start_date
+                    if pd.Timestamp(end_date) > pd.Timestamp(existing_end):
+                        existing_dict[symbol][self.INSTRUMENTS_END_FIELD] = end_date
+                else:
+                    # Add new symbol
+                    existing_dict[symbol] = {
+                        self.INSTRUMENTS_START_FIELD: start_date,
+                        self.INSTRUMENTS_END_FIELD: end_date
+                    }
+            
+            # Convert back to DataFrame
+            updated_df = pd.DataFrame.from_dict(existing_dict, orient='index')
+            updated_df.index.name = 'symbol'
+            updated_df = updated_df.reset_index()
+            
+            return updated_df
+            
+        except Exception as e:
+            logger.error(f"Error updating instruments data: {e}")
+            return existing_instruments
     
     def _generate_features(self, data: pd.DataFrame) -> pd.DataFrame:
         """Generate additional features for ML models."""
@@ -641,41 +1118,193 @@ class QLibModelTrainer:
 
 
 # Usage example and CLI integration
-async def export_qlib_data_cli(
+async def export_qlib_bin_data_cli(
     db_manager: DatabaseManager,
     start_date: str,
     end_date: str,
     networks: List[str] = None,
-    output_dir: str = "./qlib_data",
+    qlib_dir: str = "./qlib_data",
+    freq: str = "60min",
     min_liquidity: float = 1000,
-    min_volume: float = 100
+    min_volume: float = 100,
+    mode: str = "all",
+    backup_dir: str = None
 ):
-    """CLI function to export QLib data."""
+    """CLI function to export QLib bin data."""
     try:
         start_dt = datetime.fromisoformat(start_date)
         end_dt = datetime.fromisoformat(end_date)
         
-        exporter = QLibDataExporter(db_manager, output_dir)
+        exporter = QLibBinDataExporter(
+            db_manager=db_manager, 
+            qlib_dir=qlib_dir,
+            freq=freq,
+            backup_dir=backup_dir
+        )
         
-        result = await exporter.export_training_data(
+        result = await exporter.export_bin_data(
             start_date=start_dt,
             end_date=end_dt,
             networks=networks,
             min_liquidity_usd=min_liquidity,
-            min_volume_usd=min_volume
+            min_volume_usd=min_volume,
+            mode=mode
         )
         
         if result['success']:
-            print(f"✅ QLib data export completed: {result['export_name']}")
+            print(f"✅ QLib bin export completed: {result['export_name']}")
             print(f"📊 Total records: {result['total_records']}")
             print(f"🏊 Unique pools: {result['unique_pools']}")
-            print(f"📁 Output directory: {output_dir}")
+            print(f"📁 QLib directory: {qlib_dir}")
+            print(f"⏱️  Frequency: {freq}")
+            print(f"🔄 Mode: {mode}")
+            
+            if 'symbols_processed' in result:
+                print(f"🎯 Symbols processed: {result['symbols_processed']}")
+            if 'calendar_entries' in result:
+                print(f"📅 Calendar entries: {result['calendar_entries']}")
+            if 'new_dates' in result:
+                print(f"📈 New dates added: {result['new_dates']}")
+                
         else:
             print(f"❌ Export failed: {result['error']}")
+            if 'errors' in result and result['errors']:
+                print("Detailed errors:")
+                for error in result['errors']:
+                    print(f"  - {error}")
         
         return result
         
     except Exception as e:
-        logger.error(f"CLI export error: {e}")
+        logger.error(f"CLI bin export error: {e}")
         print(f"❌ Export error: {e}")
         return {'success': False, 'error': str(e)}
+
+
+class QLibDataHealthChecker:
+    """
+    Health checker for QLib bin data based on QLib's DataHealthChecker.
+    Validates data completeness and correctness.
+    """
+    
+    def __init__(
+        self,
+        qlib_dir: str,
+        freq: str = "60min",
+        large_step_threshold_price: float = 0.5,
+        large_step_threshold_volume: float = 3.0,
+        missing_data_threshold: int = 0
+    ):
+        self.qlib_dir = Path(qlib_dir)
+        self.freq = freq
+        self.large_step_threshold_price = large_step_threshold_price
+        self.large_step_threshold_volume = large_step_threshold_volume
+        self.missing_data_threshold = missing_data_threshold
+        
+        self.data = {}
+        self.problems = {}
+    
+    def load_qlib_data(self) -> Dict[str, pd.DataFrame]:
+        """Load QLib bin data for health checking."""
+        try:
+            # This would require QLib to be properly initialized
+            # For now, return placeholder
+            logger.warning("QLib data loading requires QLib initialization")
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Error loading QLib data: {e}")
+            return {}
+    
+    def check_required_columns(self) -> Optional[pd.DataFrame]:
+        """Check if required OHLCV columns are present."""
+        required_columns = ["open", "high", "low", "close", "volume"]
+        problems = []
+        
+        for symbol, df in self.data.items():
+            missing_cols = [col for col in required_columns if col not in df.columns]
+            if missing_cols:
+                problems.append({
+                    'symbol': symbol,
+                    'missing_columns': missing_cols
+                })
+        
+        if problems:
+            return pd.DataFrame(problems)
+        return None
+    
+    def check_missing_data(self) -> Optional[pd.DataFrame]:
+        """Check for missing data in OHLCV columns."""
+        problems = []
+        
+        for symbol, df in self.data.items():
+            missing_counts = df.isnull().sum()
+            significant_missing = missing_counts[missing_counts > self.missing_data_threshold]
+            
+            if not significant_missing.empty:
+                problems.append({
+                    'symbol': symbol,
+                    'missing_data': significant_missing.to_dict()
+                })
+        
+        if problems:
+            return pd.DataFrame(problems)
+        return None
+    
+    def check_large_step_changes(self) -> Optional[pd.DataFrame]:
+        """Check for unrealistic price/volume changes."""
+        problems = []
+        
+        for symbol, df in self.data.items():
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                if col in df.columns:
+                    pct_change = df[col].pct_change().abs()
+                    threshold = self.large_step_threshold_volume if col == 'volume' else self.large_step_threshold_price
+                    
+                    large_changes = pct_change[pct_change > threshold]
+                    if not large_changes.empty:
+                        problems.append({
+                            'symbol': symbol,
+                            'column': col,
+                            'max_change': large_changes.max(),
+                            'change_dates': large_changes.index.tolist()
+                        })
+        
+        if problems:
+            return pd.DataFrame(problems)
+        return None
+    
+    def run_health_check(self) -> Dict[str, Any]:
+        """Run complete health check on QLib data."""
+        try:
+            logger.info("Starting QLib data health check...")
+            
+            # Load data
+            self.data = self.load_qlib_data()
+            
+            if not self.data:
+                return {'success': False, 'error': 'No data loaded for health check'}
+            
+            # Run checks
+            results = {
+                'total_symbols': len(self.data),
+                'required_columns_check': self.check_required_columns(),
+                'missing_data_check': self.check_missing_data(),
+                'large_step_changes_check': self.check_large_step_changes()
+            }
+            
+            # Determine overall health
+            has_problems = any(result is not None for result in [
+                results['required_columns_check'],
+                results['missing_data_check'], 
+                results['large_step_changes_check']
+            ])
+            
+            results['overall_health'] = 'HEALTHY' if not has_problems else 'ISSUES_FOUND'
+            results['success'] = True
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return {'success': False, 'error': str(e)}

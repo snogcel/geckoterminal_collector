@@ -91,22 +91,28 @@ async def collect_enhanced(
 @click.option('--start-date', required=True, help='Start date (YYYY-MM-DD)')
 @click.option('--end-date', required=True, help='End date (YYYY-MM-DD)')
 @click.option('--networks', help='Networks to include (comma-separated)')
-@click.option('--output-dir', default='./qlib_data', help='Output directory for QLib data')
+@click.option('--qlib-dir', default='./qlib_data', help='QLib data directory')
+@click.option('--freq', default='60min', help='Data frequency (60min, day)')
 @click.option('--min-liquidity', default=1000, type=float, help='Minimum liquidity USD')
 @click.option('--min-volume', default=100, type=float, help='Minimum volume USD')
+@click.option('--mode', default='all', type=click.Choice(['all', 'update', 'fix']), help='Export mode')
+@click.option('--backup-dir', help='Backup directory (optional)')
 @click.option('--export-name', help='Custom export name')
-async def export_qlib(
+async def export_qlib_bin(
     start_date: str,
     end_date: str,
     networks: Optional[str],
-    output_dir: str,
+    qlib_dir: str,
+    freq: str,
     min_liquidity: float,
     min_volume: float,
+    mode: str,
+    backup_dir: Optional[str],
     export_name: Optional[str]
 ):
-    """Export new pools history data in QLib format for model training."""
+    """Export new pools history data in QLib bin format for QLib-Server integration."""
     try:
-        click.echo("📊 Exporting data for QLib...")
+        click.echo("📊 Exporting data for QLib in bin format...")
         
         # Parse networks
         network_list = None
@@ -121,26 +127,106 @@ async def export_qlib(
         click.echo(f"🌐 Networks: {network_list or 'all'}")
         click.echo(f"💰 Min liquidity: ${min_liquidity:,.2f}")
         click.echo(f"📈 Min volume: ${min_volume:,.2f}")
-        click.echo(f"📁 Output directory: {output_dir}")
+        click.echo(f"📁 QLib directory: {qlib_dir}")
+        click.echo(f"⏱️  Frequency: {freq}")
+        click.echo(f"🔄 Mode: {mode}")
+        
+        if backup_dir:
+            click.echo(f"💾 Backup directory: {backup_dir}")
+        
+        # Show what the command would do
+        click.echo("\n🔧 Export configuration:")
+        click.echo(f"  - Export mode: {mode}")
+        if mode == "all":
+            click.echo("    → Full export of all data")
+        elif mode == "update":
+            click.echo("    → Incremental update of existing data")
+        elif mode == "fix":
+            click.echo("    → Repair/add missing symbols")
+        
+        click.echo(f"  - Data frequency: {freq}")
+        click.echo(f"  - QLib bin format: Compatible with dump_bin.py")
+        click.echo(f"  - Incremental updates: Supported")
         
         # For actual implementation, you'd call:
         """
-        result = await export_qlib_data_cli(
+        from qlib_integration import export_qlib_bin_data_cli
+        
+        result = await export_qlib_bin_data_cli(
             db_manager=your_db_manager,
             start_date=start_date,
             end_date=end_date,
             networks=network_list,
-            output_dir=output_dir,
+            qlib_dir=qlib_dir,
+            freq=freq,
             min_liquidity=min_liquidity,
-            min_volume=min_volume
+            min_volume=min_volume,
+            mode=mode,
+            backup_dir=backup_dir
         )
         """
         
-        click.echo("⚠️  Actual export requires DatabaseManager setup")
-        click.echo("   Import and call export_qlib_data_cli() with your db_manager")
+        click.echo("\n⚠️  Actual export requires DatabaseManager setup")
+        click.echo("   Import and call export_qlib_bin_data_cli() with your db_manager")
+        
+        # Show example QLib usage
+        click.echo(f"\n📖 After export, use with QLib:")
+        click.echo(f"   import qlib")
+        click.echo(f"   qlib.init(provider_uri='{qlib_dir}', region='us')")
         
     except Exception as e:
         click.echo(f"❌ Export error: {e}")
+
+
+@new_pools_enhanced.command()
+@click.option('--qlib-dir', required=True, help='QLib data directory to check')
+@click.option('--freq', default='60min', help='Data frequency')
+@click.option('--price-threshold', default=0.5, type=float, help='Price change threshold')
+@click.option('--volume-threshold', default=3.0, type=float, help='Volume change threshold')
+async def check_qlib_health(
+    qlib_dir: str,
+    freq: str,
+    price_threshold: float,
+    volume_threshold: float
+):
+    """Check health of QLib bin data."""
+    try:
+        click.echo("🏥 Checking QLib data health...")
+        
+        click.echo(f"📁 QLib directory: {qlib_dir}")
+        click.echo(f"⏱️  Frequency: {freq}")
+        click.echo(f"📈 Price change threshold: {price_threshold}")
+        click.echo(f"📊 Volume change threshold: {volume_threshold}")
+        
+        # For actual implementation:
+        """
+        from qlib_integration import QLibDataHealthChecker
+        
+        checker = QLibDataHealthChecker(
+            qlib_dir=qlib_dir,
+            freq=freq,
+            large_step_threshold_price=price_threshold,
+            large_step_threshold_volume=volume_threshold
+        )
+        
+        results = checker.run_health_check()
+        
+        if results['success']:
+            click.echo(f"✅ Health check completed")
+            click.echo(f"📊 Total symbols: {results['total_symbols']}")
+            click.echo(f"🏥 Overall health: {results['overall_health']}")
+            
+            if results['overall_health'] == 'ISSUES_FOUND':
+                click.echo("⚠️  Issues found - check detailed results")
+        else:
+            click.echo(f"❌ Health check failed: {results['error']}")
+        """
+        
+        click.echo("⚠️  Actual health check requires QLib setup")
+        click.echo("   Import and use QLibDataHealthChecker class")
+        
+    except Exception as e:
+        click.echo(f"❌ Health check error: {e}")
 
 
 @new_pools_enhanced.command()
