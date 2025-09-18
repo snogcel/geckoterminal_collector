@@ -354,6 +354,16 @@ class DatabaseManager(ABC):
     async def count_records(self, table_name: str) -> int:
         """Count records in a specific table."""
         pass
+    
+    @abstractmethod
+    async def store_enhanced_new_pools_history(self, history_entry: Any) -> None:
+        """
+        Store enhanced new pools history entry.
+        
+        Args:
+            history_entry: Enhanced history entry to store
+        """
+        pass
 
     def _calculate_expected_intervals(
         self, 

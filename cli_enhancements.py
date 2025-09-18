@@ -7,6 +7,7 @@ import click
 from datetime import datetime, timedelta
 from typing import List, Optional
 import json
+import functools
 
 from gecko_terminal_collector.database.manager import DatabaseManager
 from enhanced_new_pools_collector import EnhancedNewPoolsCollector
@@ -20,6 +21,28 @@ def new_pools_enhanced():
     pass
 
 
+def get_database_manager():
+    """Get database manager instance from config."""
+    try:
+        from gecko_terminal_collector.config.loader import load_config
+        from gecko_terminal_collector.database.enhanced_manager import EnhancedDatabaseManager
+        
+        config = load_config()
+        db_manager = EnhancedDatabaseManager(config.database)
+        return db_manager
+    except Exception as e:
+        click.echo(f"❌ Error initializing database manager: {e}")
+        return None
+
+
+def async_command(f):
+    """Decorator to run async functions in click commands."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+    return wrapper
+
+
 @new_pools_enhanced.command()
 @click.option('--network', required=True, help='Network to collect pools for (e.g., solana, ethereum)')
 @click.option('--intervals', default='1h', help='Collection intervals (comma-separated: 1h,4h,1d)')
@@ -30,6 +53,7 @@ def new_pools_enhanced():
 @click.option('--min-liquidity', default=1000, type=float, help='Minimum liquidity USD threshold')
 @click.option('--min-volume', default=100, type=float, help='Minimum volume USD threshold')
 @click.option('--dry-run', is_flag=True, help='Show what would be collected without storing')
+@async_command
 async def collect_enhanced(
     network: str,
     intervals: str,
@@ -52,10 +76,11 @@ async def collect_enhanced(
         if dry_run:
             click.echo("🔍 DRY RUN MODE - No data will be stored")
         
-        # Initialize database manager (you'll need to adapt this to your setup)
-        # db_manager = DatabaseManager(your_config)
+        # Initialize database manager
+        db_manager = get_database_manager()
+        if not db_manager:
+            return
         
-        # For now, show what would be done
         click.echo("Configuration:")
         click.echo(f"  - Network: {network}")
         click.echo(f"  - Intervals: {interval_list}")
@@ -67,30 +92,47 @@ async def collect_enhanced(
         click.echo(f"  - Min liquidity: ${min_liquidity:,.2f}")
         click.echo(f"  - Min volume: ${min_volume:,.2f}")
         
-        if not dry_run:
-            click.echo("⚠️  Actual collection would require DatabaseManager setup")
-            click.echo("   Import this module and call with your db_manager instance")
+        if dry_run:
+            click.echo("✅ Configuration validated - ready for collection")
+            return
         
-        # Example of how it would be called:
-        """
-        collector = EnhancedNewPoolsCollector(
-            config=your_config,
-            db_manager=db_manager,
-            network=network,
-            collection_intervals=interval_list,
-            enable_feature_engineering=enable_features,
-            qlib_integration=enable_qlib,
-            auto_watchlist_enabled=enable_auto_watchlist,
-            auto_watchlist_threshold=watchlist_threshold
-        )
-        
-        result = await collector.collect()
-        
-        if result.success:
-            click.echo(f"✅ Collection completed: {result.records_collected} records")
-        else:
-            click.echo(f"❌ Collection failed: {result.errors}")
-        """
+        try:
+            # Initialize database connection
+            await db_manager.initialize()
+            
+            # Load configuration
+            from gecko_terminal_collector.config.loader import load_config
+            config = load_config()
+            
+            # Create enhanced collector
+            collector = EnhancedNewPoolsCollector(
+                config=config,
+                db_manager=db_manager,
+                network=network,
+                collection_intervals=interval_list,
+                enable_feature_engineering=enable_features,
+                qlib_integration=enable_qlib,
+                auto_watchlist_enabled=enable_auto_watchlist,
+                auto_watchlist_threshold=watchlist_threshold
+            )
+            
+            # Run collection
+            result = await collector.collect()
+            
+            if result.success:
+                click.echo(f"✅ Collection completed: {result.records_collected} records")
+                if result.metadata:
+                    click.echo(f"📊 Metadata: {result.metadata}")
+            else:
+                click.echo(f"❌ Collection failed")
+                for error in result.errors:
+                    click.echo(f"   - {error}")
+                    
+        except Exception as e:
+            click.echo(f"❌ Collection error: {e}")
+        finally:
+            if db_manager:
+                await db_manager.close()
         
     except Exception as e:
         click.echo(f"❌ Collection error: {e}")
@@ -107,6 +149,7 @@ async def collect_enhanced(
 @click.option('--mode', default='all', type=click.Choice(['all', 'update', 'fix']), help='Export mode')
 @click.option('--backup-dir', help='Backup directory (optional)')
 @click.option('--export-name', help='Custom export name')
+@async_command
 async def export_qlib_bin(
     start_date: str,
     end_date: str,
@@ -157,26 +200,51 @@ async def export_qlib_bin(
         click.echo(f"  - QLib bin format: Compatible with dump_bin.py")
         click.echo(f"  - Incremental updates: Supported")
         
-        # For actual implementation, you'd call:
-        """
-        from qlib_integration import export_qlib_bin_data_cli
+        # Initialize database manager and run export
+        db_manager = get_database_manager()
+        if not db_manager:
+            return
         
-        result = await export_qlib_bin_data_cli(
-            db_manager=your_db_manager,
-            start_date=start_date,
-            end_date=end_date,
-            networks=network_list,
-            qlib_dir=qlib_dir,
-            freq=freq,
-            min_liquidity=min_liquidity,
-            min_volume=min_volume,
-            mode=mode,
-            backup_dir=backup_dir
-        )
-        """
-        
-        click.echo("\n⚠️  Actual export requires DatabaseManager setup")
-        click.echo("   Import and call export_qlib_bin_data_cli() with your db_manager")
+        try:
+            await db_manager.initialize()
+            
+            from qlib_integration import QLibBinDataExporter
+            
+            exporter = QLibBinDataExporter(
+                db_manager=db_manager,
+                qlib_dir=qlib_dir,
+                freq=freq,
+                backup_dir=backup_dir
+            )
+            
+            result = await exporter.export_bin_data(
+                start_date=start_dt,
+                end_date=end_dt,
+                networks=network_list,
+                min_liquidity_usd=min_liquidity,
+                min_volume_usd=min_volume,
+                export_name=export_name,
+                mode=mode
+            )
+            
+            if result['success']:
+                click.echo(f"✅ Export completed successfully!")
+                click.echo(f"📊 Symbols processed: {result.get('symbols_processed', 0)}")
+                if 'calendar_entries' in result:
+                    click.echo(f"📅 Calendar entries: {result['calendar_entries']}")
+                if 'new_dates' in result:
+                    click.echo(f"🆕 New dates added: {result['new_dates']}")
+            else:
+                click.echo(f"❌ Export failed: {result.get('error', 'Unknown error')}")
+                if 'errors' in result:
+                    for error in result['errors']:
+                        click.echo(f"   - {error}")
+                        
+        except Exception as e:
+            click.echo(f"❌ Export error: {e}")
+        finally:
+            if db_manager:
+                await db_manager.close()
         
         # Show example QLib usage
         click.echo(f"\n📖 After export, use with QLib:")
@@ -192,6 +260,7 @@ async def export_qlib_bin(
 @click.option('--freq', default='60min', help='Data frequency')
 @click.option('--price-threshold', default=0.5, type=float, help='Price change threshold')
 @click.option('--volume-threshold', default=3.0, type=float, help='Volume change threshold')
+@async_command
 async def check_qlib_health(
     qlib_dir: str,
     freq: str,
@@ -241,6 +310,7 @@ async def check_qlib_health(
 @new_pools_enhanced.command()
 @click.option('--backup/--no-backup', default=True, help='Create backup before migration')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without making changes')
+@async_command
 async def migrate_tables(backup: bool, dry_run: bool):
     """Migrate existing new_pools_history to enhanced format."""
     try:
@@ -252,17 +322,37 @@ async def migrate_tables(backup: bool, dry_run: bool):
         if backup and not dry_run:
             click.echo("💾 Backup will be created before migration")
         
-        # For actual implementation:
-        """
-        result = await run_migration_cli(
-            db_manager=your_db_manager,
-            backup=backup,
-            dry_run=dry_run
-        )
-        """
+        # Initialize database manager and run migration
+        db_manager = get_database_manager()
+        if not db_manager:
+            return
         
-        click.echo("⚠️  Actual migration requires DatabaseManager setup")
-        click.echo("   Import and call run_migration_cli() with your db_manager")
+        try:
+            await db_manager.initialize()
+            
+            result = await run_migration_cli(
+                db_manager=db_manager,
+                backup=backup,
+                dry_run=dry_run
+            )
+            
+            if result['success']:
+                if dry_run:
+                    click.echo("✅ Migration validation completed")
+                else:
+                    click.echo("✅ Migration completed successfully!")
+                    click.echo(f"📊 Records migrated: {result.get('records_migrated', 0)}")
+            else:
+                click.echo("❌ Migration failed!")
+                if 'errors' in result:
+                    for error in result['errors']:
+                        click.echo(f"   - {error}")
+                        
+        except Exception as e:
+            click.echo(f"❌ Migration error: {e}")
+        finally:
+            if db_manager:
+                await db_manager.close()
         
     except Exception as e:
         click.echo(f"❌ Migration error: {e}")
@@ -273,6 +363,7 @@ async def migrate_tables(backup: bool, dry_run: bool):
 @click.option('--network', help='Network to analyze')
 @click.option('--days', default=7, type=int, help='Number of days to analyze')
 @click.option('--format', 'output_format', default='table', type=click.Choice(['table', 'json', 'csv']))
+@async_command
 async def analyze_signals(
     pool_id: Optional[str],
     network: Optional[str],
@@ -318,6 +409,7 @@ async def analyze_signals(
 @click.option('--model-type', default='lgb', type=click.Choice(['linear', 'lgb', 'transformer']), help='Model type to train')
 @click.option('--target', default='return_24h', help='Target variable to predict')
 @click.option('--output-dir', default='./models', help='Output directory for trained models')
+@async_command
 async def train_model(
     export_name: str,
     model_type: str,
@@ -356,6 +448,7 @@ async def train_model(
 @new_pools_enhanced.command()
 @click.option('--days', default=30, type=int, help='Number of days to report on')
 @click.option('--format', 'output_format', default='table', type=click.Choice(['table', 'json']))
+@async_command
 async def performance_report(days: int, output_format: str):
     """Generate performance report for new pools collection system."""
     try:

@@ -303,7 +303,7 @@ class QLibBinDataExporter:
             
             # Handle missing values - forward fill then zero fill
             numeric_columns = df.select_dtypes(include=[np.number]).columns
-            df[numeric_columns] = df.groupby('pool_id')[numeric_columns].fillna(method='ffill').fillna(0)
+            df[numeric_columns] = df.groupby('pool_id')[numeric_columns].ffill().fillna(0)
             
             # Ensure we have required OHLCV columns with valid data
             required_columns = ['open_price_usd', 'high_price_usd', 'low_price_usd', 'close_price_usd', 'volume_usd_h24']

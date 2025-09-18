@@ -224,7 +224,7 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
                 **ohlc_data,
                 
                 # Enhanced volume metrics
-                'volume_usd_interval': self._safe_decimal(attributes.get('volume_usd_h24')),  # Placeholder
+                'volume_usd_interval': self._calculate_interval_volume(attributes, interval),
                 'volume_usd_h1': self._safe_decimal(attributes.get('volume_usd_h1', 0)),
                 
                 # Token symbols
@@ -282,9 +282,13 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
             current_liquidity = self._safe_decimal(attributes.get('reserve_in_usd', 0))
             liquidity_change = Decimal('0')  # Would calculate from historical data
             
-            # Technical indicators (simplified implementations)
+            # Technical indicators (real implementations)
             rsi = self._calculate_simple_rsi(historical_data, current_price)
+            macd = self._calculate_macd(historical_data, current_price)
             trend_strength = min(abs(price_change_h24 or 0), 100)
+            
+            # Calculate liquidity change from historical data
+            liquidity_change = self._calculate_liquidity_change(historical_data, current_liquidity)
             
             return {
                 'buy_sell_ratio_interval': buy_sell_ratio_h24,
@@ -295,7 +299,7 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
                 'liquidity_depth_usd': current_liquidity,
                 'trend_strength': trend_strength,
                 'relative_strength_index': rsi,
-                'moving_average_convergence': Decimal('0'),  # Placeholder
+                'moving_average_convergence': macd,
                 'support_resistance_level': current_price
             }
             
@@ -346,6 +350,317 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
         except Exception as e:
             self.logger.error(f"Error calculating RSI: {e}")
             return Decimal('50')
+    
+    def _calculate_macd(self, historical_data: List[Dict], current_price: Decimal) -> Decimal:
+        """Calculate MACD (Moving Average Convergence Divergence) indicator."""
+        try:
+            if not historical_data or len(historical_data) < 26:
+                return Decimal('0')  # Need at least 26 periods for MACD
+            
+            # Extract prices
+            prices = [self._safe_decimal(record.get('base_token_price_usd', 0)) for record in historical_data]
+            prices = [p for p in prices if p > 0]
+            
+            if len(prices) < 26:
+                return Decimal('0')
+            
+            # Calculate EMAs (12-period and 26-period)
+            ema_12 = self._calculate_ema(prices[-12:], 12)
+            ema_26 = self._calculate_ema(prices[-26:], 26)
+            
+            # MACD line = EMA(12) - EMA(26)
+            macd_line = ema_12 - ema_26
+            
+            return macd_line
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating MACD: {e}")
+            return Decimal('0')
+    
+    def _calculate_ema(self, prices: List[Decimal], period: int) -> Decimal:
+        """Calculate Exponential Moving Average."""
+        try:
+            if not prices or len(prices) < period:
+                return Decimal('0')
+            
+            # Calculate smoothing factor
+            alpha = Decimal('2') / (period + 1)
+            
+            # Start with simple moving average for first value
+            ema = sum(prices[:period]) / period
+            
+            # Calculate EMA for remaining values
+            for price in prices[period:]:
+                ema = alpha * price + (1 - alpha) * ema
+            
+            return ema
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating EMA: {e}")
+            return Decimal('0')
+    
+    def _calculate_liquidity_change(self, historical_data: List[Dict], current_liquidity: Decimal) -> Decimal:
+        """Calculate liquidity change percentage from historical data."""
+        try:
+            if not historical_data or not current_liquidity:
+                return Decimal('0')
+            
+            # Get liquidity values from historical data
+            liquidity_values = []
+            for record in historical_data:
+                liquidity = self._safe_decimal(record.get('reserve_in_usd', 0))
+                if liquidity > 0:
+                    liquidity_values.append(liquidity)
+            
+            if not liquidity_values:
+                return Decimal('0')
+            
+            # Calculate average historical liquidity
+            avg_historical_liquidity = sum(liquidity_values) / len(liquidity_values)
+            
+            if avg_historical_liquidity == 0:
+                return Decimal('0')
+            
+            # Calculate percentage change
+            change_percentage = ((current_liquidity - avg_historical_liquidity) / avg_historical_liquidity) * 100
+            
+            return change_percentage
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating liquidity change: {e}")
+            return Decimal('0')
+    
+    def _calculate_bollinger_position(self, historical_data: List[Dict], current_price: Decimal) -> Decimal:
+        """Calculate position within Bollinger Bands (0-1 scale)."""
+        try:
+            if not historical_data or len(historical_data) < 20:
+                return Decimal('0.5')  # Neutral position
+            
+            # Extract prices
+            prices = [self._safe_decimal(record.get('base_token_price_usd', 0)) for record in historical_data]
+            prices = [p for p in prices if p > 0]
+            
+            if len(prices) < 20:
+                return Decimal('0.5')
+            
+            # Calculate 20-period moving average and standard deviation
+            recent_prices = prices[-20:]
+            sma = sum(recent_prices) / len(recent_prices)
+            
+            # Calculate standard deviation
+            variance = sum((price - sma) ** 2 for price in recent_prices) / len(recent_prices)
+            std_dev = variance ** Decimal('0.5')
+            
+            # Bollinger Bands
+            upper_band = sma + (2 * std_dev)
+            lower_band = sma - (2 * std_dev)
+            
+            # Calculate position (0 = lower band, 1 = upper band, 0.5 = middle)
+            if upper_band == lower_band:
+                return Decimal('0.5')
+            
+            position = (current_price - lower_band) / (upper_band - lower_band)
+            return min(max(position, Decimal('0')), Decimal('1'))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating Bollinger position: {e}")
+            return Decimal('0.5')
+    
+    def _calculate_volume_sma_ratio(self, historical_data: List[Dict], current_volume: float) -> Decimal:
+        """Calculate ratio of current volume to simple moving average."""
+        try:
+            if not historical_data or current_volume <= 0:
+                return Decimal('1.0')
+            
+            # Extract volume values
+            volumes = []
+            for record in historical_data:
+                volume = float(self._safe_decimal(record.get('volume_usd_h24', 0)))
+                if volume > 0:
+                    volumes.append(volume)
+            
+            if not volumes:
+                return Decimal('1.0')
+            
+            # Calculate simple moving average
+            sma_volume = sum(volumes) / len(volumes)
+            
+            if sma_volume == 0:
+                return Decimal('1.0')
+            
+            # Calculate ratio
+            ratio = Decimal(str(current_volume)) / Decimal(str(sma_volume))
+            return ratio
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating volume SMA ratio: {e}")
+            return Decimal('1.0')
+    
+    def _calculate_liquidity_stability(self, historical_data: List[Dict]) -> Decimal:
+        """Calculate liquidity stability score (0-1, higher = more stable)."""
+        try:
+            if not historical_data or len(historical_data) < 5:
+                return Decimal('0.5')
+            
+            # Extract liquidity values
+            liquidity_values = []
+            for record in historical_data:
+                liquidity = float(self._safe_decimal(record.get('reserve_in_usd', 0)))
+                if liquidity > 0:
+                    liquidity_values.append(liquidity)
+            
+            if len(liquidity_values) < 2:
+                return Decimal('0.5')
+            
+            # Calculate coefficient of variation (lower = more stable)
+            mean_liquidity = sum(liquidity_values) / len(liquidity_values)
+            
+            if mean_liquidity == 0:
+                return Decimal('0')
+            
+            # Calculate standard deviation
+            variance = sum((liq - mean_liquidity) ** 2 for liq in liquidity_values) / len(liquidity_values)
+            std_dev = variance ** 0.5
+            
+            # Coefficient of variation
+            cv = std_dev / mean_liquidity
+            
+            # Convert to stability score (inverse of CV, capped at 1)
+            stability = max(0, 1 - cv)
+            return Decimal(str(min(stability, 1.0)))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating liquidity stability: {e}")
+            return Decimal('0.5')
+    
+    def _calculate_liquidity_growth_rate(self, historical_data: List[Dict]) -> Decimal:
+        """Calculate liquidity growth rate over the historical period."""
+        try:
+            if not historical_data or len(historical_data) < 2:
+                return Decimal('0')
+            
+            # Extract liquidity values with timestamps
+            liquidity_points = []
+            for record in historical_data:
+                liquidity = float(self._safe_decimal(record.get('reserve_in_usd', 0)))
+                timestamp = record.get('timestamp', 0)
+                if liquidity > 0 and timestamp > 0:
+                    liquidity_points.append((timestamp, liquidity))
+            
+            if len(liquidity_points) < 2:
+                return Decimal('0')
+            
+            # Sort by timestamp
+            liquidity_points.sort(key=lambda x: x[0])
+            
+            # Calculate growth rate between first and last points
+            first_liquidity = liquidity_points[0][1]
+            last_liquidity = liquidity_points[-1][1]
+            time_diff_hours = (liquidity_points[-1][0] - liquidity_points[0][0]) / 3600
+            
+            if first_liquidity == 0 or time_diff_hours <= 0:
+                return Decimal('0')
+            
+            # Calculate hourly growth rate
+            growth_rate = ((last_liquidity - first_liquidity) / first_liquidity) / time_diff_hours
+            return Decimal(str(growth_rate))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating liquidity growth rate: {e}")
+            return Decimal('0')
+    
+    def _calculate_activity_metrics(self, attributes: Dict, historical_data: List[Dict]) -> Dict[str, Decimal]:
+        """Calculate various activity-based metrics."""
+        try:
+            metrics = {}
+            
+            # Get current transaction data
+            buys_24h = self._safe_int(attributes.get('transactions_h24_buys', 0))
+            sells_24h = self._safe_int(attributes.get('transactions_h24_sells', 0))
+            total_transactions = buys_24h + sells_24h
+            
+            # Trader diversity score (based on buy/sell balance)
+            if total_transactions > 0:
+                buy_ratio = buys_24h / total_transactions
+                # Diversity is highest when buy/sell ratio is close to 0.5
+                diversity = 1 - abs(buy_ratio - 0.5) * 2
+                metrics['trader_diversity'] = Decimal(str(max(0, diversity)))
+            else:
+                metrics['trader_diversity'] = Decimal('0')
+            
+            # Whale activity indicator (based on volume per transaction)
+            volume_24h = float(self._safe_decimal(attributes.get('volume_usd_h24', 0)))
+            if total_transactions > 0 and volume_24h > 0:
+                avg_transaction_size = volume_24h / total_transactions
+                # Normalize whale activity (higher avg transaction size = more whale activity)
+                whale_score = min(avg_transaction_size / 10000, 1.0)  # Cap at $10k avg
+                metrics['whale_activity'] = Decimal(str(whale_score))
+            else:
+                metrics['whale_activity'] = Decimal('0')
+            
+            # Retail activity score (inverse of whale activity)
+            metrics['retail_activity'] = Decimal('1') - metrics['whale_activity']
+            
+            # Depth imbalance (simplified - based on transaction imbalance)
+            if total_transactions > 0:
+                imbalance = abs(buys_24h - sells_24h) / total_transactions
+                metrics['depth_imbalance'] = Decimal(str(imbalance))
+            else:
+                metrics['depth_imbalance'] = Decimal('0.5')
+            
+            # Market impact score (based on price volatility vs volume)
+            price_change = abs(float(self._safe_decimal(attributes.get('price_change_percentage_h24', 0))))
+            if volume_24h > 0:
+                impact_score = min(price_change / (volume_24h / 1000), 1.0)  # Normalize
+                metrics['market_impact'] = Decimal(str(impact_score))
+            else:
+                metrics['market_impact'] = Decimal('0.5')
+            
+            # Spread normalized (simplified estimate based on volatility)
+            volatility = price_change / 100  # Convert percentage to decimal
+            spread_estimate = min(volatility * 0.1, 0.05)  # Cap at 5%
+            metrics['spread_normalized'] = Decimal(str(spread_estimate))
+            
+            # Arbitrage opportunity (based on price volatility and volume)
+            if volume_24h > 1000 and price_change > 5:  # High volume and volatility
+                arb_score = min((price_change - 5) / 20, 1.0)  # Scale from 5% to 25%
+                metrics['arbitrage_score'] = Decimal(str(arb_score))
+            else:
+                metrics['arbitrage_score'] = Decimal('0')
+            
+            return metrics
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating activity metrics: {e}")
+            return {
+                'trader_diversity': Decimal('0.5'),
+                'whale_activity': Decimal('0'),
+                'retail_activity': Decimal('0.5'),
+                'depth_imbalance': Decimal('0.5'),
+                'market_impact': Decimal('0.5'),
+                'spread_normalized': Decimal('0.01'),
+                'arbitrage_score': Decimal('0')
+            }
+    
+    def _calculate_interval_volume(self, attributes: Dict, interval: str) -> Decimal:
+        """Calculate volume for the specific collection interval."""
+        try:
+            # Map intervals to appropriate volume fields
+            if interval == '1h':
+                return self._safe_decimal(attributes.get('volume_usd_h1', 0))
+            elif interval == '4h':
+                # Estimate 4h volume as fraction of 24h volume
+                volume_24h = self._safe_decimal(attributes.get('volume_usd_h24', 0))
+                return volume_24h * Decimal('0.167')  # 4/24 hours
+            elif interval == '1d':
+                return self._safe_decimal(attributes.get('volume_usd_h24', 0))
+            else:
+                # Default to 1h volume
+                return self._safe_decimal(attributes.get('volume_usd_h1', 0))
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating interval volume: {e}")
+            return Decimal('0')
     
     def _calculate_pool_age_hours(self, created_at_str: Optional[str]) -> Optional[int]:
         """Calculate pool age in hours."""
@@ -566,6 +881,18 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
             volume_24h = float(self._safe_decimal(attributes.get('volume_usd_h24', 0)))
             liquidity = float(self._safe_decimal(attributes.get('reserve_in_usd', 0)))
             
+            # Calculate advanced features
+            macd_signal = self._calculate_macd(historical_data, self._safe_decimal(attributes.get('base_token_price_usd', 0)))
+            bollinger_position = self._calculate_bollinger_position(historical_data, self._safe_decimal(attributes.get('base_token_price_usd', 0)))
+            volume_sma_ratio = self._calculate_volume_sma_ratio(historical_data, volume_24h)
+            
+            # Liquidity features
+            liquidity_stability = self._calculate_liquidity_stability(historical_data)
+            liquidity_growth_rate = self._calculate_liquidity_growth_rate(historical_data)
+            
+            # Activity features
+            activity_metrics = self._calculate_activity_metrics(attributes, historical_data)
+            
             # Temporal features
             hour_of_day = current_time.hour
             day_of_week = current_time.weekday()
@@ -579,24 +906,24 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
                 
                 # Technical indicators
                 'rsi_14': Decimal(str(rsi_normalized)),
-                'macd_signal': Decimal('0'),  # Placeholder
-                'bollinger_position': Decimal('0.5'),  # Placeholder
-                'volume_sma_ratio': Decimal('1.0'),  # Placeholder
+                'macd_signal': macd_signal,
+                'bollinger_position': bollinger_position,
+                'volume_sma_ratio': volume_sma_ratio,
                 
                 # Liquidity features
-                'liquidity_stability': Decimal('0.5'),  # Placeholder
-                'liquidity_growth_rate': Decimal('0'),  # Placeholder
-                'depth_imbalance': Decimal('0.5'),  # Placeholder
+                'liquidity_stability': liquidity_stability,
+                'liquidity_growth_rate': liquidity_growth_rate,
+                'depth_imbalance': activity_metrics.get('depth_imbalance', Decimal('0.5')),
                 
                 # Activity features
-                'trader_diversity_score': Decimal('0.5'),  # Placeholder
-                'whale_activity_indicator': Decimal('0'),  # Placeholder
-                'retail_activity_score': Decimal('0.5'),  # Placeholder
+                'trader_diversity_score': activity_metrics.get('trader_diversity', Decimal('0.5')),
+                'whale_activity_indicator': activity_metrics.get('whale_activity', Decimal('0')),
+                'retail_activity_score': activity_metrics.get('retail_activity', Decimal('0.5')),
                 
                 # Market structure features
-                'bid_ask_spread_normalized': Decimal('0.01'),  # Placeholder
-                'market_impact_score': Decimal('0.5'),  # Placeholder
-                'arbitrage_opportunity': Decimal('0'),  # Placeholder
+                'bid_ask_spread_normalized': activity_metrics.get('spread_normalized', Decimal('0.01')),
+                'market_impact_score': activity_metrics.get('market_impact', Decimal('0.5')),
+                'arbitrage_opportunity': activity_metrics.get('arbitrage_score', Decimal('0')),
                 
                 # Temporal features
                 'hour_of_day': hour_of_day,

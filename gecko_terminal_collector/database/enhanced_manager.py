@@ -698,3 +698,20 @@ class EnhancedDatabaseManager(SQLAlchemyDatabaseManager):
         except Exception as e:
             logger.error(f"Error searching pools by name or ID '{search_term}': {e}")
             return []
+    
+    async def store_enhanced_new_pools_history(self, history_entry: Any) -> None:
+        """
+        Store enhanced new pools history entry.
+        
+        Args:
+            history_entry: Enhanced history entry to store
+        """
+        try:
+            with self.connection.get_session() as session:
+                session.add(history_entry)
+                session.commit()
+                logger.debug(f"Stored enhanced history entry for pool: {history_entry.pool_id}")
+                
+        except Exception as e:
+            logger.error(f"Error storing enhanced new pools history: {e}")
+            raise
