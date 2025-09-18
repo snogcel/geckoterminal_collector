@@ -24,12 +24,25 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
     """
     
     def __init__(self, config, db_manager, network: str, **kwargs):
+        # Set network before calling super() to avoid logger initialization issues
+        self.network = network
+        
+        # Extract enhanced-specific kwargs before calling super()
+        collection_intervals = kwargs.pop('collection_intervals', ['1h'])
+        enable_feature_engineering = kwargs.pop('enable_feature_engineering', True)
+        qlib_integration = kwargs.pop('qlib_integration', True)
+        auto_watchlist_enabled = kwargs.pop('auto_watchlist_enabled', True)
+        auto_watchlist_threshold = kwargs.pop('auto_watchlist_threshold', 75.0)
+        
+        # Initialize parent class with network and remaining kwargs
         super().__init__(config, db_manager, network, **kwargs)
         
-        # Collection interval configuration
-        self.collection_intervals = kwargs.get('collection_intervals', ['1h'])
-        self.enable_feature_engineering = kwargs.get('enable_feature_engineering', True)
-        self.qlib_integration = kwargs.get('qlib_integration', True)
+        # Set enhanced-specific attributes (after parent init to override any parent settings)
+        self.collection_intervals = collection_intervals
+        self.enable_feature_engineering = enable_feature_engineering
+        self.qlib_integration = qlib_integration
+        self.auto_watchlist_enabled = auto_watchlist_enabled  # Override parent's setting
+        self.auto_watchlist_threshold = auto_watchlist_threshold
         
         # Feature engineering configuration
         self.lookback_periods = {
@@ -37,6 +50,13 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
             'medium': 168, # 7 days
             'long': 720    # 30 days
         }
+        
+        # Initialize signal analyzer for auto-watchlist (override parent's analyzer if needed)
+        if self.auto_watchlist_enabled:
+            from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer
+            self.signal_analyzer = NewPoolsSignalAnalyzer({
+                'auto_watchlist_threshold': self.auto_watchlist_threshold
+            })
         
     async def collect(self) -> CollectionResult:
         """
@@ -74,6 +94,11 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
                 feature_records = await self._generate_feature_vectors(pools_data)
                 total_records += feature_records
             
+            # Auto-watchlist integration if enabled
+            if self.auto_watchlist_enabled:
+                watchlist_additions = await self._process_auto_watchlist(pools_data)
+                self.logger.info(f"Auto-watchlist: {watchlist_additions} pools added")
+            
             # Generate QLib exports if enabled
             if self.qlib_integration:
                 await self._update_qlib_data()
@@ -93,7 +118,9 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
                     'network': self.network,
                     'intervals_processed': len(self.collection_intervals),
                     'feature_engineering_enabled': self.enable_feature_engineering,
-                    'qlib_integration_enabled': self.qlib_integration
+                    'qlib_integration_enabled': self.qlib_integration,
+                    'auto_watchlist_enabled': self.auto_watchlist_enabled,
+                    'auto_watchlist_threshold': self.auto_watchlist_threshold
                 }
             )
             
@@ -355,6 +382,55 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
             self.logger.error(f"Error generating QLib symbol: {e}")
             return f"UNKNOWN_{pool_id[:8]}"
     
+    async def _get_pool_historical_data(self, pool_id: str, hours: int = 24) -> List[Dict]:
+        """
+        Get historical data for a pool from the database.
+        
+        Args:
+            pool_id: Pool ID to get data for
+            hours: Number of hours of historical data to retrieve
+            
+        Returns:
+            List of historical data records
+        """
+        try:
+            if not pool_id:
+                return []
+            
+            # Calculate timestamp for historical data
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+            cutoff_timestamp = int(cutoff_time.timestamp())
+            
+            # Query historical data from enhanced history table
+            with self.db_manager.connection.get_session() as session:
+                from enhanced_new_pools_history_model import EnhancedNewPoolsHistory
+                
+                historical_records = session.query(EnhancedNewPoolsHistory).filter(
+                    EnhancedNewPoolsHistory.pool_id == pool_id,
+                    EnhancedNewPoolsHistory.timestamp >= cutoff_timestamp
+                ).order_by(EnhancedNewPoolsHistory.timestamp.desc()).limit(100).all()
+                
+                # Convert to dictionaries
+                historical_data = []
+                for record in historical_records:
+                    historical_data.append({
+                        'pool_id': record.pool_id,
+                        'timestamp': record.timestamp,
+                        'base_token_price_usd': record.close_price_usd or record.open_price_usd,
+                        'volume_usd_h24': record.volume_usd_h24,
+                        'reserve_in_usd': record.reserve_in_usd,
+                        'transactions_h24_buys': record.transactions_h24_buys,
+                        'transactions_h24_sells': record.transactions_h24_sells,
+                        'price_change_percentage_h1': record.price_change_percentage_h1,
+                        'price_change_percentage_h24': record.price_change_percentage_h24
+                    })
+                
+                return historical_data
+                
+        except Exception as e:
+            self.logger.error(f"Error getting historical data for pool {pool_id}: {e}")
+            return []
+    
     def _calculate_data_quality_score(self, attributes: Dict) -> Decimal:
         """Calculate data quality score (0-100)."""
         try:
@@ -569,6 +645,132 @@ class EnhancedNewPoolsCollector(NewPoolsCollector):
         except Exception as e:
             self.logger.error(f"Error storing feature vector: {e}")
             raise
+    
+    async def _process_auto_watchlist(self, pools_data: List[Dict]) -> int:
+        """
+        Process pools for auto-watchlist integration based on signal analysis.
+        
+        Args:
+            pools_data: List of pool data from API
+            
+        Returns:
+            Number of pools added to watchlist
+        """
+        if not self.auto_watchlist_enabled or not hasattr(self, 'signal_analyzer'):
+            return 0
+        
+        watchlist_additions = 0
+        
+        for pool_data in pools_data:
+            try:
+                # Analyze pool signals
+                signal_result = await self._analyze_pool_signals(pool_data)
+                
+                if signal_result and self.signal_analyzer.should_add_to_watchlist(signal_result):
+                    success = await self._handle_auto_watchlist(pool_data, signal_result)
+                    if success:
+                        watchlist_additions += 1
+                        
+            except Exception as e:
+                self.logger.error(f"Error processing auto-watchlist for pool {pool_data.get('id')}: {e}")
+                continue
+        
+        return watchlist_additions
+    
+    async def _analyze_pool_signals(self, pool_data: Dict) -> Optional[Any]:
+        """
+        Analyze pool signals using the signal analyzer.
+        
+        Args:
+            pool_data: Pool data from API
+            
+        Returns:
+            SignalResult or None if analysis fails
+        """
+        try:
+            # Get historical data for better signal analysis
+            pool_id = pool_data.get('id')
+            historical_data = await self._get_pool_historical_data(pool_id, hours=24) if pool_id else []
+            
+            # Analyze signals - pass attributes as the analyzer expects flattened data
+            attributes = pool_data.get('attributes', {})
+            signal_result = self.signal_analyzer.analyze_pool_signals(attributes, historical_data)
+            
+            return signal_result
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing pool signals: {e}")
+            return None
+    
+    async def _handle_auto_watchlist(self, pool_data: Dict, signal_result: Any) -> bool:
+        """
+        Handle auto-addition of pool to watchlist based on signal strength.
+        
+        Args:
+            pool_data: Pool data from API
+            signal_result: Signal analysis result
+            
+        Returns:
+            True if successfully added to watchlist
+        """
+        try:
+            pool_id = pool_data.get('id')
+            if not pool_id:
+                return False
+            
+            # Check if pool is already in watchlist
+            if hasattr(self.db_manager, 'is_pool_in_watchlist'):
+                if await self.db_manager.is_pool_in_watchlist(pool_id):
+                    self.logger.debug(f"Pool {pool_id} already in watchlist")
+                    return False
+            
+            # Extract pool information
+            attributes = pool_data.get('attributes', {})
+            
+            # Extract token symbols
+            base_symbol = self._extract_token_symbol(attributes, 'base')
+            quote_symbol = self._extract_token_symbol(attributes, 'quote')
+            token_symbol = f"{base_symbol}/{quote_symbol}" if base_symbol and quote_symbol else base_symbol or f"POOL_{pool_id[:8]}"
+            
+            # Create watchlist entry with enhanced metadata
+            watchlist_data = {
+                'pool_id': pool_id,
+                'token_symbol': token_symbol,
+                'token_name': attributes.get('name', f"Pool {pool_id[:8]}..."),
+                'network_address': attributes.get('address', ''),
+                'is_active': True,
+                'metadata_json': {
+                    'auto_added': True,
+                    'signal_score': float(signal_result.signal_score),
+                    'volume_trend': signal_result.volume_trend,
+                    'liquidity_trend': signal_result.liquidity_trend,
+                    'momentum_indicator': float(signal_result.momentum_indicator),
+                    'activity_score': float(signal_result.activity_score),
+                    'volatility_score': float(signal_result.volatility_score),
+                    'added_at': datetime.now().isoformat(),
+                    'source': 'enhanced_new_pools_collector',
+                    'network': self.network,
+                    'collection_interval': self.collection_intervals[0] if self.collection_intervals else '1h',
+                    'signals': signal_result.signals
+                }
+            }
+            
+            # Add to watchlist
+            if hasattr(self.db_manager, 'add_to_watchlist'):
+                await self.db_manager.add_to_watchlist(watchlist_data)
+                
+                # Generate alert message
+                alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
+                self.logger.info(f"🎯 Auto-watchlist: {alert_message}")
+                
+                return True
+            else:
+                self.logger.warning("Watchlist functionality not available in database manager")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+            return False
     
     async def _update_qlib_data(self) -> None:
         """Update QLib data exports."""

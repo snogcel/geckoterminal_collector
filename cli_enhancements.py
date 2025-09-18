@@ -25,6 +25,8 @@ def new_pools_enhanced():
 @click.option('--intervals', default='1h', help='Collection intervals (comma-separated: 1h,4h,1d)')
 @click.option('--enable-features', is_flag=True, default=True, help='Enable feature engineering')
 @click.option('--enable-qlib', is_flag=True, default=True, help='Enable QLib integration')
+@click.option('--enable-auto-watchlist', is_flag=True, default=True, help='Enable auto-watchlist integration')
+@click.option('--watchlist-threshold', default=75.0, type=float, help='Signal score threshold for auto-watchlist')
 @click.option('--min-liquidity', default=1000, type=float, help='Minimum liquidity USD threshold')
 @click.option('--min-volume', default=100, type=float, help='Minimum volume USD threshold')
 @click.option('--dry-run', is_flag=True, help='Show what would be collected without storing')
@@ -33,6 +35,8 @@ async def collect_enhanced(
     intervals: str,
     enable_features: bool,
     enable_qlib: bool,
+    enable_auto_watchlist: bool,
+    watchlist_threshold: float,
     min_liquidity: float,
     min_volume: float,
     dry_run: bool
@@ -57,6 +61,9 @@ async def collect_enhanced(
         click.echo(f"  - Intervals: {interval_list}")
         click.echo(f"  - Feature engineering: {enable_features}")
         click.echo(f"  - QLib integration: {enable_qlib}")
+        click.echo(f"  - Auto-watchlist: {enable_auto_watchlist}")
+        if enable_auto_watchlist:
+            click.echo(f"  - Watchlist threshold: {watchlist_threshold}")
         click.echo(f"  - Min liquidity: ${min_liquidity:,.2f}")
         click.echo(f"  - Min volume: ${min_volume:,.2f}")
         
@@ -72,7 +79,9 @@ async def collect_enhanced(
             network=network,
             collection_intervals=interval_list,
             enable_feature_engineering=enable_features,
-            qlib_integration=enable_qlib
+            qlib_integration=enable_qlib,
+            auto_watchlist_enabled=enable_auto_watchlist,
+            auto_watchlist_threshold=watchlist_threshold
         )
         
         result = await collector.collect()
