@@ -2642,6 +2642,51 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             Dictionary containing discovery statistics
         """
         cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        stats = {}
+        
+        with self.connection.get_session() as session:
+            try:
+                query = session.query(self.DiscoveryMetadataModel).filter(
+                    self.DiscoveryMetadataModel.created_at >= cutoff_date
+                )
+                
+                if discovery_type:
+                    query = query.filter_by(discovery_type=discovery_type)
+                
+                metadata_records = query.all()
+                
+                stats = {
+                    'total_operations': len(metadata_records),
+                    'successful_operations': sum(1 for m in metadata_records if m.success),
+                    'failed_operations': sum(1 for m in metadata_records if not m.success),
+                    'total_records_discovered': sum(m.records_discovered or 0 for m in metadata_records),
+                    'average_execution_time': sum(m.execution_time or 0 for m in metadata_records) / len(metadata_records) if metadata_records else 0
+                }
+                
+            except Exception as e:
+                logger.error(f"Error getting discovery statistics: {e}")
+                stats = {'error': str(e)}
+        
+        return stats
+    
+    async def store_enhanced_new_pools_history(self, history_entry: Any) -> None:
+        """
+        Store enhanced new pools history entry.
+        
+        Args:
+            history_entry: Enhanced history entry to store
+        """
+        try:
+            with self.connection.get_session() as session:
+                session.add(history_entry)
+                session.commit()
+                logger.debug(f"Stored enhanced history entry for pool: {history_entry.pool_id}")
+                
+        except Exception as e:
+            logger.error(f"Error storing enhanced new pools history: {e}")
+            raise
+        """
+        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
         
         with self.connection.get_session() as session:
             query = session.query(self.DiscoveryMetadataModel).filter(
