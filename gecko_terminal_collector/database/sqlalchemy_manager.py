@@ -2685,7 +2685,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error storing enhanced new pools history: {e}")
             raise
-        """
+        
         cutoff_date = datetime.utcnow() - timedelta(days=days_back)
         
         with self.connection.get_session() as session:
