@@ -74,6 +74,81 @@ watchlist:
   auto_add_new_tokens: true       # Automatically add new tokens from watchlist
   remove_inactive_tokens: false   # Remove tokens no longer in watchlist
 
+# NautilusTrader POC Configuration
+nautilus_poc:
+  # Environment settings
+  environment: "testnet"          # "testnet" or "mainnet"
+  
+  # Q50 Signal Configuration
+  q50:
+    features_path: "data3/macro_features.pkl"  # Path to Q50 signals file
+    signal_tolerance_minutes: 5     # Tolerance for timestamp matching
+    required_columns:               # Required Q50 columns for validation
+      - "q10"
+      - "q50" 
+      - "q90"
+      - "vol_raw"
+      - "vol_risk"
+      - "prob_up"
+      - "economically_significant"
+      - "high_quality"
+      - "tradeable"
+  
+  # PumpSwap Configuration
+  pumpswap:
+    # Wallet configuration (will be set via environment variables for security)
+    payer_public_key: ""           # Set via NAUTILUS_PAYER_PUBLIC_KEY env var
+    private_key_path: ""           # Set via NAUTILUS_PRIVATE_KEY_PATH env var
+    
+    # Trading parameters
+    max_slippage_percent: 5.0      # Maximum acceptable slippage
+    base_position_size: 0.1        # Base position size (10% of available SOL)
+    max_position_size: 0.5         # Maximum position size (50% of capital)
+    min_liquidity_sol: 10.0        # Minimum pool liquidity requirement
+    max_price_impact_percent: 10.0 # Maximum acceptable price impact
+    
+    # Risk management
+    stop_loss_percent: 20.0        # Automatic stop loss threshold
+    position_timeout_hours: 24     # Maximum holding period
+    
+  # Solana Configuration
+  solana:
+    network: "testnet"             # "testnet" or "mainnet"
+    rpc_endpoint: "https://api.testnet.solana.com"  # Solana RPC endpoint
+    commitment: "confirmed"        # Transaction commitment level
+    
+  # NautilusTrader Configuration
+  nautilus:
+    instance_id: "NAUTILUS-001"    # Unique instance identifier
+    log_level: "INFO"              # Logging level
+    cache_database_path: "cache.db" # Cache database path
+    
+  # Performance Monitoring
+  monitoring:
+    enable_performance_tracking: true
+    log_signal_processing: true
+    log_trade_execution: true
+    log_pumpswap_interactions: true
+    
+  # Error Handling
+  error_handling:
+    max_retries: 3
+    retry_delay_base: 1.0
+    circuit_breaker_threshold: 5
+    circuit_breaker_timeout: 300
+    
+  # Regime Detection
+  regime_detection:
+    vol_risk_percentiles:
+      low: 0.30
+      high: 0.70
+      extreme: 0.90
+    regime_multipliers:
+      low_variance: 0.7
+      medium_variance: 1.0
+      high_variance: 1.4
+      extreme_variance: 1.8
+
 # New Pools Collection Configuration
 new_pools:
   networks:
