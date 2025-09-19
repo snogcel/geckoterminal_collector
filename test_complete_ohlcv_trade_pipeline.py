@@ -211,7 +211,7 @@ class TestCompleteOHLCVTradePipeline:
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         """, trade_records)
         
-        logger.info(f"✅ Data collection simulated: {len(ohlcv_data)} OHLCV records, {len(trade_data)} trade records")
+        logger.info(f"PASS: Data collection simulated: {len(ohlcv_data)} OHLCV records, {len(trade_data)} trade records")
         
         return {
             'ohlcv_count': len(ohlcv_data),
@@ -249,7 +249,7 @@ class TestCompleteOHLCVTradePipeline:
 
         assert ohlcv_validation['positive_volume_usd'] == collection_result['ohlcv_count']
         
-        logger.info("✅ OHLCV data consistency validated")
+        logger.info("PASS: OHLCV data consistency validated")
         
         # Validate trade data consistency
         trade_validation_query = """
@@ -277,7 +277,7 @@ class TestCompleteOHLCVTradePipeline:
         assert trade_validation['buy_trades'] > 0
         assert trade_validation['sell_trades'] > 0
         
-        logger.info("✅ Trade data consistency validated")
+        logger.info("PASS: Trade data consistency validated")
         
         # Cross-validate OHLCV and trade data alignment
         alignment_query = """
@@ -320,7 +320,7 @@ class TestCompleteOHLCVTradePipeline:
             assert hour_data['trade_records'] > 0   # At least one trade per hour
             assert hour_data['price_deviation'] < 0.1  # Prices should be reasonably aligned
         
-        logger.info("✅ OHLCV/Trade data alignment validated")
+        logger.info("PASS: OHLCV/Trade data alignment validated")
         
         return {
             'ohlcv_validation': dict(ohlcv_validation),
@@ -388,7 +388,7 @@ class TestCompleteOHLCVTradePipeline:
         export_data = await db_connection.fetch(export_query, pool_id)
         
         assert len(export_data) == collection_result['ohlcv_count']
-        logger.info(f"✅ Export query returned {len(export_data)} records")
+        logger.info(f"PASS: Export query returned {len(export_data)} records")
         
         # Generate QLib files
         # 1. Calendar file
@@ -430,7 +430,7 @@ class TestCompleteOHLCVTradePipeline:
                     f.write(struct.pack('<f', value))
             bin_files.append(bin_file)
         
-        logger.info(f"✅ Generated {len(bin_files)} QLib bin files")
+        logger.info(f"PASS: Generated {len(bin_files)} QLib bin files")
         
         # Verify QLib file structure
         assert calendar_file.exists()
@@ -442,7 +442,7 @@ class TestCompleteOHLCVTradePipeline:
         for bin_file in bin_files:
             assert bin_file.stat().st_size == expected_size, f"Incorrect size for {bin_file.name}"
         
-        logger.info("✅ QLib file structure validation passed")
+        logger.info("PASS: QLib file structure validation passed")
         
         # Create export metadata
         export_metadata = {
@@ -487,7 +487,7 @@ class TestCompleteOHLCVTradePipeline:
             # Table might not exist, use a mock ID for testing
             export_id = 1
         
-        logger.info(f"✅ Export metadata created with ID: {export_id}")
+        logger.info(f"PASS: Export metadata created with ID: {export_id}")
         
         return {
             'export_id': export_id,
@@ -545,7 +545,7 @@ class TestCompleteOHLCVTradePipeline:
         query_time = time.time() - start_time
         
         assert len(benchmark_data) == collection_result['ohlcv_count']
-        logger.info(f"✅ Complex query performance: {query_time:.3f}s for {len(benchmark_data)} records")
+        logger.info(f"PASS: Complex query performance: {query_time:.3f}s for {len(benchmark_data)} records")
         
         # Benchmark 2: Aggregation performance
         start_time = time.time()
@@ -571,7 +571,7 @@ class TestCompleteOHLCVTradePipeline:
         aggregation_result = await db_connection.fetchrow(aggregation_query, pool_id)
         aggregation_time = time.time() - start_time
         
-        logger.info(f"✅ Aggregation performance: {aggregation_time:.3f}s")
+        logger.info(f"PASS: Aggregation performance: {aggregation_time:.3f}s")
         
         # Benchmark 3: Export data preparation performance
         start_time = time.time()
@@ -619,7 +619,7 @@ class TestCompleteOHLCVTradePipeline:
         export_prep_data = await db_connection.fetch(export_prep_query, pool_id)
         export_prep_time = time.time() - start_time
         
-        logger.info(f"✅ Export preparation performance: {export_prep_time:.3f}s for {len(export_prep_data)} records")
+        logger.info(f"PASS: Export preparation performance: {export_prep_time:.3f}s for {len(export_prep_data)} records")
         
         # Performance assertions
         assert query_time < 1.0, f"Query performance too slow: {query_time:.3f}s"
@@ -630,12 +630,12 @@ class TestCompleteOHLCVTradePipeline:
             'query_time': query_time,
             'aggregation_time': aggregation_time,
             'export_prep_time': export_prep_time,
-            'records_per_second_query': len(benchmark_data) / query_time,
-            'records_per_second_export': len(export_prep_data) / export_prep_time,
+            'records_per_second_query': len(benchmark_data) / max(query_time, 0.001),  # Avoid division by zero
+            'records_per_second_export': len(export_prep_data) / max(export_prep_time, 0.001),  # Avoid division by zero
             'total_records_processed': len(benchmark_data) + len(export_prep_data)
         }
         
-        logger.info("✅ Performance benchmarks completed")
+        logger.info("PASS: Performance benchmarks completed")
         return performance_metrics
     
     async def cleanup_test_data(self, db_connection, test_environment):
@@ -654,7 +654,7 @@ class TestCompleteOHLCVTradePipeline:
         await db_connection.execute("DELETE FROM trades WHERE pool_id = $1", pool_id)
         await db_connection.execute("DELETE FROM ohlcv_data WHERE pool_id = $1", pool_id)
         
-        logger.info("✅ Test data cleanup completed")
+        logger.info("PASS: Test data cleanup completed")
 
 async def run_tests():
     """Run complete OHLCV/Trade pipeline tests"""
@@ -686,7 +686,7 @@ async def run_tests():
             os.makedirs(test_environment['qlib_dir'], exist_ok=True)
             
             try:
-                logger.info("🧪 Starting Complete OHLCV/Trade Pipeline Test Suite")
+                logger.info("TEST: Starting Complete OHLCV/Trade Pipeline Test Suite")
                 
                 # Run pipeline tests
                 collection_result = await test_instance.simulate_data_collection(conn, test_environment)
@@ -694,11 +694,11 @@ async def run_tests():
                 await test_instance.test_qlib_export_pipeline(conn, test_environment, collection_result)
                 await test_instance.test_performance_benchmarks(conn, test_environment, collection_result)
                 
-                logger.info("🎉 All complete pipeline tests passed!")
+                logger.info("SUCCESS: All complete pipeline tests passed!")
                 return True
                 
             except Exception as e:
-                logger.error(f"❌ Pipeline test failed: {e}")
+                logger.error(f"FAIL: Pipeline test failed: {e}")
                 import traceback
                 traceback.print_exc()
                 return False

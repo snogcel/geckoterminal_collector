@@ -12,13 +12,13 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-# Configure logging
+# Configure logging with UTF-8 encoding
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(f'ohlcv_trade_tests_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+        logging.FileHandler(f'ohlcv_trade_tests_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log', encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class OHLCVTradeTestRunner:
     
     def run_test_file(self, test_file):
         """Run a single test file and capture results"""
-        logger.info(f"🧪 Running {test_file}...")
+        logger.info(f"Running {test_file}...")  # Remove emoji to avoid encoding issues
         
         start_time = time.time()
         
@@ -54,11 +54,11 @@ class OHLCVTradeTestRunner:
             duration = time.time() - start_time
             
             if result.returncode == 0:
-                logger.info(f"✅ {test_file} PASSED ({duration:.2f}s)")
+                logger.info(f"PASSED: {test_file} ({duration:.2f}s)")
                 status = "PASSED"
                 error_message = None
             else:
-                logger.error(f"❌ {test_file} FAILED ({duration:.2f}s)")
+                logger.error(f"FAILED: {test_file} ({duration:.2f}s)")
                 logger.error(f"STDOUT: {result.stdout}")
                 logger.error(f"STDERR: {result.stderr}")
                 status = "FAILED"
@@ -74,7 +74,7 @@ class OHLCVTradeTestRunner:
             
         except subprocess.TimeoutExpired:
             duration = time.time() - start_time
-            logger.error(f"⏰ {test_file} TIMEOUT ({duration:.2f}s)")
+            logger.error(f"TIMEOUT: {test_file} ({duration:.2f}s)")
             return {
                 'status': 'TIMEOUT',
                 'duration': duration,
@@ -85,7 +85,7 @@ class OHLCVTradeTestRunner:
             
         except Exception as e:
             duration = time.time() - start_time
-            logger.error(f"💥 {test_file} ERROR ({duration:.2f}s): {e}")
+            logger.error(f"ERROR: {test_file} ({duration:.2f}s): {e}")
             return {
                 'status': 'ERROR',
                 'duration': duration,
@@ -96,7 +96,7 @@ class OHLCVTradeTestRunner:
     
     def check_prerequisites(self):
         """Check if all test files exist and prerequisites are met"""
-        logger.info("🔍 Checking prerequisites...")
+        logger.info("CHECK: Checking prerequisites...")
         
         missing_files = []
         for test_file in self.test_files:
@@ -104,24 +104,24 @@ class OHLCVTradeTestRunner:
                 missing_files.append(test_file)
         
         if missing_files:
-            logger.error(f"❌ Missing test files: {missing_files}")
+            logger.error(f"FAIL: Missing test files: {missing_files}")
             return False
         
         # Check if we can import required modules
         try:
             import asyncpg
             import pytest
-            logger.info("✅ Required modules available")
+            logger.info("PASS: Required modules available")
         except ImportError as e:
-            logger.error(f"❌ Missing required module: {e}")
+            logger.error(f"FAIL: Missing required module: {e}")
             return False
         
-        logger.info("✅ Prerequisites check passed")
+        logger.info("PASS: Prerequisites check passed")
         return True
     
     def run_all_tests(self):
         """Run all OHLCV/Trade integration tests"""
-        logger.info("🚀 Starting OHLCV/Trade QLib Integration Test Suite")
+        logger.info("START: Starting OHLCV/Trade QLib Integration Test Suite")
         
         if not self.check_prerequisites():
             return False
@@ -145,7 +145,7 @@ class OHLCVTradeTestRunner:
         total_duration = self.end_time - self.start_time
         
         logger.info("=" * 80)
-        logger.info("📊 OHLCV/TRADE QLIB INTEGRATION TEST SUMMARY")
+        logger.info("STATS: OHLCV/TRADE QLIB INTEGRATION TEST SUMMARY")
         logger.info("=" * 80)
         
         passed_tests = []
@@ -172,23 +172,23 @@ class OHLCVTradeTestRunner:
         
         success_rate = (passed_count / total_tests) * 100 if total_tests > 0 else 0
         
-        logger.info(f"📈 OVERALL RESULTS:")
+        logger.info(f"RESULTS: OVERALL RESULTS:")
         logger.info(f"   Total Tests: {total_tests}")
-        logger.info(f"   ✅ Passed: {passed_count}")
-        logger.info(f"   ❌ Failed: {failed_count}")
-        logger.info(f"   ⏰ Timeout: {timeout_count}")
-        logger.info(f"   💥 Error: {error_count}")
-        logger.info(f"   📊 Success Rate: {success_rate:.1f}%")
+        logger.info(f"   PASS: Passed: {passed_count}")
+        logger.info(f"   FAIL: Failed: {failed_count}")
+        logger.info(f"   TIMEOUT: Timeout: {timeout_count}")
+        logger.info(f"   ERROR: Error: {error_count}")
+        logger.info(f"   STATS: Success Rate: {success_rate:.1f}%")
         logger.info(f"   ⏱️  Total Duration: {total_duration:.2f}s")
         
         # Detailed results
-        logger.info(f"\n📋 DETAILED RESULTS:")
+        logger.info(f"\nDETAILS: DETAILED RESULTS:")
         for test_file, result in self.results.items():
             status_emoji = {
-                'PASSED': '✅',
-                'FAILED': '❌', 
-                'TIMEOUT': '⏰',
-                'ERROR': '💥'
+                'PASSED': 'PASS:',
+                'FAILED': 'FAIL:', 
+                'TIMEOUT': 'TIMEOUT:',
+                'ERROR': 'ERROR:'
             }.get(result['status'], '❓')
             
             logger.info(f"   {status_emoji} {test_file}: {result['status']} ({result['duration']:.2f}s)")
@@ -197,7 +197,7 @@ class OHLCVTradeTestRunner:
                 logger.info(f"      Error: {result['error_message'][:100]}...")
         
         # Test coverage analysis
-        logger.info(f"\n🎯 TEST COVERAGE ANALYSIS:")
+        logger.info(f"\nCOVERAGE: TEST COVERAGE ANALYSIS:")
         
         coverage_areas = {
             'test_ohlcv_trade_schema.py': [
@@ -225,10 +225,10 @@ class OHLCVTradeTestRunner:
             result = self.results.get(test_file, {})
             status = result.get('status', 'UNKNOWN')
             status_emoji = {
-                'PASSED': '✅',
-                'FAILED': '❌',
-                'TIMEOUT': '⏰', 
-                'ERROR': '💥'
+                'PASSED': 'PASS:',
+                'FAILED': 'FAIL:',
+                'TIMEOUT': 'TIMEOUT:', 
+                'ERROR': 'ERROR:'
             }.get(status, '❓')
             
             logger.info(f"   {status_emoji} {test_file}:")
@@ -236,26 +236,26 @@ class OHLCVTradeTestRunner:
                 logger.info(f"      • {area}")
         
         # Recommendations
-        logger.info(f"\n💡 RECOMMENDATIONS:")
+        logger.info(f"\nRECOMMENDATIONS: RECOMMENDATIONS:")
         
         if passed_count == total_tests:
-            logger.info("   🎉 All tests passed! OHLCV/Trade QLib integration is ready for production.")
-            logger.info("   📈 Consider running these tests regularly as part of CI/CD pipeline.")
-            logger.info("   🔄 Monitor performance metrics in production environment.")
+            logger.info("   SUCCESS: All tests passed! OHLCV/Trade QLib integration is ready for production.")
+            logger.info("   RESULTS: Consider running these tests regularly as part of CI/CD pipeline.")
+            logger.info("   MONITOR: Monitor performance metrics in production environment.")
         else:
-            logger.info("   🔧 Address failing tests before deploying to production.")
+            logger.info("   FIX: Address failing tests before deploying to production.")
             if failed_tests:
-                logger.info(f"   ❌ Priority: Fix failed tests: {', '.join(failed_tests)}")
+                logger.info(f"   FAIL: Priority: Fix failed tests: {', '.join(failed_tests)}")
             if timeout_tests:
-                logger.info(f"   ⏰ Investigate timeout issues: {', '.join(timeout_tests)}")
+                logger.info(f"   TIMEOUT: Investigate timeout issues: {', '.join(timeout_tests)}")
             if error_tests:
-                logger.info(f"   💥 Resolve error conditions: {', '.join(error_tests)}")
+                logger.info(f"   ERROR: Resolve error conditions: {', '.join(error_tests)}")
         
         # Performance insights
         total_test_duration = sum(result['duration'] for result in self.results.values())
         avg_test_duration = total_test_duration / total_tests if total_tests > 0 else 0
         
-        logger.info(f"\n⚡ PERFORMANCE INSIGHTS:")
+        logger.info(f"\nPERFORMANCE: PERFORMANCE INSIGHTS:")
         logger.info(f"   Average test duration: {avg_test_duration:.2f}s")
         logger.info(f"   Total test execution time: {total_test_duration:.2f}s")
         logger.info(f"   Test suite overhead: {total_duration - total_test_duration:.2f}s")
@@ -265,8 +265,8 @@ class OHLCVTradeTestRunner:
             fastest_test = min(self.results.items(), key=lambda x: x[1]['duration'])
             slowest_test = max(self.results.items(), key=lambda x: x[1]['duration'])
             
-            logger.info(f"   🏃 Fastest test: {fastest_test[0]} ({fastest_test[1]['duration']:.2f}s)")
-            logger.info(f"   🐌 Slowest test: {slowest_test[0]} ({slowest_test[1]['duration']:.2f}s)")
+            logger.info(f"   FASTEST: Fastest test: {fastest_test[0]} ({fastest_test[1]['duration']:.2f}s)")
+            logger.info(f"   SLOWEST: Slowest test: {slowest_test[0]} ({slowest_test[1]['duration']:.2f}s)")
         
         logger.info("=" * 80)
         
@@ -288,7 +288,7 @@ class OHLCVTradeTestRunner:
                 if result['stdout']:
                     f.write(f"  Output:\n{result['stdout']}\n")
         
-        logger.info(f"📄 Detailed report saved to: {report_file}")
+        logger.info(f"REPORT: Detailed report saved to: {report_file}")
 
 def main():
     """Main test runner entry point"""
@@ -296,10 +296,10 @@ def main():
     success = runner.run_all_tests()
     
     if success:
-        logger.info("🎉 All OHLCV/Trade QLib integration tests completed successfully!")
+        logger.info("SUCCESS: All OHLCV/Trade QLib integration tests completed successfully!")
         sys.exit(0)
     else:
-        logger.error("❌ Some tests failed. Check the report for details.")
+        logger.error("FAIL: Some tests failed. Check the report for details.")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -135,7 +135,7 @@ class TestOHLCVTradeSchema:
         )
         
         assert ohlcv_id is not None
-        logger.info(f"✅ OHLCV record created with ID: {ohlcv_id}")
+        logger.info(f"PASS: OHLCV record created with ID: {ohlcv_id}")
         
         # READ - Retrieve OHLCV data
         select_query = "SELECT * FROM ohlcv_data WHERE id = $1"
@@ -148,7 +148,7 @@ class TestOHLCVTradeSchema:
         assert record['high_price'] == ohlcv_data['high_price']
         assert record['low_price'] == ohlcv_data['low_price']
         assert record['close_price'] == ohlcv_data['close_price']
-        logger.info("✅ OHLCV data retrieved and validated")
+        logger.info("PASS: OHLCV data retrieved and validated")
         
         # UPDATE - Modify OHLCV data
         new_close_price = Decimal('1.2450')
@@ -157,7 +157,7 @@ class TestOHLCVTradeSchema:
         
         updated_record = await db_connection.fetchrow(select_query, ohlcv_id)
         assert updated_record['close_price'] == new_close_price
-        logger.info("✅ OHLCV data updated successfully")
+        logger.info("PASS: OHLCV data updated successfully")
         
         # DELETE - Clean up test data
         delete_query = "DELETE FROM ohlcv_data WHERE id = $1"
@@ -165,7 +165,7 @@ class TestOHLCVTradeSchema:
         
         deleted_record = await db_connection.fetchrow(select_query, ohlcv_id)
         assert deleted_record is None
-        logger.info("✅ OHLCV data deleted successfully")
+        logger.info("PASS: OHLCV data deleted successfully")
         
         # Cleanup test dependencies
         await self.cleanup_test_dependencies(db_connection, test_pool_id)
@@ -211,7 +211,7 @@ class TestOHLCVTradeSchema:
         )
         
         assert trade_id is not None
-        logger.info(f"✅ Trade record created with ID: {trade_id}")
+        logger.info(f"PASS: Trade record created with ID: {trade_id}")
         
         # READ - Retrieve trade data
         select_query = "SELECT * FROM trades WHERE id = $1"
@@ -222,7 +222,7 @@ class TestOHLCVTradeSchema:
         assert record['id'] == trade_data['id']
         assert record['price_usd'] == trade_data['price_usd']
         assert record['side'] == 'buy'
-        logger.info("✅ Trade data retrieved and validated")
+        logger.info("PASS: Trade data retrieved and validated")
         
         # UPDATE - Modify trade data
         new_side = 'sell'
@@ -231,7 +231,7 @@ class TestOHLCVTradeSchema:
         
         updated_record = await db_connection.fetchrow(select_query, trade_id)
         assert updated_record['side'] == new_side
-        logger.info("✅ Trade data updated successfully")
+        logger.info("PASS: Trade data updated successfully")
         
         # DELETE - Clean up test data
         delete_query = "DELETE FROM trades WHERE id = $1"
@@ -239,7 +239,7 @@ class TestOHLCVTradeSchema:
         
         deleted_record = await db_connection.fetchrow(select_query, trade_id)
         assert deleted_record is None
-        logger.info("✅ Trade data deleted successfully")
+        logger.info("PASS: Trade data deleted successfully")
         
         # Cleanup test dependencies
         await self.cleanup_test_dependencies(db_connection, test_pool_id)
@@ -267,7 +267,7 @@ class TestOHLCVTradeSchema:
         # But we can validate the data logic
         assert invalid_ohlcv['open_price'] > invalid_ohlcv['high_price'], "Invalid OHLC detected"
         assert invalid_ohlcv['low_price'] > invalid_ohlcv['high_price'], "Invalid OHLC detected"
-        logger.info("✅ Data integrity validation logic working")
+        logger.info("PASS: Data integrity validation logic working")
         
         # Test valid OHLC relationships
         valid_ohlcv = {
@@ -287,7 +287,7 @@ class TestOHLCVTradeSchema:
         # Validate OHLC relationships
         assert valid_ohlcv['low_price'] <= valid_ohlcv['open_price'] <= valid_ohlcv['high_price']
         assert valid_ohlcv['low_price'] <= valid_ohlcv['close_price'] <= valid_ohlcv['high_price']
-        logger.info("✅ Valid OHLC relationships confirmed")
+        logger.info("PASS: Valid OHLC relationships confirmed")
     
     async def test_bulk_insert_performance(self, db_connection, test_pool_id):
         """Test bulk insert performance for large datasets"""
@@ -356,7 +356,7 @@ class TestOHLCVTradeSchema:
         """, trade_records)
         trade_duration = (datetime.now() - start_time).total_seconds()
         
-        logger.info(f"✅ Bulk insert performance:")
+        logger.info(f"PASS: Bulk insert performance:")
         logger.info(f"   OHLCV: 100 records in {ohlcv_duration:.3f}s ({100/ohlcv_duration:.1f} records/sec)")
         logger.info(f"   Trade: 100 records in {trade_duration:.3f}s ({100/trade_duration:.1f} records/sec)")
         
@@ -370,13 +370,13 @@ class TestOHLCVTradeSchema:
         
         assert ohlcv_count == 100
         assert trade_count == 100
-        logger.info("✅ Bulk insert data verification successful")
+        logger.info("PASS: Bulk insert data verification successful")
         
         # Cleanup
         await db_connection.execute("DELETE FROM ohlcv_data WHERE pool_id = $1", test_pool_id)
         await db_connection.execute("DELETE FROM trades WHERE pool_id = $1", test_pool_id)
         await self.cleanup_test_dependencies(db_connection, test_pool_id)
-        logger.info("✅ Bulk insert test data cleaned up")
+        logger.info("PASS: Bulk insert test data cleaned up")
     
     async def test_qlib_export_readiness(self, db_connection, test_pool_id, test_data_timestamp):
         """Test data structure readiness for QLib export"""
@@ -423,7 +423,7 @@ class TestOHLCVTradeSchema:
         assert qlib_data[0]['symbol'] == test_pool_id
         assert qlib_data[0]['open'] == Decimal('1.2400')
         assert qlib_data[1]['close'] == Decimal('1.2500')
-        logger.info("✅ QLib export query structure validated")
+        logger.info("PASS: QLib export query structure validated")
         
         # Test aggregated trade data for QLib
         trade_agg_query = """
@@ -465,13 +465,13 @@ class TestOHLCVTradeSchema:
             assert trade_agg_data[0]['symbol'] == test_pool_id
             assert trade_agg_data[0]['trade_count'] == 2
             assert trade_agg_data[0]['unique_traders'] == 2
-            logger.info("✅ Trade data aggregation for QLib validated")
+            logger.info("PASS: Trade data aggregation for QLib validated")
         
         # Cleanup
         await db_connection.execute("DELETE FROM ohlcv_data WHERE pool_id = $1", test_pool_id)
         await db_connection.execute("DELETE FROM trades WHERE pool_id = $1", test_pool_id)
         await self.cleanup_test_dependencies(db_connection, test_pool_id)
-        logger.info("✅ QLib export test data cleaned up")
+        logger.info("PASS: QLib export test data cleaned up")
 
 async def run_tests():
     """Run all OHLCV/Trade schema tests"""
@@ -492,7 +492,7 @@ async def run_tests():
             test_timestamp = int(datetime.now(timezone.utc).timestamp())
             
             try:
-                logger.info("🧪 Starting OHLCV/Trade Schema Test Suite")
+                logger.info("Starting OHLCV/Trade Schema Test Suite")
                 
                 await test_instance.test_ohlcv_table_operations(conn, test_pool_id, test_timestamp)
                 await test_instance.test_trade_table_operations(conn, test_pool_id, test_timestamp)
@@ -500,11 +500,11 @@ async def run_tests():
                 await test_instance.test_bulk_insert_performance(conn, test_pool_id)
                 await test_instance.test_qlib_export_readiness(conn, test_pool_id, test_timestamp)
                 
-                logger.info("🎉 All OHLCV/Trade schema tests passed!")
+                logger.info("All OHLCV/Trade schema tests passed!")
                 return True
                 
             except Exception as e:
-                logger.error(f"❌ Test failed: {e}")
+                logger.error(f"Test failed: {e}")
                 return False
 
 if __name__ == "__main__":
