@@ -7,7 +7,7 @@ QLib's predictive modeling framework.
 """
 
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Union
 from pathlib import Path
 import logging
@@ -557,11 +557,34 @@ class QLibExporter:
         
         filtered_df = df.copy()
         
-        if start_date:
-            filtered_df = filtered_df[filtered_df['datetime'] >= start_date]
-        
-        if end_date:
-            filtered_df = filtered_df[filtered_df['datetime'] <= end_date]
+        # Ensure datetime column is timezone-aware for comparison
+        if 'datetime' in filtered_df.columns:
+            # Convert datetime column to pandas datetime if not already
+            if not pd.api.types.is_datetime64_any_dtype(filtered_df['datetime']):
+                filtered_df['datetime'] = pd.to_datetime(filtered_df['datetime'])
+            
+            # Handle timezone-aware comparisons
+            if start_date:
+                # Convert start_date to timezone-aware if needed
+                if start_date.tzinfo is None and filtered_df['datetime'].dt.tz is not None:
+                    # Assume start_date is in UTC if no timezone specified
+                    start_date = start_date.replace(tzinfo=timezone.utc)
+                elif start_date.tzinfo is not None and filtered_df['datetime'].dt.tz is None:
+                    # Convert DataFrame datetime to timezone-aware
+                    filtered_df['datetime'] = filtered_df['datetime'].dt.tz_localize('UTC')
+                
+                filtered_df = filtered_df[filtered_df['datetime'] >= start_date]
+            
+            if end_date:
+                # Convert end_date to timezone-aware if needed
+                if end_date.tzinfo is None and filtered_df['datetime'].dt.tz is not None:
+                    # Assume end_date is in UTC if no timezone specified
+                    end_date = end_date.replace(tzinfo=timezone.utc)
+                elif end_date.tzinfo is not None and filtered_df['datetime'].dt.tz is None:
+                    # Convert DataFrame datetime to timezone-aware
+                    filtered_df['datetime'] = filtered_df['datetime'].dt.tz_localize('UTC')
+                
+                filtered_df = filtered_df[filtered_df['datetime'] <= end_date]
         
         return filtered_df.reset_index(drop=True)
     

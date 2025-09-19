@@ -88,21 +88,30 @@ class EnhancedSQLAlchemyDatabaseManager(SQLAlchemyDatabaseManager):
         # Retry configuration
         self.max_retries = 3
         self.base_retry_delay = 0.5  # seconds
+    
+    async def initialize(self) -> None:
+        """Initialize database connection and enable optimizations."""
+        # Call parent initialization first
+        await super().initialize()
         
-        # Enable WAL mode for better concurrency
+        # Enable WAL mode after connection is initialized
         self._enable_wal_mode()
         
     def _enable_wal_mode(self):
         """Enable WAL mode for SQLite to improve concurrency."""
         try:
-            if "sqlite" in str(self.engine.url):
-                with self.engine.connect() as conn:
-                    conn.execute(text("PRAGMA journal_mode=WAL"))
-                    conn.execute(text("PRAGMA synchronous=NORMAL"))
-                    conn.execute(text("PRAGMA cache_size=10000"))
-                    conn.execute(text("PRAGMA temp_store=memory"))
-                    conn.commit()
-                logger.info("Enabled SQLite WAL mode for improved concurrency")
+            # Check if connection is initialized and has an engine
+            if hasattr(self.connection, 'engine') and self.connection.engine:
+                if "sqlite" in str(self.connection.engine.url):
+                    with self.connection.engine.connect() as conn:
+                        conn.execute(text("PRAGMA journal_mode=WAL"))
+                        conn.execute(text("PRAGMA synchronous=NORMAL"))
+                        conn.execute(text("PRAGMA cache_size=10000"))
+                        conn.execute(text("PRAGMA temp_store=memory"))
+                        conn.commit()
+                    logger.info("Enabled SQLite WAL mode for improved concurrency")
+            else:
+                logger.debug("Engine not yet initialized, skipping WAL mode setup")
         except Exception as e:
             logger.warning(f"Failed to enable WAL mode: {e}")
     
