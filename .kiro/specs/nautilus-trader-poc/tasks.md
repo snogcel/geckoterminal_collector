@@ -1,180 +1,188 @@
 # Implementation Plan
 
-- [ ] 1. Set up NautilusTrader development environment and project structure
-  - Install NautilusTrader with Python bindings and dependencies
-  - Create project directory structure for POC components
-  - Set up configuration management system for strategy parameters
-  - Validate NautilusTrader installation with basic examples
-  - _Requirements: 6.1, 6.2, 6.3_
+- [ ] 1. Environment Setup and Dependencies
+  - Install NautilusTrader and PumpSwap SDK dependencies
+  - Configure development environment with Solana testnet access
+  - Set up wallet for testnet trading with test SOL
+  - Validate existing Q50 system integration points
+  - _Requirements: 1.1, 1.2, 6.1, 6.7_
 
-- [ ] 2. Implement Q50 Signal Loader component
-  - [ ] 2.1 Create Q50SignalLoader class with pickle file reading capability
-    - Implement signal loading from `data3/macro_features.pkl`
-    - Add validation for all 80+ columns from actual data structure
-    - Create thread-safe signal access methods
-    - _Requirements: 1.1, 1.2_
+- [ ] 2. Q50 Signal Integration Foundation
+  - [ ] 2.1 Create Q50SignalLoader class
+    - Implement signal loading from existing `macro_features.pkl`
+    - Add timestamp-based signal retrieval with 5-minute tolerance
+    - Integrate with existing PostgreSQL database connection
+    - Validate required Q50 columns (q10, q50, q90, vol_raw, vol_risk, prob_up, economically_significant, high_quality, tradeable)
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-  - [ ] 2.2 Implement timestamp matching and signal retrieval logic
-    - Create timestamp matching with 5-minute tolerance for 1-hour data
-    - Implement fallback to latest signal when exact match unavailable
-    - Add signal caching mechanism for performance optimization
-    - _Requirements: 1.3, 1.4_
+  - [ ] 2.2 Implement RegimeDetector for variance classification
+    - Create variance-based regime detection using existing vol_risk percentiles
+    - Apply regime-specific threshold adjustments (-30%, +40%, +80%)
+    - Integrate with existing technical indicators and feature vectors
+    - Test regime classification against existing signal analysis system
+    - _Requirements: 1.5, 1.6, 7.2, 7.3_
 
-  - [ ] 2.3 Add comprehensive error handling and logging
-    - Handle corrupted pickle files and missing data gracefully
-    - Implement signal validation with detailed error messages
-    - Add performance logging for signal retrieval operations
-    - _Requirements: 9.1, 9.4_
+- [ ] 3. PumpSwap SDK Integration Layer
+  - [ ] 3.1 Create PumpSwapExecutor class
+    - Initialize PumpSwap SDK with testnet configuration
+    - Implement buy/sell execution methods using SDK
+    - Add comprehensive error handling for blockchain operations
+    - Create transaction monitoring and confirmation logic
+    - _Requirements: 2.1, 2.2, 2.3, 2.7, 10.1, 10.2_
 
-- [ ] 3. Create Regime Detector for variance-based analysis
-  - [ ] 3.1 Implement volatility regime classification using existing data
-    - Use pre-computed vol_raw_decile and regime flags from macro_features.pkl
-    - Create regime multiplier calculation methods
-    - Implement variance-based regime transition detection
-    - _Requirements: 1.6, 3.3_
+  - [ ] 3.2 Implement LiquidityValidator component
+    - Create pool liquidity validation using `get_pool_data()`
+    - Implement price impact estimation for trade sizing
+    - Add execution feasibility checks with `get_pair_address()`
+    - Validate minimum liquidity requirements before trade execution
+    - _Requirements: 2.5, 2.6, 3.4, 3.5, 3.6_
 
-  - [ ] 3.2 Add enhanced info ratio threshold calculation
-    - Implement regime-adjusted info ratio thresholds
-    - Use enhanced_info_ratio from pre-computed signals
-    - Create regime stability tracking and logging
-    - _Requirements: 3.8, 5.6_
+- [ ] 4. Position Sizing and Risk Management
+  - [ ] 4.1 Create KellyPositionSizer with liquidity constraints
+    - Implement inverse variance scaling: `base_size = 0.1 / max(vol_risk * 1000, 0.1)`
+    - Add signal strength calculation with enhanced info ratio
+    - Apply regime multipliers based on variance percentiles
+    - Integrate PumpSwap liquidity constraints (max 25% of pool)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.7_
 
-- [ ] 4. Develop Signal Processor for trading decision logic
-  - [ ] 4.1 Implement tradeable condition evaluation using pre-computed flags
-    - Use economically_significant, high_quality, and tradeable flags from data
-    - Implement side field interpretation (-1=hold, 0=sell, 1=buy)
-    - Add signal strength validation and filtering
-    - _Requirements: 2.3, 2.4, 2.5, 2.7_
+  - [ ] 4.2 Implement RiskManager with circuit breaker
+    - Create position size validation and limits enforcement
+    - Add circuit breaker for consecutive trade failures
+    - Implement stop-loss and take-profit mechanisms
+    - Create wallet balance monitoring and validation
+    - _Requirements: 3.8, 10.4, 11.3, 11.4, 11.5_
 
-  - [ ] 4.2 Create trade direction and strength calculation methods
-    - Use signal_strength and position_size_suggestion from data
-    - Implement prob_up validation for directional confidence
-    - Add expected_value threshold checking (5 bps transaction cost)
-    - _Requirements: 2.3, 2.4, 2.5_
+- [ ] 5. NautilusTrader Strategy Implementation
+  - [ ] 5.1 Create Q50NautilusStrategy base class
+    - Inherit from NautilusTrader Strategy base class
+    - Implement strategy initialization with Q50 signal loading
+    - Create market data tick processing logic
+    - Add integration with existing configuration system
+    - _Requirements: 1.7, 2.1, 6.1, 6.2_
 
-- [ ] 5. Build Position Sizer with Kelly-based sizing and regime adjustments
-  - [ ] 5.1 Implement base Kelly position sizing calculation
-    - Use kelly_position_size from pre-computed signals as starting point
-    - Apply base size of 10% capital with |q50| × 100 multiplier (capped at 2x)
-    - Implement maximum position cap at 50% of available capital
-    - _Requirements: 3.1, 3.2, 3.5_
+  - [ ] 5.2 Implement trading decision logic
+    - Create signal processing for tradeable determination
+    - Implement buy/sell/hold decision logic based on Q50 values
+    - Add regime-aware signal enhancement
+    - Integrate with PumpSwap execution layer
+    - _Requirements: 2.3, 2.4, 7.5, 7.6, 7.7_
 
-  - [ ] 5.2 Add volatility decile-based risk adjustments
-    - Use vol_raw_decile from data for regime-specific multipliers
-    - Apply decile adjustments: ≥9 (0.6x), ≥8 (0.7x), ≥6 (0.85x), ≤1 (1.1x)
-    - Implement variance regime multipliers using variance_regime flags
-    - _Requirements: 3.3, 3.4, 3.8_
+- [ ] 6. Enhanced Signal Processing with PumpSwap Integration
+  - [ ] 6.1 Create PumpSwapSignalAnalyzer
+    - Enhance existing signal analysis with PumpSwap pool data
+    - Integrate execution feasibility into signal scoring
+    - Add liquidity-adjusted signal strength calculations
+    - Create fallback logic for unavailable PumpSwap data
+    - _Requirements: 7.1, 7.4, 7.5, 7.6_
 
-  - [ ] 5.3 Create risk limit validation and error handling
-    - Implement position size validation against risk limits
-    - Add fallback to 10% base size on calculation failures
-    - Create detailed logging for position sizing decisions
-    - _Requirements: 3.6, 3.7, 9.3_
+  - [ ] 6.2 Implement adaptive threshold calculation
+    - Create PumpSwap-aware economic significance calculation
+    - Add price impact estimates to threshold adjustments
+    - Implement variance-based threshold scaling with liquidity constraints
+    - Test against existing expected value calculations
+    - _Requirements: 7.1, 7.4, 7.5_
 
-- [ ] 6. Implement Q50MinimalStrategy for NautilusTrader integration
-  - [ ] 6.1 Create strategy class inheriting from NautilusTrader Strategy base
-    - Initialize strategy with Q50 components (SignalLoader, RegimeDetector, etc.)
-    - Set up market data subscriptions for 1-hour timeframe
-    - Implement configuration loading and validation
-    - _Requirements: 2.1, 2.2, 6.1, 6.7_
+- [ ] 7. Position and Trade Management
+  - [ ] 7.1 Create PositionManager for tracking
+    - Implement position tracking with database integration
+    - Add unrealized P&L calculation with current prices
+    - Create position update logic for buy/sell operations
+    - Integrate with existing database schema extensions
+    - _Requirements: 2.7, 5.3, 5.6_
 
-  - [ ] 6.2 Implement market data processing and signal integration
-    - Create on_quote_tick handler for processing 1-hour market data
-    - Integrate Q50 signal retrieval with timestamp matching
-    - Add regime analysis and signal processing pipeline
-    - _Requirements: 2.2, 1.3, 1.5, 1.6_
+  - [ ] 7.2 Implement TradeExecutionRecord system
+    - Create comprehensive trade logging with transaction hashes
+    - Add execution performance tracking (latency, slippage, gas costs)
+    - Implement trade status monitoring and confirmation
+    - Store signal context and regime data with each trade
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 6.3 Add order execution and position management
-    - Implement market order creation and submission
-    - Add position tracking and order fill event handling
-    - Create position closing logic for non-tradeable signals
-    - _Requirements: 2.3, 2.4, 2.5, 2.6_
+- [ ] 8. Configuration and Environment Management
+  - [ ] 8.1 Create multi-environment configuration system
+    - Extend existing config.yaml with PumpSwap and NautilusTrader sections
+    - Add testnet/mainnet environment switching
+    - Implement secure wallet configuration with private key handling
+    - Create trading parameter configuration (slippage, position limits, etc.)
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 7. Configure NautilusTrader for Binance testnet paper trading
-  - [ ] 7.1 Set up Binance testnet adapter configuration
-    - Configure BinanceSpotDataClient for paper trading
-    - Set up testnet API endpoints and authentication
-    - Configure 1-hour data subscriptions for BTCUSDT
-    - _Requirements: 4.1, 4.6, 6.3_
+  - [ ] 8.2 Implement security and wallet management
+    - Create secure private key loading and storage
+    - Add transaction signing validation
+    - Implement wallet balance monitoring and alerts
+    - Create token address validation to prevent malicious trades
+    - _Requirements: 11.1, 11.2, 11.5, 11.6_
 
-  - [ ] 7.2 Configure NautilusTrader engines for POC requirements
-    - Set up data engine with appropriate queue sizes and validation
-    - Configure risk engine with position limits and order rate limits
-    - Set up execution engine with reconciliation and snapshots
-    - _Requirements: 4.2, 3.7, 6.2_
+- [ ] 9. Comprehensive Error Handling and Recovery
+  - [ ] 9.1 Create blockchain-specific error handling
+    - Implement Solana RPC error handling with exponential backoff
+    - Add PumpSwap SDK error categorization and recovery
+    - Create network congestion handling with gas price adjustment
+    - Implement transaction failure recovery and retry logic
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 8. Implement comprehensive logging and performance monitoring
-  - [ ] 8.1 Create performance monitoring system
-    - Implement trade execution logging with regime context
-    - Add signal processing latency measurement (target <30 seconds)
-    - Create regime-specific performance tracking
-    - _Requirements: 5.1, 5.2, 5.5, 4.5_
+  - [ ] 9.2 Implement system resilience features
+    - Create graceful degradation for non-critical failures
+    - Add blockchain state consistency validation
+    - Implement secure failure handling without key exposure
+    - Create resource constraint handling and prioritization
+    - _Requirements: 10.7, 10.8, 11.1_
 
-  - [ ] 8.2 Add error handling and system stability monitoring
-    - Implement comprehensive error logging with context
-    - Add system uptime and stability tracking
-    - Create memory usage and resource monitoring
-    - _Requirements: 5.4, 9.2, 9.5_
+- [ ] 10. Performance Monitoring and Logging
+  - [ ] 10.1 Create PerformanceMonitor for comprehensive tracking
+    - Implement signal processing performance metrics
+    - Add blockchain execution performance tracking
+    - Create regime-specific performance analysis
+    - Integrate with existing monitoring infrastructure
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 8.3 Create performance reporting and analysis tools
-    - Generate summary reports with regime breakdown
-    - Compare enhanced vs traditional info ratio effectiveness
-    - Export metrics to CSV for detailed analysis
-    - _Requirements: 5.5, 8.2, 8.3, 8.4_
+  - [ ] 10.2 Implement comprehensive logging system
+    - Create structured logging for all trading decisions
+    - Add PumpSwap interaction logging with pool data
+    - Implement error logging with sufficient debugging context
+    - Create performance summary reporting
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 9. Develop comprehensive test suite for validation
-  - [ ] 9.1 Create unit tests for all Q50 components
-    - Test Q50SignalLoader with various data scenarios
-    - Test RegimeDetector classification accuracy
-    - Test PositionSizer calculations with edge cases
-    - _Requirements: 1.2, 3.4, 3.6_
+- [ ] 11. Testing Framework and Validation
+  - [ ] 11.1 Create unit test suite for core components
+    - Test Q50SignalLoader with existing macro_features.pkl data
+    - Test RegimeDetector against existing signal analysis
+    - Test PumpSwapExecutor with mock SDK responses
+    - Test position sizing calculations against existing Kelly logic
+    - _Requirements: All components validation_
 
-  - [ ] 9.2 Implement integration tests for strategy workflow
-    - Test complete signal-to-execution flow
-    - Validate NautilusTrader component integration
-    - Test error propagation and recovery mechanisms
-    - _Requirements: 2.6, 7.1, 9.1, 9.2_
+  - [ ] 11.2 Implement integration tests with Solana testnet
+    - Create end-to-end trading pipeline tests
+    - Test actual PumpSwap SDK interactions on testnet
+    - Validate transaction execution and confirmation
+    - Test error recovery scenarios with network failures
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [ ] 9.3 Add performance and stability testing
-    - Test 24+ hour continuous operation
-    - Validate memory usage and system stability
-    - Measure and validate execution latency targets
-    - _Requirements: 4.4, 4.5, 8.4_
+- [ ] 12. System Integration and Validation
+  - [ ] 12.1 Integrate with existing infrastructure
+    - Connect to existing PostgreSQL database
+    - Integrate with existing QLib data pipeline
+    - Validate against existing performance benchmarks
+    - Test compatibility with existing CLI and monitoring systems
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 10. Execute POC validation and performance analysis
-  - [ ] 10.1 Run 24-hour paper trading validation
-    - Execute strategy on Binance testnet with live data
-    - Monitor system stability and error rates
-    - Collect comprehensive performance metrics
-    - _Requirements: 4.3, 4.4, 8.1, 8.2_
+  - [ ] 12.2 Perform comprehensive system validation
+    - Run 24+ hour stability testing with real testnet interactions
+    - Validate performance against 1.327 Sharpe ratio target
+    - Compare execution quality vs expected slippage and price impact
+    - Test all error handling and recovery scenarios
+    - _Requirements: 4.4, 4.5, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-  - [ ] 10.2 Analyze results and compare with backtesting performance
-    - Compare POC results with historical 1.327 Sharpe ratio
-    - Analyze regime-specific performance breakdown
-    - Validate signal interpretation accuracy
-    - _Requirements: 8.1, 8.3, 8.4_
+- [ ] 13. Documentation and Knowledge Transfer
+  - [ ] 13.1 Create comprehensive technical documentation
+    - Document NautilusTrader integration patterns and best practices
+    - Create PumpSwap SDK usage guide with error handling procedures
+    - Document security practices for wallet and private key management
+    - Create troubleshooting guide for common blockchain integration issues
+    - _Requirements: 12.1, 12.2, 12.3, 12.7_
 
-  - [ ] 10.3 Generate comprehensive evaluation report
-    - Document implementation complexity and challenges
-    - Provide performance comparison with expected results
-    - Create recommendations for full production implementation
-    - _Requirements: 8.2, 8.4, 10.4, 10.5_
-
-- [ ] 11. Create documentation and knowledge transfer materials
-  - [ ] 11.1 Document POC implementation and architecture
-    - Create comprehensive code documentation
-    - Document integration patterns and best practices
-    - Provide troubleshooting guide for common issues
-    - _Requirements: 10.1, 10.3_
-
-  - [ ] 11.2 Generate findings report and recommendations
-    - Document performance analysis and key findings
-    - Provide clear recommendations for production implementation
-    - Create comparison framework for Hummingbot alternative
-    - _Requirements: 8.5, 10.2, 10.4_
-
-  - [ ] 11.3 Prepare knowledge transfer and team enablement
-    - Create setup and deployment guides
-    - Document configuration management procedures
-    - Enable team members to understand and extend implementation
-    - _Requirements: 10.5_
+  - [ ] 13.2 Generate final analysis and recommendations
+    - Create detailed findings report comparing centralized vs decentralized execution
+    - Document performance analysis vs existing system benchmarks
+    - Provide production deployment recommendations with infrastructure requirements
+    - Create comparative analysis framework for platform selection decisions
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 12.4, 12.5, 12.6, 12.8_

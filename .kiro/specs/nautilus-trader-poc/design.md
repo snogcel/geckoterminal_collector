@@ -2,601 +2,664 @@
 
 ## Overview
 
-This design document outlines the architecture for integrating our Q50-centric quantile trading system with NautilusTrader as a 2-week proof of concept. The integration will demonstrate that our existing Q50 system (achieving 1.327 Sharpe ratio) can be successfully deployed on NautilusTrader while maintaining performance quality and providing a foundation for future scalability.
+This design document outlines the architecture for integrating our proven Q50 quantile trading system with NautilusTrader and PumpSwap DEX execution. The design leverages our existing infrastructure (PostgreSQL database, QLib integration, signal analysis) while adding professional-grade trading execution capabilities through NautilusTrader and real Solana DEX trading via PumpSwap SDK.
 
-The design leverages NautilusTrader's institutional-grade architecture to execute trades based on our variance-aware regime identification system, using 1-hour timeframes with QLib data integration. The POC will validate technical feasibility, performance characteristics, and implementation complexity before committing to full production deployment.
+The system maintains our existing 1.327 Sharpe ratio performance characteristics while extending beyond paper trading to actual blockchain execution, providing a comprehensive validation of both technical feasibility and real-world trading performance.
 
 ## Architecture
 
-### High-Level System Architecture
+### System Overview
 
 ```mermaid
 graph TB
-    subgraph "Data Layer"
-        QLib[QLib Data Provider]
-        QLServer[QLib-Server<br/>Live Data]
-        MacroFeatures[macro_features.pkl<br/>Q50 Signals]
-        NautilusData[NautilusTrader<br/>Market Data]
+    subgraph "Existing Infrastructure"
+        PG[(PostgreSQL Database)]
+        QLIB[QLib Integration]
+        SIGNALS[Q50 Signal System]
+        FEATURES[macro_features.pkl]
     end
     
-    subgraph "NautilusTrader Core"
-        DataEngine[Data Engine<br/>Market Data Processing]
-        ExecEngine[Execution Engine<br/>Order Management]
-        RiskEngine[Risk Engine<br/>Position Limits]
-        PortEngine[Portfolio Engine<br/>P&L Tracking]
+    subgraph "NautilusTrader Integration Layer"
+        NT_STRATEGY[Q50NautilusStrategy]
+        NT_ENGINE[NautilusTrader Engine]
+        SIGNAL_LOADER[Q50SignalLoader]
+        REGIME_DETECTOR[RegimeDetector]
     end
     
-    subgraph "Q50 Integration Layer"
-        SignalLoader[Q50 Signal Loader<br/>Pickle Data Reader]
-        RegimeDetector[Regime Detector<br/>Variance-Based Analysis]
-        SignalProcessor[Signal Processor<br/>Tradeable Logic]
-        PositionSizer[Position Sizer<br/>Kelly + Vol Deciles]
+    subgraph "PumpSwap Execution Layer"
+        PUMP_SDK[PumpSwap SDK]
+        PUMP_EXECUTOR[PumpSwapExecutor]
+        LIQUIDITY_VALIDATOR[LiquidityValidator]
+        POSITION_MANAGER[PositionManager]
     end
     
-    subgraph "Strategy Layer"
-        Q50Strategy[Q50MinimalStrategy<br/>Main Trading Logic]
-        ConfigManager[Configuration Manager<br/>Parameters & Settings]
+    subgraph "Solana Blockchain"
+        TESTNET[Solana Testnet]
+        PUMPSWAP_CONTRACTS[PumpSwap Contracts]
+        WALLET[Trading Wallet]
     end
     
-    subgraph "External Systems"
-        BinanceTest[Binance Testnet<br/>Paper Trading]
-        Monitoring[Performance Monitor<br/>Logging & Metrics]
+    subgraph "Monitoring & Control"
+        PERFORMANCE_MONITOR[PerformanceMonitor]
+        RISK_MANAGER[RiskManager]
+        CONFIG_MANAGER[ConfigManager]
+        LOGGER[ComprehensiveLogger]
     end
     
-    QLib --> DataEngine
-    QLServer -.-> DataEngine
-    NautilusData --> DataEngine
-    MacroFeatures --> SignalLoader
+    FEATURES --> SIGNAL_LOADER
+    PG --> SIGNAL_LOADER
+    QLIB --> SIGNAL_LOADER
     
-    DataEngine --> Q50Strategy
-    SignalLoader --> SignalProcessor
-    RegimeDetector --> PositionSizer
-    SignalProcessor --> Q50Strategy
-    PositionSizer --> Q50Strategy
+    SIGNAL_LOADER --> NT_STRATEGY
+    REGIME_DETECTOR --> NT_STRATEGY
+    NT_STRATEGY --> NT_ENGINE
     
-    Q50Strategy --> ExecEngine
-    Q50Strategy --> RiskEngine
-    ExecEngine --> BinanceTest
+    NT_ENGINE --> PUMP_EXECUTOR
+    PUMP_EXECUTOR --> PUMP_SDK
+    LIQUIDITY_VALIDATOR --> PUMP_EXECUTOR
     
-    RiskEngine --> PortEngine
-    PortEngine --> Monitoring
+    PUMP_SDK --> PUMPSWAP_CONTRACTS
+    PUMPSWAP_CONTRACTS --> TESTNET
+    WALLET --> TESTNET
     
-    ConfigManager --> Q50Strategy
-    ConfigManager --> RegimeDetector
-    ConfigManager --> PositionSizer
+    PERFORMANCE_MONITOR --> LOGGER
+    RISK_MANAGER --> PUMP_EXECUTOR
+    CONFIG_MANAGER --> NT_STRATEGY
+    CONFIG_MANAGER --> PUMP_EXECUTOR
 ```
 
-### Component Integration Flow
+### Data Flow Architecture
 
 ```mermaid
 sequenceDiagram
-    participant Market as Market Data
-    participant NautilusData as Nautilus Data Engine
-    participant Q50Strategy as Q50 Strategy
-    participant SignalLoader as Signal Loader
-    participant RegimeDetector as Regime Detector
-    participant PositionSizer as Position Sizer
-    participant NautilusExec as Nautilus Execution
-    participant Binance as Binance Testnet
+    participant FS as File System
+    participant SL as Q50SignalLoader
+    participant RD as RegimeDetector
+    participant NS as Q50NautilusStrategy
+    participant PE as PumpSwapExecutor
+    participant PS as PumpSwap SDK
+    participant SC as Solana Chain
+    participant PM as PerformanceMonitor
     
-    Market->>NautilusData: Quote/Trade Ticks (1-hour)
-    NautilusData->>Q50Strategy: on_quote_tick()
-    Q50Strategy->>SignalLoader: get_current_signal(timestamp)
-    SignalLoader-->>Q50Strategy: Q50 signal data
+    FS->>SL: Load macro_features.pkl
+    SL->>RD: Process Q50 signals
+    RD->>NS: Enhanced signals with regime
     
-    Q50Strategy->>RegimeDetector: analyze_regime(vol_risk, vol_raw)
-    RegimeDetector-->>Q50Strategy: regime classification
-    
-    Q50Strategy->>Q50Strategy: evaluate_tradeable_conditions()
-    
-    alt Signal is tradeable
-        Q50Strategy->>PositionSizer: calculate_position_size(signal, regime)
-        PositionSizer-->>Q50Strategy: position size
-        Q50Strategy->>NautilusExec: submit_order(size, direction)
-        NautilusExec->>Binance: execute trade
-        Binance-->>NautilusExec: fill confirmation
-        NautilusExec-->>Q50Strategy: on_order_filled()
-    else Signal not tradeable
-        Q50Strategy->>Q50Strategy: log_skip_reason()
+    loop Market Data Processing
+        NS->>NS: Receive market tick
+        NS->>SL: Get current Q50 signal
+        SL-->>NS: Signal with regime data
+        
+        alt Signal is tradeable
+            NS->>PE: Execute trade signal
+            PE->>PS: Validate pool liquidity
+            PS-->>PE: Pool data & feasibility
+            
+            alt Pool is liquid enough
+                PE->>PS: Execute buy/sell
+                PS->>SC: Submit transaction
+                SC-->>PS: Transaction hash
+                PS-->>PE: Execution result
+                PE-->>NS: Trade confirmation
+            else Insufficient liquidity
+                PE-->>NS: Skip trade (liquidity)
+            end
+        else Signal not tradeable
+            NS->>NS: Hold position
+        end
+        
+        NS->>PM: Log trade decision
+        PM->>PM: Update performance metrics
     end
 ```
 
 ## Components and Interfaces
 
-### 1. Q50 Signal Loader
+### Q50SignalLoader
 
-**Purpose:** Load and manage Q50 signals from our existing pickle data files.
+**Purpose:** Bridge between existing Q50 system and NautilusTrader
+**Key Responsibilities:**
+- Load signals from `macro_features.pkl`
+- Provide timestamp-based signal retrieval with 5-minute tolerance
+- Validate signal completeness and quality
+- Interface with existing PostgreSQL database
 
-**Interface:**
 ```python
 class Q50SignalLoader:
-    def __init__(self, signal_file_path: str):
-        """Initialize with path to macro_features.pkl"""
+    def __init__(self, config: Dict[str, Any]):
+        self.features_path = config['q50']['features_path']
+        self.db_connection = config['database']
+        self.signals_df = None
+        self.last_loaded = None
+    
+    async def load_signals(self) -> bool:
+        """Load Q50 signals from macro_features.pkl"""
         
-    def load_signals(self) -> pd.DataFrame:
-        """Load Q50 signals with validation"""
-        
-    def get_signal_for_timestamp(self, timestamp: pd.Timestamp) -> Optional[Dict]:
-        """Get Q50 signal for specific timestamp with 5-minute tolerance"""
+    async def get_signal_for_timestamp(self, timestamp: pd.Timestamp) -> Optional[Dict]:
+        """Get Q50 signal with 5-minute tolerance"""
         
     def validate_signal_columns(self, df: pd.DataFrame) -> bool:
-        """Validate required columns exist"""
-        
-    def get_latest_signal(self) -> Optional[Dict]:
-        """Get most recent available signal"""
+        """Validate required Q50 columns are present"""
+        required_columns = [
+            'q10', 'q50', 'q90', 'vol_raw', 'vol_risk', 
+            'prob_up', 'economically_significant', 'high_quality', 'tradeable'
+        ]
+        return all(col in df.columns for col in required_columns)
 ```
 
-**Key Features:**
-- Validates presence of required columns from actual data structure: q10, q50, q90, vol_raw, vol_risk, prob_up, economically_significant, high_quality, tradeable, side, signal_strength, position_size_suggestion
-- Handles timestamp matching with 5-minute tolerance for 1-hour data
-- Provides fallback to latest signal when exact match unavailable
-- Thread-safe signal access for concurrent strategy execution
-- Supports all 80+ features from macro_features.pkl including regime classifications and market context
+### RegimeDetector
 
-### 2. Regime Detector
+**Purpose:** Implement variance-based regime classification using existing indicators
+**Key Responsibilities:**
+- Classify volatility regimes using vol_risk percentiles
+- Apply regime-specific threshold adjustments
+- Integrate with existing technical indicators
 
-**Purpose:** Implement variance-based regime identification using vol_risk and vol_raw deciles.
-
-**Interface:**
 ```python
 class RegimeDetector:
-    def __init__(self, config: Dict):
-        """Initialize with regime thresholds and parameters"""
+    def __init__(self, config: Dict[str, Any]):
+        self.vol_risk_percentiles = {
+            'low': 0.30,
+            'high': 0.70,
+            'extreme': 0.90
+        }
+        self.regime_multipliers = config['regime_multipliers']
+    
+    def classify_regime(self, signal_data: Dict) -> Dict:
+        """Classify volatility regime and apply adjustments"""
+        vol_risk = signal_data.get('vol_risk', 0)
         
-    def classify_volatility_regime(self, vol_risk: float, vol_raw: float) -> Dict:
-        """Classify current volatility regime"""
-        
-    def get_vol_raw_decile(self, vol_raw: float) -> int:
-        """Convert vol_raw to decile rank (0-9)"""
-        
-    def calculate_regime_multipliers(self, regime: Dict) -> Dict:
-        """Calculate position sizing multipliers based on regime"""
-        
-    def get_enhanced_info_ratio_threshold(self, regime: Dict) -> float:
-        """Get regime-adjusted info ratio threshold"""
+        if vol_risk <= self.vol_risk_percentiles['low']:
+            regime = 'low_variance'
+            threshold_adjustment = -0.30
+        elif vol_risk <= self.vol_risk_percentiles['high']:
+            regime = 'medium_variance'
+            threshold_adjustment = 0.0
+        elif vol_risk <= self.vol_risk_percentiles['extreme']:
+            regime = 'high_variance'
+            threshold_adjustment = 0.40
+        else:
+            regime = 'extreme_variance'
+            threshold_adjustment = 0.80
+            
+        return {
+            'regime': regime,
+            'vol_risk_percentile': vol_risk,
+            'threshold_adjustment': threshold_adjustment,
+            'regime_multiplier': self.regime_multipliers.get(regime, 1.0)
+        }
 ```
 
-**Key Features:**
-- Uses vol_risk as variance measure for superior risk assessment
-- Implements vol_raw decile classification with predefined thresholds
-- Provides regime-specific multipliers for position sizing
-- Supports variance-based regime transitions (low/medium/high/extreme)
+### Q50NautilusStrategy
 
-### 3. Signal Processor
+**Purpose:** Main NautilusTrader strategy implementing Q50 logic
+**Key Responsibilities:**
+- Inherit from NautilusTrader Strategy base class
+- Process market data ticks
+- Make trading decisions based on Q50 signals
+- Coordinate with PumpSwap execution
 
-**Purpose:** Convert Q50 signals into actionable trading decisions using our regime-aware logic.
-
-**Interface:**
 ```python
-class SignalProcessor:
-    def __init__(self, config: Dict):
-        """Initialize with trading thresholds and parameters"""
-        
-    def evaluate_tradeable_conditions(self, signal: Dict, regime: Dict) -> bool:
-        """Determine if signal meets trading criteria"""
-        
-    def determine_trade_direction(self, signal: Dict) -> Optional[str]:
-        """Determine BUY/SELL/HOLD based on Q50 logic"""
-        
-    def calculate_signal_strength(self, signal: Dict, regime: Dict) -> float:
-        """Calculate regime-adjusted signal strength"""
-        
-    def validate_economic_significance(self, signal: Dict) -> bool:
-        """Check if signal exceeds economic thresholds"""
-```
+from nautilus_trader.trading.strategy import Strategy
+from nautilus_trader.model.data.tick import QuoteTick
 
-**Key Features:**
-- Implements our tradeable logic using pre-computed flags from macro_features.pkl
-- Uses side field (-1=hold, 0=sell, 1=buy) for direct trading decisions
-- Leverages signal_strength and position_size_suggestion from our system
-- Validates expected value exceeds transaction costs (5 bps)
-- Supports all regime classifications and market context features
-
-### 4. Position Sizer
-
-**Purpose:** Implement Kelly-based position sizing with variance-aware volatility adjustments.
-
-**Interface:**
-```python
-class PositionSizer:
-    def __init__(self, config: Dict):
-        """Initialize with base sizing parameters"""
+class Q50NautilusStrategy(Strategy):
+    def __init__(self, config):
+        super().__init__(config)
+        self.signal_loader = Q50SignalLoader(config)
+        self.regime_detector = RegimeDetector(config)
+        self.pumpswap_executor = PumpSwapExecutor(config)
+        self.position_sizer = KellyPositionSizer(config)
         
-    def calculate_position_size(self, signal: Dict, regime: Dict, account_balance: float) -> float:
-        """Calculate optimal position size using Kelly + regime adjustments"""
+    async def on_start(self):
+        """Initialize strategy and load Q50 signals"""
+        await self.signal_loader.load_signals()
+        self.log.info("Q50 signals loaded successfully")
         
-    def apply_vol_decile_adjustments(self, base_size: float, vol_decile: int) -> float:
-        """Apply volatility decile-based risk adjustments"""
-        
-    def apply_regime_multipliers(self, size: float, regime: Dict) -> float:
-        """Apply variance-based regime multipliers"""
-        
-    def validate_risk_limits(self, position_size: float, max_position: float) -> float:
-        """Ensure position size within risk limits"""
-```
-
-**Key Features:**
-- Base Kelly sizing: 10% capital × min(|q50| × 100, 2.0)
-- Vol decile adjustments: extreme high (0.6x), high (0.85x), low (1.1x)
-- Variance regime multipliers: low variance (+10%), extreme variance (-60%)
-- Maximum position cap at 50% of available capital
-
-### 5. Q50 Minimal Strategy
-
-**Purpose:** Main NautilusTrader strategy implementing Q50 trading logic.
-
-**Interface:**
-```python
-class Q50MinimalStrategy(Strategy):
-    def __init__(self, config: StrategyConfig):
-        """Initialize strategy with Q50 components"""
-        
-    def on_start(self):
-        """Strategy initialization and data subscriptions"""
-        
-    def on_quote_tick(self, tick: QuoteTick):
+    async def on_quote_tick(self, tick: QuoteTick):
         """Process market data and execute Q50 signals"""
+        current_signal = await self.signal_loader.get_signal_for_timestamp(
+            tick.ts_event
+        )
         
-    def on_order_filled(self, event: OrderFilled):
-        """Handle order fill events and position tracking"""
+        if not current_signal:
+            return
+            
+        # Enhance signal with regime analysis
+        regime_data = self.regime_detector.classify_regime(current_signal)
+        enhanced_signal = {**current_signal, **regime_data}
         
-    def on_stop(self):
-        """Strategy shutdown and performance reporting"""
+        # Make trading decision
+        if enhanced_signal.get('tradeable', False):
+            await self._execute_signal(enhanced_signal, tick)
+        else:
+            self.log.info(f"Signal not tradeable: {enhanced_signal.get('reason', 'Unknown')}")
+    
+    async def _execute_signal(self, signal: Dict, tick: QuoteTick):
+        """Execute trading signal via PumpSwap"""
+        q50_value = signal.get('q50', 0)
+        
+        if q50_value > 0:
+            # Long signal
+            await self.pumpswap_executor.execute_buy_signal(signal, tick)
+        elif q50_value < 0:
+            # Short signal (sell existing position)
+            await self.pumpswap_executor.execute_sell_signal(signal, tick)
 ```
 
-**Key Features:**
-- Inherits from NautilusTrader Strategy base class
-- Processes 1-hour market data ticks
-- Integrates all Q50 components for signal-to-execution flow
-- Maintains position tracking and performance metrics
+### PumpSwapExecutor
 
-## Data Integration Options
+**Purpose:** Execute trades via PumpSwap SDK with comprehensive validation
+**Key Responsibilities:**
+- Interface with PumpSwap SDK
+- Validate pool liquidity and execution feasibility
+- Manage position sizing with Kelly logic
+- Handle transaction execution and monitoring
 
-### Option 1: Pre-computed Q50 Signals (Primary Approach)
-- **Source:** `macro_features.pkl` with 80+ pre-computed features
-- **Advantages:** Complete feature set, proven performance, no real-time computation overhead
-- **Update Frequency:** 1-hour intervals (matches our timeframe)
-- **Implementation:** Direct pickle file loading with timestamp matching
+```python
+from pumpswap_sdk.sdk.pumpswap_sdk import PumpSwapSDK
 
-### Option 2: NautilusTrader Native Data (Secondary/Hybrid Approach)
-- **Source:** NautilusTrader's data engine with live market feeds
-- **Capabilities:** Real-time quote/trade ticks, order book data, bar aggregation
-- **Advantages:** Real-time data, no external dependencies, integrated with execution
-- **Limitations:** Would require real-time feature computation (complex for 80+ features)
-- **Use Case:** Market data validation, execution timing, supplementary indicators
+class PumpSwapExecutor:
+    def __init__(self, config: Dict[str, Any]):
+        self.sdk = PumpSwapSDK()
+        self.config = config
+        self.payer_pk = config['pumpswap']['payer_public_key']
+        self.liquidity_validator = LiquidityValidator(config)
+        self.position_manager = PositionManager(config)
+        self.risk_manager = RiskManager(config)
+        
+    async def execute_buy_signal(self, signal: Dict, tick: QuoteTick) -> Dict:
+        """Execute buy order with comprehensive validation"""
+        try:
+            # Extract token information
+            mint_address = self._extract_mint_address(tick.instrument_id)
+            
+            # Validate pool liquidity
+            pool_data = await self.sdk.get_pool_data(mint_address)
+            if not self.liquidity_validator.validate_buy_liquidity(pool_data, signal):
+                return {'status': 'skipped', 'reason': 'insufficient_liquidity'}
+            
+            # Calculate position size
+            position_size = self._calculate_position_size(signal, pool_data)
+            
+            # Risk management validation
+            if not self.risk_manager.validate_trade(position_size, signal):
+                return {'status': 'rejected', 'reason': 'risk_limits_exceeded'}
+            
+            # Execute trade
+            result = await self.sdk.buy(
+                mint=mint_address,
+                sol_amount=position_size,
+                payer_pk=self.payer_pk
+            )
+            
+            # Update position tracking
+            await self.position_manager.update_position(
+                mint_address, position_size, 'buy', result
+            )
+            
+            return {
+                'status': 'executed',
+                'action': 'buy',
+                'mint_address': mint_address,
+                'sol_amount': position_size,
+                'transaction_hash': result.get('transaction_hash'),
+                'signal_data': signal
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'signal_data': signal
+            }
+    
+    async def execute_sell_signal(self, signal: Dict, tick: QuoteTick) -> Dict:
+        """Execute sell order for existing positions"""
+        try:
+            mint_address = self._extract_mint_address(tick.instrument_id)
+            
+            # Get current position
+            position = await self.position_manager.get_position(mint_address)
+            if not position or position['token_amount'] <= 0:
+                return {'status': 'skipped', 'reason': 'no_position'}
+            
+            # Calculate sell amount based on signal strength
+            sell_amount = self._calculate_sell_amount(position, signal)
+            
+            # Execute sell
+            result = await self.sdk.sell(
+                mint=mint_address,
+                token_amount=sell_amount,
+                payer_pk=self.payer_pk
+            )
+            
+            # Update position
+            await self.position_manager.update_position(
+                mint_address, sell_amount, 'sell', result
+            )
+            
+            return {
+                'status': 'executed',
+                'action': 'sell',
+                'mint_address': mint_address,
+                'token_amount': sell_amount,
+                'transaction_hash': result.get('transaction_hash'),
+                'signal_data': signal
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'signal_data': signal
+            }
+    
+    def _calculate_position_size(self, signal: Dict, pool_data: Dict) -> float:
+        """Calculate position size using Kelly logic with liquidity constraints"""
+        # Base Kelly calculation
+        base_size = 0.1 / max(signal.get('vol_risk', 0.1) * 1000, 0.1)
+        
+        # Signal strength multiplier
+        q50_value = abs(signal.get('q50', 0))
+        signal_multiplier = min(q50_value * 100, 2.0)
+        
+        # Regime adjustment
+        regime_multiplier = signal.get('regime_multiplier', 1.0)
+        
+        # Calculate raw position size
+        raw_position = base_size * signal_multiplier * regime_multiplier
+        
+        # Apply liquidity constraints
+        pool_liquidity_sol = pool_data.get('reserve_in_usd', 0) / 100  # Rough conversion
+        max_position_by_liquidity = pool_liquidity_sol * 0.25  # Max 25% of pool
+        
+        # Final position size
+        final_position = min(
+            raw_position,
+            self.config['pumpswap']['max_position_size'],
+            max_position_by_liquidity
+        )
+        
+        return max(final_position, 0.01)  # Minimum 0.01 SOL
+```
 
-### Option 3: Hybrid Approach (Future Enhancement)
-- **Primary:** Pre-computed Q50 signals for trading decisions
-- **Secondary:** NautilusTrader data for execution timing and market validation
-- **Benefits:** Best of both worlds - proven signals + real-time execution context
-- **Implementation:** Use Q50 signals for direction/sizing, NautilusTrader data for entry/exit timing
+### LiquidityValidator
 
-### Recommended Implementation Strategy
-1. **POC Phase:** Use pre-computed signals exclusively (Option 1)
-2. **Validation:** Compare NautilusTrader market data with our data sources
-3. **Enhancement:** Gradually integrate real-time data for execution optimization
-4. **Future:** Explore real-time feature computation for ultra-low latency trading
+**Purpose:** Validate PumpSwap pool liquidity for trade execution
+**Key Responsibilities:**
+- Check pool liquidity sufficiency
+- Estimate price impact
+- Validate execution feasibility
+
+```python
+class LiquidityValidator:
+    def __init__(self, config: Dict[str, Any]):
+        self.min_liquidity_sol = config['pumpswap']['min_liquidity_sol']
+        self.max_price_impact = config['pumpswap']['max_price_impact_percent']
+        
+    def validate_buy_liquidity(self, pool_data: Dict, signal: Dict) -> bool:
+        """Validate pool has sufficient liquidity for buy order"""
+        if not pool_data:
+            return False
+            
+        # Check minimum liquidity requirement
+        pool_liquidity = pool_data.get('reserve_in_usd', 0) / 100  # Rough SOL conversion
+        if pool_liquidity < self.min_liquidity_sol:
+            return False
+            
+        # Estimate price impact
+        estimated_trade_size = signal.get('estimated_position_size', 0.1)
+        price_impact = self._estimate_price_impact(pool_data, estimated_trade_size)
+        
+        return price_impact <= self.max_price_impact
+    
+    def _estimate_price_impact(self, pool_data: Dict, trade_size_sol: float) -> float:
+        """Estimate price impact for given trade size"""
+        pool_liquidity = pool_data.get('reserve_in_usd', 0) / 100
+        if pool_liquidity <= 0:
+            return 100.0  # Maximum impact if no liquidity data
+            
+        # Simple price impact estimation
+        impact_ratio = trade_size_sol / pool_liquidity
+        return min(impact_ratio * 100, 100.0)  # Cap at 100%
+```
 
 ## Data Models
 
-### Q50 Signal Data Structure
-
-Based on the actual `macro_features.pkl` data structure:
+### Enhanced Signal Data Structure
 
 ```python
 @dataclass
-class Q50Signal:
-    # Core quantile predictions
-    q10: float                    # 10th percentile prediction
-    q50: float                    # 50th percentile (median) prediction
-    q90: float                    # 90th percentile prediction
-    truth: float                  # Actual return (for validation)
+class EnhancedQ50Signal:
+    # Original Q50 fields
+    q10: float
+    q50: float
+    q90: float
+    vol_raw: float
+    vol_risk: float
+    prob_up: float
+    economically_significant: bool
+    high_quality: bool
+    tradeable: bool
     
-    # Market context features
-    btc_dom: float               # Bitcoin dominance ($btc_dom)
-    fg_index: float              # Fear & Greed index ($fg_index)
-    high_vol_flag: float         # High volatility flag ($high_vol_flag)
-    realized_vol_6: float        # 6-day realized volatility ($realized_vol_6)
+    # Regime classification
+    regime: str
+    vol_risk_percentile: float
+    threshold_adjustment: float
+    regime_multiplier: float
     
-    # Technical indicators
-    momentum_5: float            # 5-period momentum ($momentum_5)
-    momentum_10: float           # 10-period momentum ($momentum_10)
-    momentum_25: float           # 25-period momentum ($momentum_25)
-    relative_volatility_index: float # RVI ($relative_volatility_index)
-    
-    # Volatility regime features (from our system)
-    vol_raw: float               # Raw volatility measure
-    vol_risk: float              # Variance measure (vol_raw²)
-    vol_raw_decile: int          # Volatility decile rank (0-9)
-    vol_scaled: float            # Scaled volatility (0-1)
-    
-    # Regime classifications
-    vol_regime_low: bool         # Low volatility regime
-    vol_regime_medium: bool      # Medium volatility regime
-    vol_regime_high: bool        # High volatility regime
-    variance_regime_low: bool    # Low variance regime
-    variance_regime_medium: bool # Medium variance regime
-    variance_regime_high: bool   # High variance regime
-    variance_regime_extreme: bool # Extreme variance regime
-    
-    # Momentum regimes
-    momentum_regime_trending: bool # Trending market regime
-    momentum_regime_ranging: bool  # Ranging market regime
-    
-    # Signal quality metrics
-    spread: float                # q90 - q10
-    abs_q50: float              # Absolute value of q50
-    enhanced_info_ratio: float   # Signal / total_risk
-    info_ratio: float           # Traditional info ratio
-    prob_up: float              # Probability of upward movement
-    expected_value: float       # Probability-weighted expected return
-    
-    # Trading decision flags
-    economically_significant: bool # Exceeds transaction cost threshold
-    high_quality: bool          # Meets enhanced info ratio threshold
-    tradeable: bool             # Final trading decision flag
+    # PumpSwap integration
+    mint_address: str
+    pair_address: Optional[str]
+    pool_liquidity_sol: float
+    estimated_price_impact: float
+    execution_feasible: bool
     
     # Position sizing
-    kelly_position_size: float   # Kelly-calculated position size
-    signal_strength: float       # Overall signal strength
-    position_size_suggestion: float # Suggested position size
-    side: int                   # Trading side (-1=hold, 0=sell, 1=buy)
+    recommended_position_size: float
+    max_position_by_liquidity: float
+    kelly_multiplier: float
     
-    # Additional features for regime interaction
-    signal_tier: float          # Signal tier classification
-    signal_tanh: float          # Tanh-transformed signal
-    signal_rel: float           # Relative signal strength
+    # Metadata
+    timestamp: pd.Timestamp
+    signal_strength: float
+    expected_value: float
 ```
 
-### Regime Classification
+### Trade Execution Record
 
 ```python
 @dataclass
-class RegimeClassification:
-    vol_decile: int              # Volatility decile (0-9)
-    variance_regime: str         # low/medium/high/extreme
-    momentum_regime: str         # trending/ranging
-    regime_stability: int        # Periods in current regime
+class TradeExecutionRecord:
+    # Trade identification
+    trade_id: str
+    mint_address: str
+    pair_address: str
+    timestamp: pd.Timestamp
     
-    # Multipliers
-    position_multiplier: float   # Position sizing adjustment
-    threshold_multiplier: float  # Signal threshold adjustment
-    info_ratio_threshold: float  # Quality threshold adjustment
-```
-
-### Trading Decision
-
-```python
-@dataclass
-class TradingDecision:
-    action: str                  # BUY/SELL/HOLD
-    position_size: float         # Calculated position size
-    signal_strength: float       # Regime-adjusted strength
-    confidence: float            # Directional confidence
-    regime: RegimeClassification # Current regime context
+    # Trade details
+    action: str  # 'buy', 'sell', 'hold'
+    sol_amount: Optional[float]
+    token_amount: Optional[float]
+    expected_price: float
+    actual_price: Optional[float]
     
     # Execution details
-    order_type: str             # MARKET/LIMIT
-    price_adjustment: float     # Slippage adjustment
-    risk_metrics: Dict          # Risk assessment data
+    transaction_hash: Optional[str]
+    execution_status: str  # 'pending', 'confirmed', 'failed'
+    gas_used: Optional[int]
+    execution_latency_ms: Optional[int]
+    
+    # Performance tracking
+    slippage_percent: Optional[float]
+    price_impact_percent: Optional[float]
+    pnl_sol: Optional[float]
+    
+    # Signal context
+    signal_data: EnhancedQ50Signal
+    regime_at_execution: str
+    
+    # Error handling
+    error_message: Optional[str]
+    retry_count: int = 0
+```
+
+### Position Tracking
+
+```python
+@dataclass
+class Position:
+    mint_address: str
+    token_amount: float
+    average_buy_price: float
+    total_sol_invested: float
+    current_value_sol: float
+    unrealized_pnl_sol: float
+    unrealized_pnl_percent: float
+    first_buy_timestamp: pd.Timestamp
+    last_trade_timestamp: pd.Timestamp
+    trade_count: int
+    is_active: bool
 ```
 
 ## Error Handling
 
-### Signal Loading Errors
+### Comprehensive Error Management Strategy
 
 ```python
-class SignalLoadingError(Exception):
-    """Raised when Q50 signals cannot be loaded"""
+class ErrorHandler:
+    def __init__(self, config: Dict[str, Any]):
+        self.max_retries = config.get('max_retries', 3)
+        self.retry_delay_base = config.get('retry_delay_base', 1.0)
+        self.logger = logging.getLogger(__name__)
     
-class SignalValidationError(Exception):
-    """Raised when signal data fails validation"""
+    async def handle_rpc_error(self, error: Exception, operation: str) -> bool:
+        """Handle Solana RPC errors with exponential backoff"""
+        if isinstance(error, (ConnectionError, TimeoutError)):
+            return await self._retry_with_backoff(operation)
+        else:
+            self.logger.error(f"Non-retryable RPC error: {error}")
+            return False
     
-class TimestampMismatchError(Exception):
-    """Raised when no signal found for timestamp"""
+    async def handle_pumpswap_error(self, error: Exception, trade_data: Dict) -> Dict:
+        """Handle PumpSwap SDK errors"""
+        error_response = {
+            'status': 'error',
+            'error_type': type(error).__name__,
+            'error_message': str(error),
+            'trade_data': trade_data,
+            'timestamp': pd.Timestamp.now()
+        }
+        
+        # Log error for analysis
+        self.logger.error(f"PumpSwap error: {error_response}")
+        
+        return error_response
+    
+    async def handle_insufficient_balance(self, required: float, available: float) -> Dict:
+        """Handle insufficient wallet balance"""
+        return {
+            'status': 'insufficient_balance',
+            'required_sol': required,
+            'available_sol': available,
+            'action': 'skip_trade'
+        }
 ```
 
-**Error Handling Strategy:**
-- Signal loading failures: Log error, attempt to use cached signals, graceful degradation
-- Missing columns: Validate at startup, fail fast with clear error messages
-- Timestamp mismatches: Use 5-minute tolerance, fallback to latest signal
-- Invalid signal values: Skip signal, log validation failure, continue processing
-
-### Trading Execution Errors
+### Circuit Breaker Implementation
 
 ```python
-class PositionSizingError(Exception):
-    """Raised when position size calculation fails"""
+class CircuitBreaker:
+    def __init__(self, config: Dict[str, Any]):
+        self.failure_threshold = config.get('failure_threshold', 5)
+        self.recovery_timeout = config.get('recovery_timeout', 300)  # 5 minutes
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = 'closed'  # closed, open, half_open
     
-class RegimeClassificationError(Exception):
-    """Raised when regime detection fails"""
+    def can_execute_trade(self) -> bool:
+        """Check if trading is allowed based on circuit breaker state"""
+        if self.state == 'closed':
+            return True
+        elif self.state == 'open':
+            if self._should_attempt_reset():
+                self.state = 'half_open'
+                return True
+            return False
+        else:  # half_open
+            return True
     
-class OrderExecutionError(Exception):
-    """Raised when order submission fails"""
+    def record_success(self):
+        """Record successful trade execution"""
+        if self.state == 'half_open':
+            self.state = 'closed'
+            self.failure_count = 0
+    
+    def record_failure(self):
+        """Record failed trade execution"""
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        
+        if self.failure_count >= self.failure_threshold:
+            self.state = 'open'
 ```
-
-**Error Handling Strategy:**
-- Position sizing failures: Default to 10% base size, log calculation error
-- Regime classification errors: Use default regime, continue with conservative settings
-- Order execution failures: Log failure, continue processing subsequent signals
-- Risk limit violations: Reject trade, log violation reason, maintain system stability
 
 ## Testing Strategy
 
-### Unit Testing
-
-**Q50 Signal Loader Tests:**
-- Test signal loading from pickle files
-- Validate column presence and data types
-- Test timestamp matching with tolerance
-- Test error handling for corrupted data
-
-**Regime Detector Tests:**
-- Test vol_raw decile classification
-- Validate regime multiplier calculations
-- Test regime transition detection
-- Test enhanced info ratio thresholds
-
-**Position Sizer Tests:**
-- Test Kelly sizing calculations
-- Validate vol decile adjustments
-- Test regime multiplier applications
-- Test risk limit enforcement
-
-### Integration Testing
-
-**Strategy Integration Tests:**
-- Test complete signal-to-execution flow
-- Validate NautilusTrader component integration
-- Test error propagation and recovery
-- Test performance under various market conditions
-
-**Data Integration Tests:**
-- Test QLib data provider integration
-- Validate 1-hour timeframe processing
-- Test qlib-server compatibility (future)
-- Test data continuity and gap handling
-
-### Performance Testing
-
-**Latency Testing:**
-- Measure signal processing latency (target: <30 seconds)
-- Test order execution speed
-- Validate system responsiveness under load
-- Test memory usage and stability over 24+ hours
-
-**Accuracy Testing:**
-- Compare POC results with backtesting performance
-- Validate signal interpretation accuracy
-- Test regime classification consistency
-- Measure slippage and execution quality
-
-## Configuration Management
-
-### Strategy Configuration
-
-```yaml
-# config/q50_strategy_config.yaml
-strategy:
-  name: "Q50MinimalStrategy"
-  instrument_id: "BTCUSDT.BINANCE"
-  timeframe: "1H"
-  
-  # Signal parameters
-  signal_threshold: 0.6
-  base_position_size: 0.1
-  max_position_size: 0.5
-  
-  # Risk parameters
-  transaction_cost_bps: 5
-  base_info_ratio: 1.5
-  max_vol_decile_exposure: 0.6
-  
-  # Regime parameters
-  variance_regime_thresholds:
-    low: 0.30
-    high: 0.70
-    extreme: 0.90
-  
-  # Data parameters
-  signal_file_path: "data3/macro_features.pkl"
-  qlib_provider_uri: "/Projects/qlib_trading_v2/qlib_data/CRYPTO_DATA"
-  qlib_server_enabled: false
-```
-
-### NautilusTrader Configuration
+### Unit Testing Framework
 
 ```python
-# config/nautilus_config.py
-from nautilus_trader.config import TradingNodeConfig
+class TestQ50NautilusIntegration:
+    def test_signal_loading(self):
+        """Test Q50 signal loading from macro_features.pkl"""
+        
+    def test_regime_classification(self):
+        """Test variance-based regime detection"""
+        
+    def test_position_sizing(self):
+        """Test Kelly position sizing with regime adjustments"""
+        
+    def test_pumpswap_integration(self):
+        """Test PumpSwap SDK integration"""
+        
+    def test_error_handling(self):
+        """Test comprehensive error handling"""
 
-config = TradingNodeConfig(
-    trader_id="Q50_POC_TRADER",
-    strategies=[
-        {
-            "strategy_path": "strategies.q50_minimal_strategy:Q50MinimalStrategy",
-            "config_path": "config.q50_strategy_config:Q50StrategyConfig",
-        }
-    ],
-    data_engine={
-        "qsize": 100000,
-        "time_bars_build_with_no_updates": False,
-        "time_bars_timestamp_on_close": True,
-        "validate_data_sequence": True,
-    },
-    risk_engine={
-        "bypass": False,
-        "max_order_submit_rate": "10/00:01:00",  # 10 orders per minute
-        "max_order_modify_rate": "10/00:01:00",
-        "max_notional_per_order": {"USD": 100_000},
-    },
-    exec_engine={
-        "reconciliation": True,
-        "reconciliation_lookback_mins": 1440,
-        "snapshot_orders": True,
-        "snapshot_positions": True,
-    },
-    adapters=[
-        {
-            "adapter": "BinanceSpotDataClient",
-            "config": {
-                "testnet": True,  # Paper trading
-                "base_url_ws": "wss://testnet.binance.vision/ws",
-                "base_url_http": "https://testnet.binance.vision",
-            }
-        }
-    ]
-)
+class TestPumpSwapExecution:
+    def test_liquidity_validation(self):
+        """Test pool liquidity validation"""
+        
+    def test_trade_execution(self):
+        """Test actual trade execution on testnet"""
+        
+    def test_position_tracking(self):
+        """Test position management"""
+        
+    def test_performance_monitoring(self):
+        """Test performance metrics collection"""
 ```
 
-## Performance Monitoring
-
-### Key Metrics
-
-**Trading Performance:**
-- Total trades executed
-- Win rate by regime type
-- Average holding period
-- Sharpe ratio comparison with backtesting
-- Maximum drawdown
-
-**System Performance:**
-- Signal processing latency
-- Order execution latency
-- Memory usage over time
-- Error rates and recovery times
-- System uptime and stability
-
-**Regime Analysis:**
-- Regime distribution over test period
-- Performance by volatility decile
-- Enhanced vs traditional info ratio effectiveness
-- Position sizing accuracy by regime
-
-### Monitoring Dashboard
+### Integration Testing with Testnet
 
 ```python
-class PerformanceMonitor:
+class TestnetIntegrationTest:
     def __init__(self):
-        self.metrics = {
-            'trades_by_regime': defaultdict(int),
-            'pnl_by_regime': defaultdict(float),
-            'signal_latencies': [],
-            'execution_latencies': [],
-            'error_counts': defaultdict(int),
-        }
-    
-    def log_trade_execution(self, trade_data: Dict):
-        """Log trade with regime context"""
+        self.config = load_testnet_config()
+        self.strategy = Q50NautilusStrategy(self.config)
         
-    def log_signal_processing(self, processing_time: float):
-        """Log signal processing performance"""
+    async def test_end_to_end_trading(self):
+        """Test complete trading pipeline on Solana testnet"""
+        # Load test signals
+        # Execute trades
+        # Validate results
+        # Check performance metrics
         
-    def generate_performance_report(self) -> Dict:
-        """Generate comprehensive performance report"""
-        
-    def export_metrics_to_csv(self, filepath: str):
-        """Export metrics for analysis"""
+    async def test_error_recovery(self):
+        """Test system recovery from various error conditions"""
+        # Simulate network failures
+        # Test insufficient balance scenarios
+        # Validate error handling
 ```
 
-This design provides a comprehensive foundation for the NautilusTrader POC while maintaining compatibility with our existing Q50 system and supporting future scalability requirements.
+This design provides a comprehensive architecture that integrates your proven Q50 system with professional trading infrastructure while adding real blockchain execution capabilities. The modular design ensures maintainability and allows for future extensions to additional DEXs and trading strategies.
