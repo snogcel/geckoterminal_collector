@@ -28,6 +28,8 @@ graph TB
         PG[(PostgreSQL Database)]
         EH[(Enhanced History)]
         FV[(Feature Vectors)]
+        OHLCV_DATA[(OHLCV Data)]
+        TRADE_DATA[(Trade Data)]
         QE[(QLib Exports)]
     end
     
@@ -60,12 +62,16 @@ graph TB
     NPC --> SA
     EPC --> FE
     EPC --> TI
+    OC --> OHLCV_DATA
+    TC --> TRADE_DATA
     SA --> PG
     FE --> EH
     TI --> FV
     
     EH --> QP
     FV --> QP
+    OHLCV_DATA --> QP
+    TRADE_DATA --> QP
     QP --> QBE
     QBE --> QFS
     QBE --> QE
@@ -94,6 +100,8 @@ graph TB
 sequenceDiagram
     participant CLI as Enhanced CLI
     participant EPC as Enhanced Pools Collector
+    participant OC as OHLCV Collector
+    participant TC as Trade Collector
     participant API as GeckoTerminal API
     participant TI as Technical Indicators
     participant FE as Feature Engineering
@@ -106,8 +114,14 @@ sequenceDiagram
     Note over CLI,ML: Enhanced Collection & QLib Integration Flow
     
     CLI->>EPC: collect-enhanced --network solana
+    CLI->>OC: collect OHLCV data
+    CLI->>TC: collect trade data
     EPC->>API: GET /networks/solana/new_pools
+    OC->>API: GET OHLCV data
+    TC->>API: GET trade data
     API-->>EPC: Pool data with OHLCV
+    API-->>OC: OHLCV time series
+    API-->>TC: Trade transactions
     
     loop For each pool
         EPC->>TI: Calculate RSI, MACD, Bollinger
@@ -116,6 +130,8 @@ sequenceDiagram
         FE-->>EPC: ML-ready features
         EPC->>DB: Store enhanced history
         EPC->>DB: Store feature vectors
+        OC->>DB: Store OHLCV data
+        TC->>DB: Store trade data
         
         alt Signal Score >= 75
             EPC->>WL: Auto-add to watchlist
@@ -123,14 +139,18 @@ sequenceDiagram
     end
     
     EPC-->>CLI: Collection complete with features
+    OC-->>CLI: OHLCV data collected
+    TC-->>CLI: Trade data collected
     
     Note over CLI,ML: QLib Export & ML Pipeline
     
     CLI->>QBE: export-qlib-bin --mode all
     QBE->>DB: Query enhanced history
-    DB-->>QBE: Time series data
+    QBE->>DB: Query OHLCV data
+    QBE->>DB: Query trade data
+    DB-->>QBE: Combined time series data
     QBE->>QBE: Process for QLib format
-    QBE->>QFS: Write bin files
+    QBE->>QFS: Write bin files (OHLCV + features)
     QBE->>QFS: Generate calendar
     QBE->>QFS: Create instruments
     QBE-->>CLI: Export complete
@@ -205,6 +225,36 @@ erDiagram
         timestamp created_at
     }
     
+    ohlcv_data {
+        bigint id PK
+        string pool_id FK
+        string timeframe
+        bigint timestamp
+        timestamp datetime
+        decimal open_price
+        decimal high_price
+        decimal low_price
+        decimal close_price
+        decimal volume
+        decimal volume_usd
+        timestamp collected_at
+    }
+    
+    trade_data {
+        bigint id PK
+        string pool_id FK
+        string trade_id
+        bigint timestamp
+        timestamp datetime
+        decimal price_usd
+        decimal volume_usd
+        decimal amount_in
+        decimal amount_out
+        string trade_type
+        string trader_address
+        timestamp collected_at
+    }
+    
     qlib_data_exports {
         bigint id PK
         string export_name
@@ -253,12 +303,16 @@ erDiagram
     
     pools ||--o{ new_pools_history_enhanced : "enhanced_tracking"
     pools ||--o{ pool_feature_vectors : "feature_engineering"
+    pools ||--o{ ohlcv_data : "price_history"
+    pools ||--o{ trade_data : "trade_history"
     pools ||--o| watchlist : "monitored_in"
     dexes ||--o{ pools : "hosts"
     tokens ||--o{ pools : "base_token"
     tokens ||--o{ pools : "quote_token"
     new_pools_history_enhanced ||--o{ qlib_data_exports : "exported_in"
     pool_feature_vectors ||--o{ qlib_data_exports : "features_exported"
+    ohlcv_data ||--o{ qlib_data_exports : "ohlcv_exported"
+    trade_data ||--o{ qlib_data_exports : "trades_exported"
 ```
 
 ## Enhanced Signal Analysis & Feature Engineering Flow
