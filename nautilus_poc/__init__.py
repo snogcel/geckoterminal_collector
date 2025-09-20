@@ -12,6 +12,7 @@ from .pumpswap_executor import PumpSwapExecutor, TradeExecutionRecord
 from .liquidity_validator import LiquidityValidator, LiquidityValidationResult, LiquidityStatus
 from .position_sizer import KellyPositionSizer, PositionSizeResult
 from .risk_manager import RiskManager, TradeValidationResult, CircuitBreakerStatus, PositionRisk, RiskLevel
+from .q50_nautilus_strategy import Q50NautilusStrategy
 
 __version__ = "0.1.0"
 
@@ -31,5 +32,6 @@ __all__ = [
     "TradeValidationResult",
     "CircuitBreakerStatus",
     "PositionRisk",
-    "RiskLevel"
+    "RiskLevel",
+    "Q50NautilusStrategy"
 ]
