@@ -1,0 +1,14 @@
+{
+  "description": "Token address whitelist for NautilusTrader POC (optional)",
+  "last_updated": "2025-09-20",
+  "addresses": [
+    "So11111111111111111111111111111111111111112",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+  ],
+  "metadata": {
+    "auto_update": false,
+    "source": "manual",
+    "version": "1.0",
+    "note": "Whitelist is optional - if present, only these addresses will be allowed"
+  }
+}

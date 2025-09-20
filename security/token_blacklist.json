@@ -1,0 +1,17 @@
+{
+  "description": "Token address blacklist for NautilusTrader POC",
+  "last_updated": "2025-09-20",
+  "addresses": [
+    "11111111111111111111111111111111",
+    "22222222222222222222222222222222"
+  ],
+  "patterns": [
+    "^scam.*",
+    ".*fake.*"
+  ],
+  "metadata": {
+    "auto_update": false,
+    "source": "manual",
+    "version": "1.0"
+  }
+}
