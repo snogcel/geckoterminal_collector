@@ -179,7 +179,7 @@ def test_risk_manager():
     for i, test_case in enumerate(test_cases):
         logger.info(f"\nTest Case {i+1}: {test_case['description']}")
         
-        validation_result = risk_manager.validate_trade(
+        validation_result = risk_manager.validate_trade_full(
             test_case['position_size'],
             test_case['signal_data'],
             test_case['current_balance']

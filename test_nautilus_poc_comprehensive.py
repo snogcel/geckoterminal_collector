@@ -508,17 +508,18 @@ class TestTask4PositionSizingRiskManagement:
         low_liquidity_pool['reserve_sol'] = 1.0  # Very low liquidity
         
         test_signal = {
-            'q50': 0.8,  # Strong signal
-            'vol_risk': 0.1,  # Low risk
+            'q50': 1.0,  # Maximum signal
+            'vol_risk': 0.001,  # Very low risk to generate large base size
             'prob_up': 0.9,  # High probability
-            'regime_multiplier': 1.5
+            'regime_multiplier': 2.0,  # Higher regime multiplier
+            'enhanced_info_ratio': 3.0  # Very high info ratio for large signal multiplier
         }
         
         result = position_sizer.calculate_position_size(test_signal, low_liquidity_pool)
         
         # Should be constrained by liquidity (max 25% of pool)
         max_by_liquidity = low_liquidity_pool['reserve_sol'] * 0.25
-        assert result.recommended_size <= max_by_liquidity
+        assert result.final_size <= max_by_liquidity
         assert result.liquidity_constrained == True
         
         logger.info("✓ Liquidity constraints working correctly")

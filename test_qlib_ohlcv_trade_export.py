@@ -154,7 +154,7 @@ class TestQLIBOHLCVTradeExport:
         for i, timestamp in enumerate(timestamps):
             # Multiple trades per hour
             for j in range(3):  # 3 trades per hour
-                trade_timestamp = timestamp + (j * 1200)  # 20 minutes apart
+                trade_timestamp = timestamp + (j * 600)  # 10 minutes apart to stay within hour
                 price = Decimal('1.2000') + Decimal(str(i * 0.01)) + Decimal(str(j * 0.001))
                 volume = Decimal('100') + Decimal(str(j * 25))
                 

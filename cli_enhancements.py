@@ -11,7 +11,7 @@ import functools
 
 from gecko_terminal_collector.database.manager import DatabaseManager
 from enhanced_new_pools_collector import EnhancedNewPoolsCollector
-from qlib_integration import QLibDataExporter, export_qlib_data_cli
+from qlib_integration import QLibBinDataExporter as QLibDataExporter, export_qlib_data_cli
 from migrate_to_enhanced_history import run_migration_cli
 
 

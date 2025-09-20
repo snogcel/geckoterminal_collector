@@ -99,7 +99,7 @@ class RegimeDetector:
         try:
             vol_risk = signal_data.get('vol_risk', 0.0)
             
-            if vol_risk is None or np.isnan(vol_risk):
+            if vol_risk is None or (isinstance(vol_risk, (int, float)) and np.isnan(vol_risk)):
                 logger.warning("Invalid vol_risk value, defaulting to medium variance regime")
                 vol_risk = 0.5  # Default to medium variance
             
@@ -460,7 +460,7 @@ class RegimeDetector:
             # Validate and clean data
             cleaned_data = [
                 float(val) for val in vol_risk_data 
-                if val is not None and not np.isnan(val) and np.isfinite(val)
+                if val is not None and isinstance(val, (int, float)) and not np.isnan(val) and np.isfinite(val)
             ]
             
             self.vol_risk_history.extend(cleaned_data)

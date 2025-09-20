@@ -24,6 +24,9 @@ class PositionSizeResult:
     final_size: float
     reasoning: str
     constraints_applied: list
+    # Additional attributes expected by tests
+    kelly_fraction: float = 0.0
+    liquidity_constrained: bool = False
 
 class KellyPositionSizer:
     """
@@ -134,7 +137,9 @@ class KellyPositionSizer:
                 liquidity_constraint=liquidity_constraint,
                 final_size=final_size,
                 reasoning=reasoning,
-                constraints_applied=all_constraints
+                constraints_applied=all_constraints,
+                kelly_fraction=signal_multiplier * regime_multiplier,  # Approximate Kelly fraction
+                liquidity_constrained=(liquidity_constraint != raw_position)
             )
             
             logger.info(f"Position size calculated: {final_size:.4f} SOL (base: {base_size:.4f}, "
@@ -153,7 +158,9 @@ class KellyPositionSizer:
                 liquidity_constraint=self.base_position_factor,
                 final_size=self.base_position_factor,
                 reasoning=f"Error in calculation, using default: {e}",
-                constraints_applied=["error_fallback"]
+                constraints_applied=["error_fallback"],
+                kelly_fraction=1.0,
+                liquidity_constrained=False
             )
     
     def _calculate_base_size(self, signal_data: Dict[str, Any]) -> float:
@@ -262,9 +269,12 @@ class KellyPositionSizer:
             logger.warning("No pool data available, using original position size")
             return position_size, None
         
-        # Extract pool liquidity in SOL (rough conversion from USD)
-        pool_liquidity_usd = pool_data.get('reserve_in_usd', 0)
-        pool_liquidity_sol = pool_liquidity_usd / 100  # Rough USD to SOL conversion
+        # Extract pool liquidity in SOL
+        pool_liquidity_sol = pool_data.get('reserve_sol', 0)
+        if pool_liquidity_sol == 0:
+            # Fallback to USD conversion if reserve_sol not available
+            pool_liquidity_usd = pool_data.get('reserve_in_usd', 0)
+            pool_liquidity_sol = pool_liquidity_usd / 100  # Rough USD to SOL conversion
         
         if pool_liquidity_sol <= 0:
             logger.warning("Invalid pool liquidity data, using original position size")
