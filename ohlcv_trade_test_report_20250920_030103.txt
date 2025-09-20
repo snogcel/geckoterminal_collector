@@ -1,0 +1,19 @@
+OHLCV/TRADE QLIB INTEGRATION TEST REPORT
+==================================================
+
+Test Run Date: 2025-09-20 03:01:03
+Total Duration: 8.88s
+Success Rate: 100.0%
+
+
+test_ohlcv_trade_schema.py:
+  Status: PASSED
+  Duration: 0.47s
+
+test_qlib_ohlcv_trade_export.py:
+  Status: PASSED
+  Duration: 4.28s
+
+test_complete_ohlcv_trade_pipeline.py:
+  Status: PASSED
+  Duration: 4.13s
