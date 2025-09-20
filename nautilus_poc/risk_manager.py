@@ -102,21 +102,35 @@ class RiskManager:
         self.config = config
         
         # Handle both NautilusPOCConfig objects and dictionaries
-        if hasattr(config, 'pumpswap'):
-            # NautilusPOCConfig object
+        if hasattr(config, 'get_current_env_config'):
+            # NautilusPOCConfig object with new structure
+            env_config = config.get_current_env_config()
             self.pumpswap_config = {
-                'max_position_size': config.pumpswap.max_position_size,
-                'base_position_size': config.pumpswap.base_position_size,
-                'stop_loss_percent': config.pumpswap.stop_loss_percent,
-                'max_slippage_percent': config.pumpswap.max_slippage_percent,
-                'take_profit_percent': getattr(config.pumpswap, 'take_profit_percent', 50.0),
-                'position_timeout_hours': config.pumpswap.position_timeout_hours
+                'max_position_size': env_config.pumpswap.max_position_size,
+                'base_position_size': env_config.pumpswap.base_position_size,
+                'max_slippage_percent': env_config.pumpswap.max_slippage_percent,
+            }
+            self.trading_config = {
+                'stop_loss_percent': config.trading.stop_loss_percent,
+                'take_profit_percent': config.trading.take_profit_percent,
+                'position_timeout_hours': config.trading.position_timeout_hours
+            }
+            self.wallet_config = {
+                'min_balance_sol': config.wallet.min_balance_sol
             }
             self.error_handling_config = config.error_handling if hasattr(config, 'error_handling') else {}
-        else:
+        elif hasattr(config, 'get'):
             # Dictionary config
             self.pumpswap_config = config.get('pumpswap', {})
+            self.trading_config = config.get('trading', {})
+            self.wallet_config = config.get('wallet', {})
             self.error_handling_config = config.get('error_handling', {})
+        else:
+            # Legacy fallback
+            self.pumpswap_config = getattr(config, 'pumpswap', {})
+            self.trading_config = getattr(config, 'trading', {})
+            self.wallet_config = getattr(config, 'wallet', {})
+            self.error_handling_config = getattr(config, 'error_handling', {})
         
         # Position limits
         self.max_position_size = self.pumpswap_config.get('max_position_size', 0.5)
@@ -124,9 +138,9 @@ class RiskManager:
         self.max_total_exposure = 0.8  # Maximum 80% of capital exposed
         
         # Stop-loss and take-profit
-        self.stop_loss_percent = self.pumpswap_config.get('stop_loss_percent', 20.0)
-        self.take_profit_percent = self.pumpswap_config.get('take_profit_percent', 50.0)
-        self.position_timeout_hours = self.pumpswap_config.get('position_timeout_hours', 24)
+        self.stop_loss_percent = self.trading_config.get('stop_loss_percent', 20.0)
+        self.take_profit_percent = self.trading_config.get('take_profit_percent', 50.0)
+        self.position_timeout_hours = self.trading_config.get('position_timeout_hours', 24)
         
         # Circuit breaker parameters
         self.failure_threshold = self.error_handling_config.get('failure_threshold', 5)
@@ -134,7 +148,7 @@ class RiskManager:
         self.half_open_max_attempts = self.error_handling_config.get('half_open_max_attempts', 3)
         
         # Balance monitoring
-        self.min_balance_sol = self.pumpswap_config.get('min_balance_sol', 0.1)
+        self.min_balance_sol = self.wallet_config.get('min_balance_sol', 0.1)
         self.balance_warning_threshold = 0.2  # Warn when balance < 20% of initial
         
         # Circuit breaker state

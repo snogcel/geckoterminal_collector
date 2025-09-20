@@ -30,7 +30,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Import all components to test
 from nautilus_poc.config import (
     ConfigManager, NautilusPOCConfig, Q50Config, PumpSwapConfig, 
-    SolanaConfig, NautilusConfig
+    SolanaConfig, NautilusConfig, WalletConfig, TradingConfig, 
+    SecurityConfig, EnvironmentConfig
 )
 from nautilus_poc.signal_loader import Q50SignalLoader
 from nautilus_poc.regime_detector import RegimeDetector
@@ -54,8 +55,34 @@ class TestDataGenerator:
     @staticmethod
     def create_test_config() -> NautilusPOCConfig:
         """Create comprehensive test configuration"""
+        # Create environment-specific configurations
+        testnet_env = EnvironmentConfig(
+            solana=SolanaConfig(
+                network='testnet',
+                rpc_endpoint='https://api.testnet.solana.com',
+                commitment='confirmed',
+                cluster='testnet'
+            ),
+            pumpswap=PumpSwapConfig(
+                max_slippage_percent=5.0,
+                base_position_size=0.1,
+                max_position_size=0.5,
+                min_liquidity_sol=10.0,
+                max_price_impact_percent=10.0,
+                realistic_transaction_cost=0.0005
+            ),
+            security=SecurityConfig(
+                validate_token_addresses=True,
+                require_transaction_confirmation=True,
+                enable_circuit_breaker=True,
+                max_daily_trades=500,
+                wallet_balance_alert_threshold=1.0
+            )
+        )
+        
         return NautilusPOCConfig(
             environment='testnet',
+            environments={'testnet': testnet_env},
             q50=Q50Config(
                 features_path='test_macro_features.pkl',
                 signal_tolerance_minutes=5,
@@ -64,26 +91,31 @@ class TestDataGenerator:
                     'prob_up', 'economically_significant', 'high_quality', 'tradeable'
                 ]
             ),
-            pumpswap=PumpSwapConfig(
+            wallet=WalletConfig(
                 payer_public_key='test_public_key_12345',
                 private_key_path='test_private_key.json',
-                max_slippage_percent=5.0,
-                base_position_size=0.1,
-                max_position_size=0.5,
-                min_liquidity_sol=10.0,
-                max_price_impact_percent=10.0,
-                stop_loss_percent=20.0,
-                position_timeout_hours=24
+                validate_balance_before_trade=True,
+                min_balance_sol=0.1
             ),
-            solana=SolanaConfig(
-                network='testnet',
-                rpc_endpoint='https://api.testnet.solana.com',
-                commitment='confirmed'
+            trading=TradingConfig(
+                kelly_multiplier=1.0,
+                max_portfolio_risk=0.2,
+                position_concentration_limit=0.1,
+                stop_loss_percent=20.0,
+                take_profit_percent=50.0,
+                position_timeout_hours=24,
+                max_consecutive_losses=5
             ),
             nautilus=NautilusConfig(
                 instance_id='TEST-COMPREHENSIVE-001',
                 log_level='INFO',
                 cache_database_path='test_cache.db'
+            ),
+            security=SecurityConfig(
+                validate_token_addresses=True,
+                enable_circuit_breaker=True,
+                max_daily_trades=500,
+                enable_audit_logging=True
             ),
             monitoring={
                 'enable_performance_tracking': True,
@@ -215,9 +247,16 @@ class TestTask1EnvironmentSetup:
         # Test configuration structure
         assert config.environment == 'testnet'
         assert config.q50.signal_tolerance_minutes == 5
-        assert config.pumpswap.max_slippage_percent == 5.0
-        assert config.solana.network == 'testnet'
+        
+        # Access environment-specific configuration
+        env_config = config.get_current_env_config()
+        assert env_config.pumpswap.max_slippage_percent == 5.0
+        assert env_config.solana.network == 'testnet'
         assert config.nautilus.instance_id == 'TEST-COMPREHENSIVE-001'
+        
+        # Test wallet and trading configuration
+        assert config.wallet.payer_public_key == 'test_public_key_12345'
+        assert config.trading.stop_loss_percent == 20.0
         
         # Test configuration validation
         config_manager = ConfigManager()
@@ -353,7 +392,7 @@ class TestTask3PumpSwapIntegration:
         executor = PumpSwapExecutor(self.config)
         
         assert executor.config == self.config
-        assert executor.payer_pk == self.config.pumpswap.payer_public_key
+        assert executor.payer_pk == self.config.wallet.payer_public_key
         assert executor.total_trades == 0
         assert executor.successful_trades == 0
         assert executor.failed_trades == 0
@@ -470,8 +509,9 @@ class TestTask4PositionSizingRiskManagement:
         position_sizer = KellyPositionSizer(self.config)
         
         assert position_sizer.config == self.config
-        assert position_sizer.pumpswap_config['base_position_size'] == self.config.pumpswap.base_position_size
-        assert position_sizer.pumpswap_config['max_position_size'] == self.config.pumpswap.max_position_size
+        env_config = self.config.get_current_env_config()
+        assert position_sizer.pumpswap_config['base_position_size'] == env_config.pumpswap.base_position_size
+        assert position_sizer.pumpswap_config['max_position_size'] == env_config.pumpswap.max_position_size
         
         logger.info("✓ KellyPositionSizer initialized successfully")
     
@@ -492,7 +532,8 @@ class TestTask4PositionSizingRiskManagement:
         
         assert isinstance(result, PositionSizeResult)
         assert result.recommended_size > 0
-        assert result.recommended_size <= self.config.pumpswap.max_position_size
+        env_config = self.config.get_current_env_config()
+        assert result.recommended_size <= env_config.pumpswap.max_position_size
         assert result.kelly_fraction >= 0
         
         logger.info(f"✓ Position size calculated: {result.recommended_size:.4f} SOL")

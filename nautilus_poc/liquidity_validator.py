@@ -50,13 +50,14 @@ class LiquidityValidator:
     def __init__(self, config: NautilusPOCConfig):
         """Initialize liquidity validator with configuration"""
         self.config = config
-        self.min_liquidity_sol = config.pumpswap.min_liquidity_sol
-        self.max_price_impact = config.pumpswap.max_price_impact_percent
-        self.max_position_size = config.pumpswap.max_position_size
+        env_config = config.get_current_env_config()
+        self.min_liquidity_sol = env_config.pumpswap.min_liquidity_sol
+        self.max_price_impact = env_config.pumpswap.max_price_impact_percent
+        self.max_position_size = env_config.pumpswap.max_position_size
         
         # Price impact calculation parameters
         self.price_impact_model = config.regime_detection.get('price_impact_model', 'constant_product')
-        self.slippage_tolerance = config.pumpswap.max_slippage_percent
+        self.slippage_tolerance = env_config.pumpswap.max_slippage_percent
         
         # Liquidity quality thresholds
         self.min_volume_24h = config.monitoring.get('min_volume_24h', 1000)  # Minimum $1k daily volume

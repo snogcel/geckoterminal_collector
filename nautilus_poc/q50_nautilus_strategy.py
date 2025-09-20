@@ -215,23 +215,28 @@ class Q50NautilusStrategy(Strategy):
     
     def _convert_poc_config_to_dict(self) -> Dict[str, Any]:
         """Convert NautilusPOCConfig to full dictionary format"""
+        env_config = self.poc_config.get_current_env_config()
         return {
             'pumpswap': {
-                'payer_public_key': self.poc_config.pumpswap.payer_public_key,
-                'private_key_path': self.poc_config.pumpswap.private_key_path,
-                'max_slippage_percent': self.poc_config.pumpswap.max_slippage_percent,
-                'base_position_size': self.poc_config.pumpswap.base_position_size,
-                'max_position_size': self.poc_config.pumpswap.max_position_size,
-                'min_liquidity_sol': self.poc_config.pumpswap.min_liquidity_sol,
-                'max_price_impact_percent': self.poc_config.pumpswap.max_price_impact_percent,
-                'stop_loss_percent': self.poc_config.pumpswap.stop_loss_percent,
-                'position_timeout_hours': self.poc_config.pumpswap.position_timeout_hours
+                'max_slippage_percent': env_config.pumpswap.max_slippage_percent,
+                'base_position_size': env_config.pumpswap.base_position_size,
+                'max_position_size': env_config.pumpswap.max_position_size,
+                'min_liquidity_sol': env_config.pumpswap.min_liquidity_sol,
+                'max_price_impact_percent': env_config.pumpswap.max_price_impact_percent,
+            },
+            'wallet': {
+                'payer_public_key': self.poc_config.wallet.payer_public_key,
+                'private_key_path': self.poc_config.wallet.private_key_path,
+            },
+            'trading': {
+                'stop_loss_percent': self.poc_config.trading.stop_loss_percent,
+                'position_timeout_hours': self.poc_config.trading.position_timeout_hours
             },
             'regime_detection': self.poc_config.regime_detection,
             'solana': {
-                'network': self.poc_config.solana.network,
-                'rpc_endpoint': self.poc_config.solana.rpc_endpoint,
-                'commitment': self.poc_config.solana.commitment
+                'network': env_config.solana.network,
+                'rpc_endpoint': env_config.solana.rpc_endpoint,
+                'commitment': env_config.solana.commitment
             },
             'error_handling': self.poc_config.error_handling,
             'monitoring': self.poc_config.monitoring
@@ -245,12 +250,13 @@ class Q50NautilusStrategy(Strategy):
         if not self.poc_config.q50.features_path:
             errors.append("Q50 features_path is required")
         
-        # Validate PumpSwap configuration
-        if not self.poc_config.pumpswap.payer_public_key:
-            errors.append("PumpSwap payer_public_key is required")
+        # Validate Wallet configuration
+        if not self.poc_config.wallet.payer_public_key:
+            errors.append("Wallet payer_public_key is required")
         
         # Validate Solana configuration
-        if not self.poc_config.solana.rpc_endpoint:
+        env_config = self.poc_config.get_current_env_config()
+        if not env_config.solana.rpc_endpoint:
             errors.append("Solana RPC endpoint is required")
         
         if errors:

@@ -46,20 +46,31 @@ class KellyPositionSizer:
         self.config = config
         
         # Handle both NautilusPOCConfig objects and dictionaries
-        if hasattr(config, 'pumpswap'):
-            # NautilusPOCConfig object
+        if hasattr(config, 'get_current_env_config'):
+            # NautilusPOCConfig object with new structure
+            env_config = config.get_current_env_config()
             self.pumpswap_config = {
-                'base_position_size': config.pumpswap.base_position_size,
-                'max_position_size': config.pumpswap.max_position_size,
-                'max_slippage_percent': config.pumpswap.max_slippage_percent,
-                'min_liquidity_sol': config.pumpswap.min_liquidity_sol,
-                'max_price_impact_percent': config.pumpswap.max_price_impact_percent
+                'base_position_size': env_config.pumpswap.base_position_size,
+                'max_position_size': env_config.pumpswap.max_position_size,
+                'max_slippage_percent': env_config.pumpswap.max_slippage_percent,
+                'min_liquidity_sol': env_config.pumpswap.min_liquidity_sol,
+                'max_price_impact_percent': env_config.pumpswap.max_price_impact_percent
             }
             self.regime_config = config.regime_detection if hasattr(config, 'regime_detection') else {}
-        else:
+        elif hasattr(config, 'get'):
             # Dictionary config
             self.pumpswap_config = config.get('pumpswap', {})
             self.regime_config = config.get('regime_detection', {})
+        else:
+            # Legacy NautilusPOCConfig object (fallback)
+            self.pumpswap_config = {
+                'base_position_size': getattr(config, 'pumpswap', {}).get('base_position_size', 0.1),
+                'max_position_size': getattr(config, 'pumpswap', {}).get('max_position_size', 0.5),
+                'max_slippage_percent': getattr(config, 'pumpswap', {}).get('max_slippage_percent', 5.0),
+                'min_liquidity_sol': getattr(config, 'pumpswap', {}).get('min_liquidity_sol', 10.0),
+                'max_price_impact_percent': getattr(config, 'pumpswap', {}).get('max_price_impact_percent', 10.0)
+            }
+            self.regime_config = getattr(config, 'regime_detection', {})
         
         # Position sizing parameters
         self.base_position_factor = self.pumpswap_config.get('base_position_size', 0.1)

@@ -179,3 +179,111 @@ How to execute this with scheduler?
 
 python examples/cli_with_scheduler.py start
 
+
+
+
+🎯 Issue Resolved!
+Great detective work! The issue was a data format mismatch. The API is returning pool data in a flat structure instead of the expected nested structure.
+
+Root Cause:
+Expected: pool_data['attributes']['dex_id']
+Actual: pool_data['dex_id'] (direct field access)
+Fix Applied:
+I've updated both _extract_pool_info() and _create_history_record() methods to handle both data formats using a flexible get_field() helper function:
+
+def get_field(field_name, default=''):
+    # Try attributes first, then root level
+    return attributes.get(field_name, pool_data.get(field_name, default))
+What This Means:
+✅ The pool from your log will now be processed correctly:
+
+dex_id: 'meteora-dbc' ✅ (was empty before)
+address: '3f6x35h5FVe5d2psvn3gqBWxzcD4qvu1mcozmjiC9F5o' ✅
+name: 'ATL$ / SOL' ✅
+✅ Backward compatibility maintained for nested format ✅ No more "empty dex_id" warnings for valid pools ✅ No more "Failed to extract pool info" errors
+
+Expected Results After Fix:
+The pool solana_3f6x35h5FVe5d2psvn3gqBWxzcD4qvu1mcozmjiC9F5o should now be processed successfully
+DEX meteora-dbc will be auto-created if it doesn't exist
+Pool will be stored in the database without foreign key constraint violations
+Historical record will be created with all the rich data
+The system should now handle the actual API response format correctly! 🚀
+
+
+
+
+Great detective work! The issue was a data format mismatch. The API is returning pool data in a flat structure instead of the expected nested structure.
+
+Root Cause:
+Expected: pool_data['attributes']['dex_id']
+Actual: pool_data['dex_id'] (direct field access)
+Fix Applied:
+I've updated both _extract_pool_info() and _create_history_record() methods to handle both data formats using a flexible get_field() helper function:
+
+
+The system should now handle the actual API response format correctly! 🚀
+
+
+
+
+Observed Errors/Warnings:
+
+2025-09-16 02:33:36,641 - gecko_terminal_collector.collectors.watchlist_monitor - ERROR - Error processing new record WatchlistRecord(symbol=FRIP, pool=B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7): 'added_at' is an invalid keyword argument for WatchlistEntry
+2025-09-16 02:33:44,676 - gecko_terminal_collector.collectors.ohlcv_collector - WARNING - Error verifying data continuity for pool solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz: can't compare offset-naive and offset-aware datetimes
+
+
+__________________________________________________________________
+# Goal 1 - Daily Yoga --> 30 in 30, twice (a 60 day goal) - Aligns with Goal #2
+- In Progress, On Track. "One Day at a Time", "Easy Does It."
+
+# Goal 2 - 90 AA Meetings in 90 Days --> 8/8/2025 --> smoked pot, then --> 8/11/2025 --> November 11th, 2025
+- Behind Schedule, not a problem (I can attend multiple meetings per day).
+
+# Next Steps with My Goal #3 --> September 28th, 2025
+- Primary Focus
+
+•	Finish initial review of Test Coverage QA_09_01_2025.xlsx
+•	Integrate complete data system into QLib for analysis
+
+Today:
+
+
+
+
+
+
+
+
+8:20am
+
+- Work on Goal #3
+
+
+
+
+
+3pm, 2nd Therapy Session
+- Reiki Healing Homework Session [DONE] -- aligns with Goal #2
+- Assignment: read out some words to my Therapist.
+
+
+
+
+
+
+
+__________________________________________________________________
+
+
+
+
+Observed Errors/Warnings:
+
+2025-09-16 02:33:36,641 - gecko_terminal_collector.collectors.watchlist_monitor - ERROR - Error processing new record WatchlistRecord(symbol=FRIP, pool=B5TchhTV2fmbmniA5jnH4Q1Xa1r8ifVZWwnLhYX7pSn7): 'added_at' is an invalid keyword argument for WatchlistEntry
+2025-09-16 02:33:44,676 - gecko_terminal_collector.collectors.ohlcv_collector - WARNING - Error verifying data continuity for pool solana_Cnd9CKtG6meUJqKu9NkSeriAgzPSbQpZV5qwq5B44Spz: can't compare offset-naive and offset-aware datetimes
+
+I notice some empty entries in the Pools table, can you please help me clear these out?
+
+
+
+

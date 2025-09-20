@@ -112,7 +112,7 @@ class PumpSwapExecutor:
         """Initialize PumpSwap executor with configuration"""
         self.config = config
         self.sdk = PumpSwapSDK()
-        self.payer_pk = config.pumpswap.payer_public_key
+        self.payer_pk = config.wallet.payer_public_key
         
         # Initialize components (will be injected later)
         self.liquidity_validator = None
@@ -490,9 +490,10 @@ class PumpSwapExecutor:
                 max_position_by_liquidity = pool_liquidity_sol * 0.25
             
             # Final position size
+            env_config = self.config.get_current_env_config()
             final_position = min(
                 raw_position,
-                self.config.pumpswap.max_position_size,
+                env_config.pumpswap.max_position_size,
                 max_position_by_liquidity
             )
             
@@ -507,7 +508,8 @@ class PumpSwapExecutor:
             
         except Exception as e:
             logger.error(f"Error calculating position size: {e}")
-            return self.config.pumpswap.base_position_size  # Fallback to base size
+            env_config = self.config.get_current_env_config()
+            return env_config.pumpswap.base_position_size  # Fallback to base size
     
     def _calculate_sell_amount(self, position: Dict[str, Any], signal: Dict[str, Any]) -> float:
         """Calculate sell amount based on signal strength and position size"""
