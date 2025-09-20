@@ -1,0 +1,102 @@
+OHLCV/TRADE QLIB INTEGRATION TEST REPORT
+==================================================
+
+Test Run Date: 2025-09-19 03:57:59
+Total Duration: 4.54s
+Success Rate: 0.0%
+
+
+test_ohlcv_trade_schema.py:
+  Status: FAILED
+  Duration: 0.53s
+  Error: INFO:__main__:\U0001f9ea Starting OHLCV/Trade Schema Test Suite
+INFO:__main__:Testing OHLCV table operations...
+INFO:__main__:\u2705 OHLCV record created with ID: 94325
+INFO:__main__:\u2705 OHLCV data retrieved and validated
+INFO:__main__:\u2705 OHLCV data updated successfully
+INFO:__main__:\u2705 OHLCV data deleted successfully
+INFO:__main__:Testing Trade table operations...
+INFO:__main__:\u2705 Trade record created with ID: trade_066accd7
+INFO:__main__:\u2705 Trade data retrieved and validated
+INFO:__main__:\u2705 Trade data updated successfully
+INFO:__main__:\u2705 Trade data deleted successfully
+INFO:__main__:Testing data integrity constraints...
+INFO:__main__:\u2705 Data integrity validation logic working
+INFO:__main__:\u2705 Valid OHLC relationships confirmed
+INFO:__main__:Testing bulk insert performance...
+INFO:__main__:\u2705 Bulk insert performance:
+ERROR:__main__:\u274c Test failed: float division by zero
+
+
+test_qlib_ohlcv_trade_export.py:
+  Status: FAILED
+  Duration: 0.53s
+  Error: INFO:__main__:\U0001f9ea Starting QLib OHLCV/Trade Export Test Suite
+INFO:__main__:Testing QLib data query integration...
+INFO:__main__:Setting up test data for QLib export...
+INFO:__main__:\u2705 Test data setup complete: 24 OHLCV records, 72 trade records
+INFO:__main__:\u2705 OHLCV query structure validated for QLib export
+ERROR:__main__:\u274c Test failed: Expected 24 hourly trade aggregations, got 25
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\test_qlib_ohlcv_trade_export.py", line 625, in run_tests
+    await test_instance.test_qlib_data_query_integration(conn, test_pool_data)
+  File "C:\Projects\geckoterminal_collector\test_qlib_ohlcv_trade_export.py", line 241, in test_qlib_data_query_integration
+    assert len(trade_agg_data) == 24, f"Expected 24 hourly trade aggregations, got {len(trade_agg_data)}"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Expected 24 hourly trade aggregations, got 25
+INFO:__main__:\u2705 Test data cleanup completed
+
+
+test_complete_ohlcv_trade_pipeline.py:
+  Status: FAILED
+  Duration: 3.46s
+  Error: INFO:__main__:\U0001f9ea Starting Complete OHLCV/Trade Pipeline Test Suite
+INFO:__main__:Simulating data collection phase...
+INFO:__main__:\u2705 Data collection simulated: 24 OHLCV records, 216 trade records
+INFO:__main__:Testing data consistency validation...
+INFO:__main__:\u2705 OHLCV data consistency validated
+INFO:__main__:\u2705 Trade data consistency validated
+INFO:__main__:Hour 2025-09-19 07:00:00+00:00: OHLCV=1, Trades=1
+INFO:__main__:Hour 2025-09-19 08:00:00+00:00: OHLCV=1, Trades=5
+INFO:__main__:Hour 2025-09-19 09:00:00+00:00: OHLCV=1, Trades=6
+INFO:__main__:Hour 2025-09-19 10:00:00+00:00: OHLCV=1, Trades=7
+INFO:__main__:Hour 2025-09-19 11:00:00+00:00: OHLCV=1, Trades=8
+INFO:__main__:Hour 2025-09-19 12:00:00+00:00: OHLCV=1, Trades=9
+INFO:__main__:Hour 2025-09-19 13:00:00+00:00: OHLCV=1, Trades=10
+INFO:__main__:Hour 2025-09-19 14:00:00+00:00: OHLCV=1, Trades=11
+INFO:__main__:Hour 2025-09-19 15:00:00+00:00: OHLCV=1, Trades=12
+INFO:__main__:Hour 2025-09-19 16:00:00+00:00: OHLCV=1, Trades=13
+INFO:__main__:Hour 2025-09-19 17:00:00+00:00: OHLCV=1, Trades=14
+INFO:__main__:Hour 2025-09-19 18:00:00+00:00: OHLCV=1, Trades=5
+INFO:__main__:Hour 2025-09-19 19:00:00+00:00: OHLCV=1, Trades=6
+INFO:__main__:Hour 2025-09-19 20:00:00+00:00: OHLCV=1, Trades=7
+INFO:__main__:Hour 2025-09-19 21:00:00+00:00: OHLCV=1, Trades=8
+INFO:__main__:Hour 2025-09-19 22:00:00+00:00: OHLCV=1, Trades=9
+INFO:__main__:Hour 2025-09-19 23:00:00+00:00: OHLCV=1, Trades=10
+INFO:__main__:Hour 2025-09-20 00:00:00+00:00: OHLCV=1, Trades=11
+INFO:__main__:Hour 2025-09-20 01:00:00+00:00: OHLCV=1, Trades=12
+INFO:__main__:Hour 2025-09-20 02:00:00+00:00: OHLCV=1, Trades=13
+INFO:__main__:Hour 2025-09-20 03:00:00+00:00: OHLCV=1, Trades=14
+INFO:__main__:Hour 2025-09-20 04:00:00+00:00: OHLCV=1, Trades=5
+INFO:__main__:Hour 2025-09-20 05:00:00+00:00: OHLCV=1, Trades=6
+INFO:__main__:Hour 2025-09-20 06:00:00+00:00: OHLCV=1, Trades=7
+INFO:__main__:\u2705 OHLCV/Trade data alignment validated
+INFO:__main__:Testing QLib export pipeline...
+INFO:__main__:\u2705 Export query returned 24 records
+INFO:__main__:\u2705 Generated 12 QLib bin files
+INFO:__main__:\u2705 QLib file structure validation passed
+INFO:__main__:\u2705 Export metadata created with ID: 1
+INFO:__main__:Testing performance benchmarks...
+INFO:__main__:\u2705 Complex query performance: 0.000s for 24 records
+INFO:__main__:\u2705 Aggregation performance: 2.882s
+INFO:__main__:\u2705 Export preparation performance: 0.006s for 24 records
+ERROR:__main__:\u274c Pipeline test failed: float division by zero
+Traceback (most recent call last):
+  File "C:\Projects\geckoterminal_collector\test_complete_ohlcv_trade_pipeline.py", line 695, in run_tests
+    await test_instance.test_performance_benchmarks(conn, test_environment, collection_result)
+  File "C:\Projects\geckoterminal_collector\test_complete_ohlcv_trade_pipeline.py", line 633, in test_performance_benchmarks
+    'records_per_second_query': len(benchmark_data) / query_time,
+                                ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+ZeroDivisionError: float division by zero
+INFO:__main__:\u2705 Test data cleanup completed
+
