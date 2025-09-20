@@ -87,16 +87,31 @@ class RiskManager:
     and wallet balance monitoring for safe trading operations.
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config):
         """
         Initialize risk manager
         
         Args:
-            config: Configuration dictionary containing risk management parameters
+            config: Configuration (NautilusPOCConfig object or dictionary)
         """
         self.config = config
-        self.pumpswap_config = config.get('pumpswap', {})
-        self.error_handling_config = config.get('error_handling', {})
+        
+        # Handle both NautilusPOCConfig objects and dictionaries
+        if hasattr(config, 'pumpswap'):
+            # NautilusPOCConfig object
+            self.pumpswap_config = {
+                'max_position_size': config.pumpswap.max_position_size,
+                'base_position_size': config.pumpswap.base_position_size,
+                'stop_loss_percent': config.pumpswap.stop_loss_percent,
+                'max_slippage_percent': config.pumpswap.max_slippage_percent,
+                'take_profit_percent': getattr(config.pumpswap, 'take_profit_percent', 50.0),
+                'position_timeout_hours': config.pumpswap.position_timeout_hours
+            }
+            self.error_handling_config = config.error_handling if hasattr(config, 'error_handling') else {}
+        else:
+            # Dictionary config
+            self.pumpswap_config = config.get('pumpswap', {})
+            self.error_handling_config = config.get('error_handling', {})
         
         # Position limits
         self.max_position_size = self.pumpswap_config.get('max_position_size', 0.5)

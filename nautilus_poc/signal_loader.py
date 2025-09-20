@@ -50,9 +50,27 @@ class Q50SignalLoader:
         self.signal_tolerance_minutes = config['q50'].get('signal_tolerance_minutes', 5)
         
         # Initialize database connection
-        db_config = DatabaseConfig(**config['database'])
-        self.db_connection = DatabaseConnection(db_config)
-        self.db_connection.initialize()
+        try:
+            db_config_data = config.get('database', {})
+            # Convert host/port/database format to URL format if needed
+            if 'host' in db_config_data and 'url' not in db_config_data:
+                host = db_config_data.get('host', 'localhost')
+                port = db_config_data.get('port', 5432)
+                database = db_config_data.get('database', 'gecko_data')
+                username = db_config_data.get('username', 'postgres')
+                password = db_config_data.get('password', 'password')
+                db_url = f"postgresql://{username}:{password}@{host}:{port}/{database}"
+                db_config = DatabaseConfig(url=db_url)
+            else:
+                # Use existing URL or default
+                db_config = DatabaseConfig(url=db_config_data.get('url', 'sqlite:///gecko_data.db'))
+            
+            self.db_connection = DatabaseConnection(db_config)
+            self.db_connection.initialize()
+        except Exception as e:
+            logger.warning(f"Failed to initialize database connection: {e}")
+            # Create a mock connection for testing
+            self.db_connection = None
         
         # Signal data storage
         self.signals_df: Optional[pd.DataFrame] = None

@@ -33,16 +33,30 @@ class KellyPositionSizer:
     regime-based adjustments, and PumpSwap liquidity validation.
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config):
         """
         Initialize Kelly position sizer
         
         Args:
-            config: Configuration dictionary containing position sizing parameters
+            config: Configuration (NautilusPOCConfig object or dictionary)
         """
         self.config = config
-        self.pumpswap_config = config.get('pumpswap', {})
-        self.regime_config = config.get('regime_detection', {})
+        
+        # Handle both NautilusPOCConfig objects and dictionaries
+        if hasattr(config, 'pumpswap'):
+            # NautilusPOCConfig object
+            self.pumpswap_config = {
+                'base_position_size': config.pumpswap.base_position_size,
+                'max_position_size': config.pumpswap.max_position_size,
+                'max_slippage_percent': config.pumpswap.max_slippage_percent,
+                'min_liquidity_sol': config.pumpswap.min_liquidity_sol,
+                'max_price_impact_percent': config.pumpswap.max_price_impact_percent
+            }
+            self.regime_config = config.regime_detection if hasattr(config, 'regime_detection') else {}
+        else:
+            # Dictionary config
+            self.pumpswap_config = config.get('pumpswap', {})
+            self.regime_config = config.get('regime_detection', {})
         
         # Position sizing parameters
         self.base_position_factor = self.pumpswap_config.get('base_position_size', 0.1)

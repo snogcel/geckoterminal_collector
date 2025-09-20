@@ -184,6 +184,16 @@ class Q50NautilusStrategy(Strategy):
         
         logger.info(f"Q50NautilusStrategy initialized with instance_id: {poc_config.nautilus.instance_id}")
     
+    @property
+    def is_initialized(self) -> bool:
+        """Get strategy initialization status"""
+        return self._is_strategy_initialized
+    
+    @is_initialized.setter
+    def is_initialized(self, value: bool) -> None:
+        """Set strategy initialization status"""
+        self._is_strategy_initialized = value
+    
     def _convert_config_for_components(self) -> Dict[str, Any]:
         """Convert NautilusPOCConfig to dictionary format for components"""
         return {
