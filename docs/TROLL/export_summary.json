@@ -1,0 +1,12 @@
+{
+  "export_date": "2025-09-27T11:09:25.856106",
+  "timeframe": "1h",
+  "symbols_exported": 2,
+  "date_range": {
+    "start": "2025-08-16T05:00:00",
+    "end": "2025-09-27T00:00:00"
+  },
+  "success": true,
+  "files_created": 2,
+  "total_records": 1045
+}

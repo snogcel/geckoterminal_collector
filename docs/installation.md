@@ -148,7 +148,74 @@ python -m examples.cli_with_scheduler start
 python collect_historical_with_rate_limits.py
 ```
 
+16. **To export Historical OHLCV Data, use the following command**
+
+```bash
+python -m gecko_terminal_collector.cli export --format qlib --output TROLL
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+Exporting data in qlib format to TROLL
+INFO: QLibExporter initialized with basic symbol mapping
+INFO: Retrieved 2 symbols for QLib export
+INFO: Exported 1045 records for 2 symbols
+INFO: Successfully exported 2 files with 1045 total records
+✓ Export completed successfully
+  Files created: 2
+  Total records: 1045
+INFO: Synchronous database engine disposed
+INFO: SQLAlchemy database manager closed
+```
+
+The result will be a package of data stored in a folder titled "TROLL", containing a JSON summary file of the export. 
+
+*Example*
+```bash
+{
+  "export_date": "2025-09-27T11:09:25.856106",
+  "timeframe": "1h",
+  "symbols_exported": 2,
+  "date_range": {
+    "start": "2025-08-16T05:00:00",
+    "end": "2025-09-27T00:00:00"
+  },
+  "success": true,
+  "files_created": 2,
+  "total_records": 1045
+}
+```
+
+This folder will contain export data in two formats: CSV, XLSX.
+
 ## Known Bugs (please feel free to submit Pull Requests)
+
+(gecko_env_3_11) jon@dash-node01:~/sites/geckoterminal_collector$ python -m gecko_terminal_collector.cli export --format csv --output TROLL
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+Exporting data in csv format to TROLL
+Export format 'csv' not yet implemented
+
+
+(gecko_env_3_11) jon@dash-node01:~/sites/geckoterminal_collector$ python -m gecko_terminal_collector.cli export --format json --output TROLL
+INFO: Database connection initialized
+INFO: Creating database tables
+INFO: Database tables created successfully
+INFO: Using PostgreSQL database - no additional optimizations needed
+INFO: SQLAlchemy database manager initialized
+Exporting data in json format to TROLL
+Export format 'json' not yet implemented
+
+
+
+
+
+
+
 - 2025-09-26 10:21:10,832 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_DzNHbC9N4eZd9Yab6QfZfAxmXBRNoSrFboLvzyufxU2c: 'latin-1' codec can't encode characters in position 0-2: ordinal not in range(256)
 - 2025-09-26 10:21:10,835 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing new pools history record: 'latin-1' codec can't encode characters in position 0-2: ordinal not in range(256)
 - 2025-09-26 10:21:10,835 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error storing history record for solana_DzNHbC9N4eZd9Yab6QfZfAxmXBRNoSrFboLvzyufxU2c: 'latin-1' codec can't encode characters in position 0-2: ordinal not in range(256)
