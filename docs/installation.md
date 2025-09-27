@@ -189,6 +189,75 @@ The result will be a package of data stored in a folder titled "TROLL", containi
 
 This folder will contain export data in two formats: CSV, XLSX.
 
+17. **Create Wrapper Script**
+
+Create a bash script (titled geckoterminal_collector.sh in this example)
+
+```bash
+#!/bin/bash
+
+# Source the conda initialization script
+source /home/jon/anaconda3/etc/profile.d/conda.sh
+
+# Activate your specific conda environment
+conda activate gecko_env_3_11
+
+# Execute your Python script or application
+# Use -u for unbuffered output, which is often helpful for logging in systemd
+cd ~/sites/geckoterminal_collector
+python -m examples.cli_with_scheduler start
+```
+
+18. **Set Permissions on Wrapper Bash Script**
+
+Set script permissions to allow execution
+
+```bash
+chmod +x /home/jon/geckoterminal_collector.sh
+```
+
+19. **Configure System Service**
+
+see: https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units
+
+```bash
+[Unit]
+Description=geckoterminal_collector_service
+After=network.target
+
+[Service]
+Type=simple
+User=jon
+ExecStart=/home/jon/geckoterminal_collector.sh
+Restart=on-failure
+WorkingDirectory=/home/jon/sites/geckoterminal_collector
+
+[Install]
+WantedBy=multi-user.target
+```
+
+18. **Test Service Configuration**
+
+```bash
+sudo systemctl start geckoterminal_collector.service
+
+sudo systemctl stop geckoterminal_collector.service
+```
+
+19. **Start Service on System Restart**
+
+```bash
+sudo systemctl enable geckoterminal_collector.service
+```
+
+20. **Check on Collector Status**
+
+21. **PSQL**
+
+22. **Query Tables**
+
+
+
 ## Known Bugs (please feel free to submit Pull Requests)
 
 (gecko_env_3_11) jon@dash-node01:~/sites/geckoterminal_collector$ python -m gecko_terminal_collector.cli export --format csv --output TROLL
@@ -209,12 +278,6 @@ INFO: Using PostgreSQL database - no additional optimizations needed
 INFO: SQLAlchemy database manager initialized
 Exporting data in json format to TROLL
 Export format 'json' not yet implemented
-
-
-
-
-
-
 
 - 2025-09-26 10:21:10,832 - gecko_terminal_collector.collectors.base.NewPoolsCollector - ERROR - Error ensuring pool exists for solana_DzNHbC9N4eZd9Yab6QfZfAxmXBRNoSrFboLvzyufxU2c: 'latin-1' codec can't encode characters in position 0-2: ordinal not in range(256)
 - 2025-09-26 10:21:10,835 - gecko_terminal_collector.database.sqlalchemy_manager - ERROR - Error storing new pools history record: 'latin-1' codec can't encode characters in position 0-2: ordinal not in range(256)
