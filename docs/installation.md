@@ -248,6 +248,8 @@ sudo systemctl stop geckoterminal_collector.service
 
 ```bash
 sudo systemctl enable geckoterminal_collector.service
+
+sudo systemctl disable geckoterminal_collector.service
 ```
 
 20. **Check on Collector Status**
