@@ -11,7 +11,7 @@
 > "Black Circle Technologies completely transformed our DeFi monitoring from a manual, error-prone process into an intelligent, automated system. The 96% reduction in recovery time alone saved us countless hours and potential losses. Their deep understanding of both blockchain technology and quantitative finance made them the perfect partner for our institutional needs."
 
 **Key Results:**
-- 28.3% annualized returns with 1.86 Sharpe ratio
+- 28.3% annualized returns with 1.37 Sharpe ratio
 - 67% directional accuracy in signal generation
 - 90% reduction in manual analysis time
 
@@ -309,7 +309,7 @@ class ProductionMLPipeline:
 - **Scalability**: Framework ready for additional asset classes
 
 ### **Client Testimonial**
-*"Black Circle Technologies delivered exactly what we needed - institutional-grade quantitative tools adapted for DeFi markets. Their feature engineering is sophisticated, their backtesting is rigorous, and the production system is rock-solid. The 1.86 Sharpe ratio speaks for itself."*
+*"Black Circle Technologies delivered exactly what we needed - institutional-grade quantitative tools adapted for DeFi markets. Their feature engineering is sophisticated, their backtesting is rigorous, and the production system is rock-solid. The 1.37 Sharpe ratio speaks for itself."*
 
 ---
 

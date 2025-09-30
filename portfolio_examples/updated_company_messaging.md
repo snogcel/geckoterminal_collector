@@ -37,7 +37,7 @@ We transform blockchain challenges into competitive advantages through productio
 
 **Proven Results:**
 - 95% reduction in manual analysis time
-- 1.86 Sharpe ratio with 67% directional accuracy
+- 1.37 Sharpe ratio with 67% directional accuracy
 - 28.3% annualized returns with controlled risk
 
 ---
@@ -143,7 +143,7 @@ We don't just deliver code - we ensure your team can maintain and evolve the sol
 ## **Industry Expertise**
 
 ### **Quantitative Finance & Trading**
-- **Hedge Funds**: Alpha generation with 1.86 Sharpe ratios
+- **Hedge Funds**: Alpha generation with 1.37 Sharpe ratios
 - **Trading Firms**: High-frequency systems with <100ms latency
 - **Asset Managers**: Risk-adjusted returns with controlled drawdowns
 

@@ -554,7 +554,7 @@ class MLModelMonitor:
 
 ##### **DeFi Trading Firm Results**
 - **Return Enhancement**: 28.3% annualized returns vs 12% baseline
-- **Risk-Adjusted Performance**: 1.86 Sharpe ratio (institutional grade)
+- **Risk-Adjusted Performance**: 1.37 Sharpe ratio (institutional grade)
 - **Signal Quality**: 2.97 profit factor with 67.6% win rate
 - **Automation Level**: 95% of trading decisions automated
 

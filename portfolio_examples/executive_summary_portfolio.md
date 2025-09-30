@@ -37,7 +37,7 @@ We developed a comprehensive DeFi analytics platform featuring intelligent data 
 - **Quantitative Finance Integration**: QLib framework for institutional analysis
 - **Advanced Feature Engineering**: Technical indicators with DeFi-specific metrics
 - **Production ML Pipelines**: Real-time prediction with 67% directional accuracy
-- **Backtesting Infrastructure**: Comprehensive strategy validation with 1.86 Sharpe ratio
+- **Backtesting Infrastructure**: Comprehensive strategy validation with 1.37 Sharpe ratio
 
 ### **🏗️ Infrastructure Engineering**
 - **Database Resilience**: Self-healing systems with circuit breaker patterns
@@ -83,7 +83,7 @@ We developed a comprehensive DeFi analytics platform featuring intelligent data 
 **Challenge**: Transform raw DeFi data into actionable trading signals
 **Solution**: ML-powered analytics with QLib integration
 **Results**: 
-- 28.3% annualized returns with 1.86 Sharpe ratio
+- 28.3% annualized returns with 1.37 Sharpe ratio
 - 67% directional accuracy with 72% signal precision
 - 90% reduction in manual analysis time
 
