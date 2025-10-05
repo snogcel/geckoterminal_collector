@@ -1,14 +1,14 @@
 {
   "instance_id": "dex_monitoring",
-  "daily_count": 18,
-  "last_reset": "2025-09-12",
+  "daily_count": 5,
+  "last_reset": "2025-10-05",
   "metrics": {
-    "total_requests": 25,
-    "daily_requests": 18,
+    "total_requests": 63,
+    "daily_requests": 5,
     "rate_limit_hits": 0,
     "backoff_events": 0,
     "circuit_breaker_trips": 0,
-    "last_reset": "2025-09-12T00:11:36.028895"
+    "last_reset": "2025-10-05T03:06:00.842258"
   },
   "backoff_state": {
     "consecutive_failures": 0,

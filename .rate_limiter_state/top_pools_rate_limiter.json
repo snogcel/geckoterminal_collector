@@ -1,14 +1,14 @@
 {
   "instance_id": "top_pools",
-  "daily_count": 8,
-  "last_reset": "2025-09-11",
+  "daily_count": 130,
+  "last_reset": "2025-10-05",
   "metrics": {
-    "total_requests": 8,
-    "daily_requests": 8,
+    "total_requests": 970,
+    "daily_requests": 130,
     "rate_limit_hits": 0,
     "backoff_events": 0,
     "circuit_breaker_trips": 0,
-    "last_reset": "2025-09-11T19:25:01.504697"
+    "last_reset": "2025-10-05T02:11:00.690668"
   },
   "backoff_state": {
     "consecutive_failures": 0,
