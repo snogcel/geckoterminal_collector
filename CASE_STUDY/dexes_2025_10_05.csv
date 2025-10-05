@@ -1,0 +1,25 @@
+id,name,network,created_at,last_updated,metadata_json
+solana_unknown,Solana Unknown DEX,solana,2025-10-03 04:31:18.611825-06,2025-10-03 04:31:18.611825-06,{}
+raydium,raydium,solana,,2025-10-05 13:06:00.596021-06,{}
+orca,orca,solana,,2025-10-05 13:06:00.597021-06,{}
+raydium-clmm,raydium-clmm,solana,,2025-10-05 13:06:00.598021-06,{}
+fluxbeam,fluxbeam,solana,,2025-10-05 13:06:00.59902-06,{}
+meteora,meteora,solana,,2025-10-05 13:06:00.600046-06,{}
+dexlab,dexlab,solana,,2025-10-05 13:06:00.601044-06,{}
+daos-fun,daos-fun,solana,,2025-10-05 13:06:00.602049-06,{}
+pumpswap,pumpswap,solana,2025-10-03 04:36:59.880737-06,2025-10-05 13:06:00.603044-06,{}
+virtuals-solana,virtuals-solana,solana,,2025-10-05 13:06:00.60406-06,{}
+boop-fun,boop-fun,solana,,2025-10-05 13:06:00.606045-06,{}
+saros-amm,saros-amm,solana,,2025-10-05 13:06:00.607044-06,{}
+meteora-dbc,meteora-dbc,solana,,2025-10-05 13:06:00.608045-06,{}
+byreal,byreal,solana,,2025-10-05 13:06:00.609048-06,{}
+pancakeswap-v3-solana,pancakeswap-v3-solana,solana,,2025-10-05 13:06:00.610457-06,{}
+meteora-damm-v2,meteora-damm-v2,solana,,2025-10-05 13:06:00.612461-06,{}
+raydium-launchlab,raydium-launchlab,solana,,2025-10-05 13:06:00.613459-06,{}
+pump-fun,pump-fun,solana,,2025-10-05 13:06:00.614459-06,{}
+saros-dlmm,saros-dlmm,solana,,2025-10-05 13:06:00.61546-06,{}
+wavebreak,wavebreak,solana,,2025-10-05 13:06:00.616473-06,{}
+heaven,heaven,solana,2025-10-03 04:36:59.102353-06,2025-10-05 13:06:00.617457-06,{}
+token-mill,token-mill,solana,,2025-10-05 13:06:00.617457-06,{}
+defituna,defituna,solana,,2025-10-05 13:06:00.618964-06,{}
+moonit,moonit,solana,,2025-10-05 13:06:00.61997-06,{}

@@ -1,0 +1,4 @@
+id,pool_id,token_symbol,token_name,network_address,is_active,created_at,updated_at,metadata_json
+1,solana_F5vAiFCP82RQetoxK7ax4dNQCwqk2yez6aisAbFPenJ2,Butterfly / SOL,Butterfly / SOL,4Ds7cxJ82gm34gV22zo2LjPdX3nFbQk9PXK7mjX4pump,t,2025-10-03 04:31:18.639284-06,2025-10-03 04:31:18.639284-06,{}
+4,solana_2Ausg8ScDHmATwzUVavkQC5fmp59CdvXeHgSTFi4gTQL,CR7 / SOL,CR7 / SOL,JBdaVHpevZ1R2ThGRgrMwwmbMpmqMecNG2bfVKguS24Q,t,2025-10-04 16:02:36.755638-06,2025-10-04 16:02:36.755638-06,{}
+5,solana_FcgExnc1FEvmESEYZMNVRevvbmH6aSbuY23mc7ugaQ9W,Toe Lee / SOL,Toe Lee / SOL,7xj4W7BjuJEySyDfHbj2TH1Zqi9Tqsyr8y7LpBCy3Nra,t,2025-10-04 16:02:45.608437-06,2025-10-04 16:02:45.608437-06,{}
