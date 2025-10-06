@@ -98,12 +98,13 @@ class PumpSwapSignalAnalyzer:
         #self.liquidity_validator = liquidity_validator
         
         # PumpSwap SDK integration (mock for now)
-        # try:
-        #     from pumpswap_sdk.sdk.pumpswap_sdk import PumpSwapSDK
-        #     self.pumpswap_sdk = PumpSwapSDK()
-        # except ImportError:
-        #     # Mock SDK for development
-        #     self.pumpswap_sdk = self._create_mock_sdk()
+        try:
+            # from pumpswap_sdk.sdk.pumpswap_sdk import PumpSwapSDK
+            from .pumpswap_executor import PumpSwapSDK
+            self.pumpswap_sdk = PumpSwapSDK()
+        except ImportError:
+            # Mock SDK for development
+            self.pumpswap_sdk = self._create_mock_sdk()
         
         # Signal enhancement parameters
         self.liquidity_weight = config.regime_detection.get('liquidity_weight', 0.3)

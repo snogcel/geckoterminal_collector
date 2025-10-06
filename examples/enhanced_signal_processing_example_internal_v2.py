@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Import the enhanced signal processing components
-from nautilus_poc.pumpswap_signal_analyzer_internal import PumpSwapSignalAnalyzer, SignalQuality
+from nautilus_poc.pumpswap_signal_analyzer import PumpSwapSignalAnalyzer, SignalQuality
 from nautilus_poc.adaptive_threshold_calculator_internal import (
     AdaptiveThresholdCalculator, 
     ThresholdType,
@@ -30,7 +30,11 @@ def create_example_config() -> NautilusPOCConfig:
     """Create example configuration for enhanced signal processing"""
     return NautilusPOCConfig(
         environment='testnet',
-        environments=None,
+        environments={
+            "solana": SolanaConfig,
+            "pumpswap": PumpSwapConfig,
+            "security": None
+        },
         q50=Q50Config(
             features_path='data3/macro_features.pkl',
             signal_tolerance_minutes=5,
@@ -39,23 +43,24 @@ def create_example_config() -> NautilusPOCConfig:
                 'prob_up', 'economically_significant', 'high_quality', 'tradeable'
             ]
         ),
-        # pumpswap=PumpSwapConfig(
-        #     payer_public_key='YOUR_SOLANA_PUBLIC_KEY',
-        #     private_key_path='path/to/your/private/key.json',
-        #     max_slippage_percent=5.0,
-        #     base_position_size=0.1,
-        #     max_position_size=0.5,
-        #     min_liquidity_sol=10.0,
-        #     max_price_impact_percent=10.0,
-        #     stop_loss_percent=20.0,
-        #     position_timeout_hours=24
-        # ),
-        # solana=SolanaConfig(
-        #     network='testnet',
-        #     rpc_endpoint='https://api.testnet.solana.com',
-        #     commitment='confirmed',
-        #     cluster='_INTERNAL'
-        # ),
+        #pumpswap=PumpSwapConfig(
+            #payer_public_key='YOUR_SOLANA_PUBLIC_KEY',
+            #private_key_path='path/to/your/private/key.json',
+        #    max_slippage_percent=5.0,
+        #    base_position_size=0.1,
+        #    max_position_size=0.5,
+        #    min_liquidity_sol=10.0,
+        #    max_price_impact_percent=10.0,
+        #    realistic_transaction_cost=0.01
+            #stop_loss_percent=20.0,
+            #position_timeout_hours=24
+        #),
+        #solana=SolanaConfig(
+        #    network='testnet',
+        #    rpc_endpoint='https://api.testnet.solana.com',
+        #    commitment='confirmed',
+        #    cluster='test'
+        #),
         nautilus=NautilusConfig(
             instance_id='ENHANCED-SIGNAL-001',
             log_level='INFO',
@@ -195,7 +200,7 @@ async def demonstrate_signal_analysis():
     liquidity_validator = LiquidityValidator(config)
     
     # Create analyzer and calculator
-    analyzer = PumpSwapSignalAnalyzer(config, signal_loader)
+    analyzer = PumpSwapSignalAnalyzer(config, signal_loader, liquidity_validator)
     calculator = AdaptiveThresholdCalculator(config)
     
     # Get sample data
@@ -269,8 +274,8 @@ async def demonstrate_batch_analysis():
         }
     }
     signal_loader = Q50SignalLoader(config_dict)
-    # liquidity_validator = LiquidityValidator(config)
-    analyzer = PumpSwapSignalAnalyzer(config, signal_loader)
+    liquidity_validator = LiquidityValidator(config)
+    analyzer = PumpSwapSignalAnalyzer(config, signal_loader, liquidity_validator)
     
     # Create batch data
     signals = create_sample_signals()
@@ -290,8 +295,8 @@ async def demonstrate_batch_analysis():
     async def mock_get_pool_data(addr):
         return pool_data_map.get(addr)
     
-    # analyzer.pumpswap_sdk.get_pair_address = mock_get_pair_address
-    # analyzer.pumpswap_sdk.get_pool_data = mock_get_pool_data
+    analyzer.pumpswap_sdk.get_pair_address = mock_get_pair_address
+    analyzer.pumpswap_sdk.get_pool_data = mock_get_pool_data
     
     # Process batch
     results = await analyzer.analyze_signals_batch(batch_signals)

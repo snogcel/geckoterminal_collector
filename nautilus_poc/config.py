@@ -113,7 +113,7 @@ class EnvironmentConfig:
 class NautilusPOCConfig:
     """Complete NautilusTrader POC configuration"""
     environment: str
-    #environments: Dict[str, EnvironmentConfig]
+    environments: Dict[str, EnvironmentConfig]
     q50: Q50Config
     #wallet: WalletConfig
     #trading: TradingConfig
