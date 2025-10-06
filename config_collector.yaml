@@ -1,0 +1,148 @@
+# GeckoTerminal Data Collector Configuration
+# This file contains all configurable settings for the data collection system
+
+# DEX Configuration
+dexes:
+  targets:
+    - heaven
+    - pumpswap
+  network: solana
+
+# Collection Intervals
+intervals:
+  #top_pools_monitoring: "1h"    # How often to check top pools
+  top_pools_monitoring: "5m"    # How often to check top pools
+  ohlcv_collection: "1h"        # OHLCV data collection frequency
+  trade_collection: "30m"       # Trade data collection frequency
+  watchlist_check: "1h"         # Watchlist file check frequency
+
+# Thresholds and Limits
+thresholds:
+  min_trade_volume_usd: 100     # Minimum trade volume to collect (USD)
+  max_retries: 3                # Maximum retry attempts for failed operations
+  rate_limit_delay: 1.0         # Delay between API requests (seconds)
+  backoff_factor: 2.0           # Exponential backoff multiplier
+
+# OHLCV Timeframe Configuration
+timeframes:
+  ohlcv_default: "1h"           # Default timeframe for OHLCV collection
+  supported:                    # All supported timeframes
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "12h"
+    - "1d"
+
+# Database Configuration
+database:
+  url: "postgresql://postgres:pass123451!@localhost:5432/gecko_collector"  # Database connection URL
+  pool_size: 10                   # Connection pool size
+  echo: false                     # Enable SQL query logging
+  timeout: 30                     # Connection timeout (seconds)
+
+# API Configuration
+api:
+  base_url: "https://api.geckoterminal.com/api/v2"
+  timeout: 30                     # Request timeout (seconds)
+  max_concurrent: 5               # Maximum concurrent API requests
+  rate_limit_delay: 1.0           # Rate limiting delay (seconds)
+
+# Error Handling Configuration
+error_handling:
+  max_retries: 3                  # Maximum retry attempts
+  backoff_factor: 2.0             # Exponential backoff factor
+  circuit_breaker_threshold: 5    # Failures before circuit breaker opens
+  circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
+
+# Rate Limiting Configuration
+rate_limiting:
+  requests_per_minute: 30         # Global requests per minute limit
+  daily_limit: 10000              # Global daily request limit
+  circuit_breaker_threshold: 5    # Failures before circuit breaker opens
+  circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
+  backoff_base_delay: 1.0         # Base delay for exponential backoff
+  backoff_max_delay: 300.0        # Maximum backoff delay
+  backoff_jitter_factor: 0.3      # Jitter factor for backoff
+  state_file_dir: ".rate_limiter_state"  # Directory for rate limiter state files
+
+# Watchlist Configuration
+watchlist:
+  file_path: "watchlist.csv"      # Path to watchlist CSV file
+  check_interval: "1h"            # How often to check for file changes
+  auto_add_new_tokens: true       # Automatically add new tokens from watchlist
+  remove_inactive_tokens: false   # Remove tokens no longer in watchlist
+
+
+
+# New Pools Collection Configuration
+new_pools:
+  networks:
+    solana:
+      enabled: true               # Enable new pools collection for Solana
+      interval: "10m"             # Collection interval for Solana (increased frequency)
+      rate_limit_key: "new_pools_solana"  # Rate limiter key for Solana
+      signal_analysis: true       # Enable signal analysis for collected pools
+      auto_watchlist_integration: true  # Auto-add high-signal pools to watchlist
+    #ethereum:
+    #  enabled: false              # Enable new pools collection for Ethereum
+    #  interval: "15m"             # Collection interval for Ethereum
+    #  rate_limit_key: "new_pools_ethereum"  # Rate limiter key for Ethereum
+    #  signal_analysis: true       # Enable signal analysis for collected pools
+    #  auto_watchlist_integration: true  # Auto-add high-signal pools to watchlist
+  
+  # Signal Detection Configuration
+  signal_detection:
+    enabled: true                 # Enable signal detection system
+    min_signal_score: 60.0        # Minimum signal score for alerts
+    volume_spike_threshold: 2.0   # Volume spike detection (2x increase)
+    liquidity_growth_threshold: 1.5  # Liquidity growth threshold (1.5x increase)
+    momentum_lookback_hours: 6    # Hours to look back for momentum calculation
+    auto_watchlist_threshold: 75.0  # Signal score threshold for auto-watchlist addition
+
+# Environment Variable Overrides:
+# You can override any configuration value using environment variables:
+#
+# Database:
+#   GECKO_DB_URL - Database connection URL
+#   GECKO_DB_POOL_SIZE - Connection pool size
+#   GECKO_DB_ECHO - Enable SQL logging (true/false)
+#   GECKO_DB_TIMEOUT - Connection timeout
+#
+# API:
+#   GECKO_API_BASE_URL - API base URL
+#   GECKO_API_TIMEOUT - Request timeout
+#   GECKO_API_MAX_CONCURRENT - Max concurrent requests
+#   GECKO_API_RATE_LIMIT_DELAY - Rate limit delay
+#
+# DEX:
+#   GECKO_DEX_TARGETS - Comma-separated list of DEX targets
+#   GECKO_DEX_NETWORK - Blockchain network
+#
+# Thresholds:
+#   GECKO_MIN_TRADE_VOLUME - Minimum trade volume
+#   GECKO_MAX_RETRIES - Maximum retries
+#   GECKO_RATE_LIMIT_DELAY - Rate limit delay
+#   GECKO_BACKOFF_FACTOR - Backoff factor
+#
+# Intervals:
+#   GECKO_TOP_POOLS_INTERVAL - Top pools monitoring interval
+#   GECKO_OHLCV_INTERVAL - OHLCV collection interval
+#   GECKO_TRADE_INTERVAL - Trade collection interval
+#   GECKO_WATCHLIST_INTERVAL - Watchlist check interval
+#
+# Timeframes:
+#   GECKO_OHLCV_DEFAULT_TIMEFRAME - Default OHLCV timeframe
+#
+# Error Handling:
+#   GECKO_ERROR_MAX_RETRIES - Error handling max retries
+#   GECKO_ERROR_BACKOFF_FACTOR - Error handling backoff factor
+#   GECKO_ERROR_CIRCUIT_BREAKER_THRESHOLD - Circuit breaker threshold
+#   GECKO_ERROR_CIRCUIT_BREAKER_TIMEOUT - Circuit breaker timeout
+#
+# Watchlist:
+#   GECKO_WATCHLIST_FILE_PATH - Watchlist file path
+#   GECKO_WATCHLIST_CHECK_INTERVAL - Watchlist check interval
+#   GECKO_WATCHLIST_AUTO_ADD - Auto add new tokens (true/false)
+#   GECKO_WATCHLIST_REMOVE_INACTIVE - Remove inactive tokens (true/false)

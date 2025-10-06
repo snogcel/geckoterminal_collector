@@ -113,14 +113,14 @@ class EnvironmentConfig:
 class NautilusPOCConfig:
     """Complete NautilusTrader POC configuration"""
     environment: str
-    environments: Dict[str, EnvironmentConfig]
+    #environments: Dict[str, EnvironmentConfig]
     q50: Q50Config
-    wallet: WalletConfig
-    trading: TradingConfig
+    #wallet: WalletConfig
+    #trading: TradingConfig
     nautilus: NautilusConfig
     monitoring: Dict[str, Any]
     error_handling: Dict[str, Any]
-    security: SecurityConfig
+    #security: SecurityConfig
     regime_detection: Dict[str, Any]
     
     def get_current_env_config(self) -> EnvironmentConfig:
