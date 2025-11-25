@@ -227,9 +227,9 @@ class CollectionConfig:
         return errors
     
     def _is_valid_interval(self, interval: str) -> bool:
-        """Check if interval string has valid format (e.g., '1h', '30m')."""
+        """Check if interval string has valid format (e.g., '15s', '1h', '30m')."""
         if not interval:
             return False
         
-        # Basic validation - ends with 'm', 'h', or 'd'
-        return interval[-1] in ['m', 'h', 'd'] and interval[:-1].isdigit()
+        # Basic validation - ends with 's', 'm', 'h', or 'd'
+        return interval[-1] in ['s', 'm', 'h', 'd'] and interval[:-1].isdigit()

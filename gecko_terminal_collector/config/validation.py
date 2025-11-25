@@ -79,20 +79,22 @@ class IntervalConfigValidator(BaseModel):
     @field_validator('top_pools_monitoring', 'ohlcv_collection', 'trade_collection', 'watchlist_check')
     @classmethod
     def validate_interval_format(cls, v):
-        """Validate interval format (e.g., '1h', '30m', '1d')."""
+        """Validate interval format (e.g., '15s', '1h', '30m', '1d')."""
         if not v:
             raise ValueError("Interval cannot be empty")
         
-        pattern = r'^(\d+)([mhd])$'
+        pattern = r'^(\d+)([smhd])$'
         match = re.match(pattern, v)
         if not match:
-            raise ValueError(f"Invalid interval format: {v}. Expected format: number + unit (m/h/d)")
+            raise ValueError(f"Invalid interval format: {v}. Expected format: number + unit (s/m/h/d)")
         
         number, unit = match.groups()
         number = int(number)
         
         # Validate reasonable ranges
-        if unit == 'm' and (number < 1 or number > 1440):  # 1 minute to 24 hours
+        if unit == 's' and (number < 1 or number > 3600):  # 1 second to 1 hour
+            raise ValueError(f"Second interval must be between 1 and 3600: {v}")
+        elif unit == 'm' and (number < 1 or number > 1440):  # 1 minute to 24 hours
             raise ValueError(f"Minute interval must be between 1 and 1440: {v}")
         elif unit == 'h' and (number < 1 or number > 168):  # 1 hour to 1 week
             raise ValueError(f"Hour interval must be between 1 and 168: {v}")
