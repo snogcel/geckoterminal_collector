@@ -164,3 +164,7 @@ cython_debug/
 /test_output/
 /test_output2/
 /test_output3/
+
+/.rate_limiter_state
+
+config.yaml
