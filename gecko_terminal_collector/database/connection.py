@@ -85,6 +85,12 @@ class DatabaseConnection:
             })
         else:
             # PostgreSQL/MySQL configuration
+            connect_args = {}
+            
+            # Add UTF-8 encoding for PostgreSQL to handle Unicode characters (emojis, etc.)
+            if self.config.url.startswith("postgresql"):
+                connect_args["client_encoding"] = "utf8"
+            
             engine_kwargs.update({
                 "poolclass": QueuePool,
                 "pool_size": self.config.pool_size,
@@ -92,6 +98,9 @@ class DatabaseConnection:
                 "pool_pre_ping": True,
                 "pool_recycle": 3600,  # Recycle connections every hour
             })
+            
+            if connect_args:
+                engine_kwargs["connect_args"] = connect_args
         
         engine = create_engine(self.config.url, **engine_kwargs)
         
@@ -109,6 +118,12 @@ class DatabaseConnection:
         
         # Configure connection pooling for async engine
         if not self.config.async_url.startswith("sqlite"):
+            connect_args = {}
+            
+            # Add UTF-8 encoding for PostgreSQL to handle Unicode characters (emojis, etc.)
+            if self.config.async_url.startswith("postgresql"):
+                connect_args["client_encoding"] = "utf8"
+            
             engine_kwargs.update({
                 "poolclass": QueuePool,
                 "pool_size": self.config.pool_size,
@@ -116,6 +131,9 @@ class DatabaseConnection:
                 "pool_pre_ping": True,
                 "pool_recycle": 3600,
             })
+            
+            if connect_args:
+                engine_kwargs["connect_args"] = connect_args
         
         return create_async_engine(self.config.async_url, **engine_kwargs)
     
