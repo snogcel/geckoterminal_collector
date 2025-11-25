@@ -570,8 +570,9 @@ class NewPoolsCollector(BaseDataCollector):
             # Perform signal analysis
             signal_result = self.signal_analyzer.analyze_pool_signals(pool_data, historical_data)
             
-            # Log significant signals (only for target dexes if configured)
-            if signal_result.signal_score >= self.signal_analyzer.min_signal_score:
+            # Log significant signals (only if signal detection is enabled and for target dexes)
+            if (self.signal_analysis_enabled and 
+                signal_result.signal_score >= self.signal_analyzer.min_signal_score):
                 # Check if this pool's dex is in our target list
                 pool_dex_id = self._get_pool_dex_id(pool_data)
                 should_alert = not self.target_dexes or (pool_dex_id and pool_dex_id.lower() in self.target_dexes)
