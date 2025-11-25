@@ -72,6 +72,12 @@ class NewPoolsCollector(BaseDataCollector):
             if network_config and hasattr(network_config, 'auto_watchlist_integration'):
                 self.auto_watchlist_enabled = network_config.auto_watchlist_integration
         
+        # Get target dexes for filtering signal alerts
+        self.target_dexes = []
+        if hasattr(config, 'dexes') and hasattr(config.dexes, 'targets'):
+            self.target_dexes = [dex.lower() for dex in config.dexes.targets]
+            self.logger.info(f"Signal alerts will be filtered to target dexes: {self.target_dexes}")
+        
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
         return f"new_pools_{self.network}"
@@ -528,6 +534,21 @@ class NewPoolsCollector(BaseDataCollector):
             self.logger.error(f"Error storing history record for {history_record.get('pool_id')}: {e}")
             raise
     
+    def _get_pool_dex_id(self, pool_data: Dict) -> Optional[str]:
+        """
+        Extract dex_id from pool data.
+        
+        Args:
+            pool_data: Pool data dictionary
+            
+        Returns:
+            DEX ID string or None if not found
+        """
+        # Handle both nested (attributes) and flat data formats
+        attributes = pool_data.get('attributes', {})
+        dex_id = attributes.get('dex_id', pool_data.get('dex_id', '')).strip()
+        return dex_id if dex_id else None
+    
     async def _analyze_pool_signals(self, pool_data: Dict) -> Optional[SignalResult]:
         """
         Analyze pool data for trading signals.
@@ -549,10 +570,15 @@ class NewPoolsCollector(BaseDataCollector):
             # Perform signal analysis
             signal_result = self.signal_analyzer.analyze_pool_signals(pool_data, historical_data)
             
-            # Log significant signals
+            # Log significant signals (only for target dexes if configured)
             if signal_result.signal_score >= self.signal_analyzer.min_signal_score:
-                alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
-                self.logger.info(f"Strong signal detected: {alert_message}")
+                # Check if this pool's dex is in our target list
+                pool_dex_id = self._get_pool_dex_id(pool_data)
+                should_alert = not self.target_dexes or (pool_dex_id and pool_dex_id.lower() in self.target_dexes)
+                
+                if should_alert:
+                    alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
+                    self.logger.info(f"Strong signal detected: {alert_message}")
             
             return signal_result
             
