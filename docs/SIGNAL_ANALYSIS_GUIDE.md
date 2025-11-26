@@ -387,6 +387,22 @@ Strong bullish momentum, High trading activity
 
 ---
 
+## Extreme Value Handling
+
+The system automatically caps extreme price movements to prevent database errors:
+
+- **Price changes capped at:** 100,000% (1000x)
+- **Momentum indicator max:** 100,000
+- **Signal scores max:** 100
+
+**When you see capped values:**
+- Indicates extreme volatility (>1000x movement)
+- Proceed with extra caution
+- Higher risk, potential manipulation
+- See [Extreme Value Handling Guide](EXTREME_VALUE_HANDLING.md) for details
+
+---
+
 ## Best Practices
 
 1. **Monitor Signal Quality:**

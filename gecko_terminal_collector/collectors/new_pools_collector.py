@@ -328,7 +328,22 @@ class NewPoolsCollector(BaseDataCollector):
                 except (ValueError, TypeError):
                     return default
             
-            # Base record data
+            # Helper function to cap extreme values to prevent database overflow
+            def cap_value(value, max_val=999999.0):
+                """Cap value to database field limits."""
+                if value is None:
+                    return None
+                decimal_val = safe_decimal(value)
+                if decimal_val is None:
+                    return None
+                # Cap to max value while preserving sign
+                if decimal_val > Decimal(str(max_val)):
+                    return Decimal(str(max_val))
+                elif decimal_val < Decimal(str(-max_val)):
+                    return Decimal(str(-max_val))
+                return decimal_val
+            
+            # Base record data with capped extreme values
             record_data = {
                 'pool_id': pool_data.get('id'),
                 'type': pool_data.get('type', 'pool'),
@@ -340,10 +355,14 @@ class NewPoolsCollector(BaseDataCollector):
                 'address': get_field('address'),
                 'reserve_in_usd': safe_decimal(get_field('reserve_in_usd')),
                 'pool_created_at': pool_created_at,
-                'fdv_usd': safe_decimal(get_field('fdv_usd')),
-                'market_cap_usd': safe_decimal(get_field('market_cap_usd')),
-                'price_change_percentage_h1': safe_decimal(get_field('price_change_percentage_h1')),
-                'price_change_percentage_h24': safe_decimal(get_field('price_change_percentage_h24')),
+                # Cap FDV and market cap - these can be in billions, but we'll cap at reasonable limits
+                # After migration, these will support NUMERIC(30,4), but cap at 999 billion for safety
+                'fdv_usd': cap_value(get_field('fdv_usd'), 999999999999.0),
+                'market_cap_usd': cap_value(get_field('market_cap_usd'), 999999999999.0),
+                # Cap price change percentages - extreme values indicate data issues or pump/dumps
+                # After migration, these will support NUMERIC(15,4), cap at 99,999%
+                'price_change_percentage_h1': cap_value(get_field('price_change_percentage_h1'), 99999.0),
+                'price_change_percentage_h24': cap_value(get_field('price_change_percentage_h24'), 99999.0),
                 'transactions_h1_buys': safe_int(get_field('transactions_h1_buys')),
                 'transactions_h1_sells': safe_int(get_field('transactions_h1_sells')),
                 'transactions_h24_buys': safe_int(get_field('transactions_h24_buys')),
@@ -359,12 +378,13 @@ class NewPoolsCollector(BaseDataCollector):
             # Add signal analysis data if available
             if signal_result:
                 record_data.update({
-                    'signal_score': safe_decimal(signal_result.signal_score),
+                    'signal_score': cap_value(signal_result.signal_score, 100.0),  # Max 100
                     'volume_trend': signal_result.volume_trend,
                     'liquidity_trend': signal_result.liquidity_trend,
-                    'momentum_indicator': safe_decimal(signal_result.momentum_indicator),
-                    'activity_score': safe_decimal(signal_result.activity_score),
-                    'volatility_score': safe_decimal(signal_result.volatility_score)
+                    # After migration, momentum_indicator will support NUMERIC(15,4), cap at 99,999
+                    'momentum_indicator': cap_value(signal_result.momentum_indicator, 99999.0),
+                    'activity_score': cap_value(signal_result.activity_score, 100.0),  # Max 100
+                    'volatility_score': cap_value(signal_result.volatility_score, 100.0)  # Max 100
                 })
             
             return record_data
