@@ -98,6 +98,8 @@ class NetworkConfig:
     enabled: bool = True
     interval: str = "30m"
     rate_limit_key: Optional[str] = None
+    signal_analysis: bool = True  # Enable signal analysis for collected pools
+    auto_watchlist_integration: bool = False  # Auto-add high-signal pools to watchlist
 
 
 @dataclass

@@ -15,6 +15,7 @@ from gecko_terminal_collector.database.postgresql_models import NewPoolsHistory
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer, SignalResult
+from gecko_terminal_collector.utils.signal_alerting import setup_signal_logging, SignalAlerter
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,36 @@ class NewPoolsCollector(BaseDataCollector):
             if network_config and hasattr(network_config, 'auto_watchlist_integration'):
                 self.auto_watchlist_enabled = network_config.auto_watchlist_integration
         
+        # Log auto-watchlist configuration
+        if self.auto_watchlist_enabled:
+            threshold = signal_config.get('auto_watchlist_threshold', 75.0)
+            self.logger.info(
+                f"Auto-watchlist ENABLED for {network} - "
+                f"threshold: {threshold:.1f}, "
+                f"signal analysis: {self.signal_analysis_enabled}"
+            )
+        else:
+            self.logger.info(f"Auto-watchlist DISABLED for {network}")
+        
         # Get target dexes for filtering signal alerts
         self.target_dexes = []
         if hasattr(config, 'dexes') and hasattr(config.dexes, 'targets'):
             self.target_dexes = [dex.lower() for dex in config.dexes.targets]
             self.logger.info(f"Signal alerts will be filtered to target dexes: {self.target_dexes}")
+        
+        # Setup enhanced signal alerting
+        alert_config = {
+            'enable_file_alerts': signal_config.get('enable_file_alerts', True),
+            'enable_sound_alerts': signal_config.get('enable_sound_alerts', False),
+            'enable_desktop_notifications': signal_config.get('enable_desktop_notifications', False),
+            'enable_webhook': signal_config.get('enable_webhook', False),
+            'webhook_url': signal_config.get('webhook_url'),
+            'min_signal_score': signal_config.get('min_signal_score', 60.0),
+            'alerts_dir': signal_config.get('alerts_dir', 'alerts'),
+            'use_colors': signal_config.get('use_colors', True),
+            'use_emojis': signal_config.get('use_emojis', True)
+        }
+        self.signal_alerter = setup_signal_logging(self.logger, alert_config)
         
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
@@ -159,8 +185,11 @@ class NewPoolsCollector(BaseDataCollector):
                         signal_result = await self._analyze_pool_signals(pool_data)
                         
                         # Auto-add to watchlist if signal is strong enough
-                        if self.auto_watchlist_enabled and signal_result:
-                            await self._handle_auto_watchlist(pool_data, signal_result)
+                        if signal_result:
+                            if self.auto_watchlist_enabled:
+                                await self._handle_auto_watchlist(pool_data, signal_result)
+                            else:
+                                self.logger.debug(f"Auto-watchlist disabled for network {self.network}")
                     
                     # Always create historical record for predictive modeling
                     history_record = self._create_history_record(pool_data, signal_result)
@@ -599,7 +628,22 @@ class NewPoolsCollector(BaseDataCollector):
                 
                 if should_alert:
                     alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
-                    self.logger.info(f"Strong signal detected: {alert_message}")
+                    
+                    # Use custom TRADE_SIGNAL log level for high visibility
+                    self.logger.trade_signal(f"STRONG SIGNAL DETECTED: {alert_message}")
+                    
+                    # Send multi-channel alerts (file, sound, notification, webhook)
+                    signal_data = {
+                        'signal_score': signal_result.signal_score,
+                        'volume_trend': signal_result.volume_trend,
+                        'liquidity_trend': signal_result.liquidity_trend,
+                        'momentum_indicator': signal_result.momentum_indicator,
+                        'activity_score': signal_result.activity_score,
+                        'volatility_score': signal_result.volatility_score,
+                        'dex_id': pool_dex_id,
+                        'network': self.network
+                    }
+                    self.signal_alerter.alert(pool_id, signal_data, alert_message)
             
             return signal_result
             
@@ -645,17 +689,35 @@ class NewPoolsCollector(BaseDataCollector):
         try:
             pool_id = pool_data.get('id')
             if not pool_id:
+                self.logger.debug("Auto-watchlist: No pool_id found in pool_data")
                 return
+            
+            # Get the threshold for logging
+            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 75.0)
             
             # Check if signal is strong enough for watchlist addition
             if not self.signal_analyzer.should_add_to_watchlist(signal_result):
+                self.logger.debug(
+                    f"Auto-watchlist: Pool {pool_id} signal score {signal_result.signal_score:.1f} "
+                    f"below threshold {threshold:.1f} - not adding to watchlist"
+                )
                 return
+            
+            self.logger.info(
+                f"Auto-watchlist: Pool {pool_id} has strong signal ({signal_result.signal_score:.1f} >= {threshold:.1f}) "
+                f"- checking if already in watchlist..."
+            )
             
             # Check if pool is already in watchlist
             if hasattr(self.db_manager, 'is_pool_in_watchlist'):
-                if await self.db_manager.is_pool_in_watchlist(pool_id):
-                    self.logger.debug(f"Pool {pool_id} already in watchlist")
+                is_in_watchlist = await self.db_manager.is_pool_in_watchlist(pool_id)
+                if is_in_watchlist:
+                    self.logger.info(f"Auto-watchlist: Pool {pool_id} already in watchlist - skipping")
                     return
+                else:
+                    self.logger.info(f"Auto-watchlist: Pool {pool_id} not in watchlist - proceeding with addition")
+            else:
+                self.logger.warning("Auto-watchlist: is_pool_in_watchlist method not available - proceeding without duplicate check")
             
             # Extract token information for watchlist entry
             attributes = pool_data.get('attributes', {})
@@ -675,15 +737,22 @@ class NewPoolsCollector(BaseDataCollector):
                 }
             }
             
+            self.logger.info(f"Auto-watchlist: Adding pool {pool_id} to watchlist with data: {watchlist_data}")
+            
             # Add to watchlist
             if hasattr(self.db_manager, 'add_to_watchlist'):
                 await self.db_manager.add_to_watchlist(watchlist_data)
-                self.logger.info(f"Auto-added pool {pool_id} to watchlist (signal score: {signal_result.signal_score:.1f})")
+                self.logger.info(
+                    f"✅ Auto-watchlist: Successfully added pool {pool_id} to watchlist "
+                    f"(signal score: {signal_result.signal_score:.1f})"
+                )
             else:
-                self.logger.warning("Watchlist functionality not available in database manager")
+                self.logger.warning("Auto-watchlist: add_to_watchlist method not available in database manager")
                 
         except Exception as e:
-            self.logger.error(f"Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+            self.logger.error(f"Auto-watchlist: Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+            import traceback
+            self.logger.error(f"Auto-watchlist: Traceback: {traceback.format_exc()}")
     
     def _extract_token_symbol(self, pool_data: Dict) -> str:
         """
