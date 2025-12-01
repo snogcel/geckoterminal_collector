@@ -7,7 +7,7 @@ import logging
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, getcontext
 from typing import Dict, List, Optional, Any, Set
 
 from sqlalchemy import and_, desc, func, or_, select, text
@@ -2000,18 +2000,51 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     
     async def store_new_pools_history(self, history_record: Any) -> None:
         """
-        Store a new pools history record.
+        Store a new pools history record with duplicate detection.
+        
+        Checks for duplicates based on key data fields to prevent storing
+        identical data when the API hasn't updated (typically updates once per minute).
         
         Args:
             history_record: NewPoolsHistory model instance to store
         """
         from gecko_terminal_collector.database.models import NewPoolsHistory
+
+        # set decimal precision to 4
+        getcontext().prec = 4
         
         with self.connection.get_session() as session:
             try:
+                # Check for recent duplicate data (within last 2 minutes)
+                # The API typically updates once per minute, so checking last 2 minutes
+                # ensures we catch duplicates even if collection timing varies slightly
+                cutoff_time = datetime.now() - timedelta(minutes=2)
+
+                # Query for recent records with same pool_id
+                recent_record = session.query(NewPoolsHistory).filter(
+                    NewPoolsHistory.pool_id == history_record.pool_id,
+                    NewPoolsHistory.collected_at >= cutoff_time
+                ).order_by(NewPoolsHistory.collected_at.desc()).first()
+                
+                # If a recent record exists, check if the data is identical
+                if recent_record:                
+
+                    fields_match = (
+                        Decimal(recent_record.reserve_in_usd) == Decimal(history_record.reserve_in_usd)
+                    )                    
+
+                    if fields_match:
+                        logger.debug(
+                            f"Skipping duplicate new pools history record for pool {history_record.pool_id} - "
+                            f"data unchanged since {recent_record.collected_at}"
+                        )
+                        return
+                
+                # No duplicate found, store the record
                 session.add(history_record)
                 session.commit()
                 logger.debug(f"Stored new pools history record for pool {history_record.pool_id}")
+                
             except IntegrityError as e:
                 session.rollback()
                 # Handle unique constraint violation (duplicate record)
