@@ -2129,15 +2129,42 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
     
     async def add_to_watchlist(self, watchlist_data: Dict) -> None:
         """
-        Add pool to watchlist.
+        Add pool to watchlist with proper constraint handling.
+        
+        Handles:
+        - Foreign key constraint: Ensures pool exists in pools table
+        - Unique constraint: Handles duplicate pool_id gracefully
         
         Args:
             watchlist_data: Watchlist entry data
         """
         from gecko_terminal_collector.database.models import WatchlistEntry
         
+        pool_id = watchlist_data['pool_id']
+        
         with self.connection.get_session() as session:
             try:
+                # Check if pool exists in pools table (foreign key requirement)
+                pool_exists = session.query(self.PoolModel).filter(
+                    self.PoolModel.id == pool_id
+                ).first() is not None
+                
+                if not pool_exists:
+                    logger.warning(
+                        f"Cannot add pool {pool_id} to watchlist - pool does not exist in pools table. "
+                        f"Pool must be created first."
+                    )
+                    return
+                
+                # Check if already in watchlist (unique constraint)
+                existing_entry = session.query(WatchlistEntry).filter(
+                    WatchlistEntry.pool_id == pool_id
+                ).first()
+                
+                if existing_entry:
+                    logger.debug(f"Pool {pool_id} already in watchlist - skipping")
+                    return
+                
                 # Create watchlist entry
                 metadata_json = watchlist_data.get('metadata_json', {})
                 if isinstance(metadata_json, dict):
@@ -2145,7 +2172,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     metadata_json = json.dumps(metadata_json)
                 
                 entry = WatchlistEntry(
-                    pool_id=watchlist_data['pool_id'],
+                    pool_id=pool_id,
                     token_symbol=watchlist_data.get('token_symbol'),
                     token_name=watchlist_data.get('token_name'),
                     network_address=watchlist_data.get('network_address'),
@@ -2156,11 +2183,24 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 session.add(entry)
                 session.commit()
                 
-                logger.info(f"Added pool {watchlist_data['pool_id']} to watchlist")
+                logger.info(f"✅ Successfully added pool {pool_id} to watchlist")
                 
+            except IntegrityError as e:
+                session.rollback()
+                # Handle race condition where pool was added between check and insert
+                if "uq_watchlist_pool_id" in str(e) or "UNIQUE constraint" in str(e):
+                    logger.debug(f"Pool {pool_id} already in watchlist (race condition)")
+                elif "FOREIGN KEY constraint" in str(e) or "foreign key" in str(e).lower():
+                    logger.error(
+                        f"Cannot add pool {pool_id} to watchlist - foreign key constraint failed. "
+                        f"Pool must exist in pools table first."
+                    )
+                else:
+                    logger.error(f"Integrity error adding pool {pool_id} to watchlist: {e}")
+                    raise
             except Exception as e:
                 session.rollback()
-                logger.error(f"Error adding pool to watchlist: {e}")
+                logger.error(f"Error adding pool {pool_id} to watchlist: {e}")
                 raise
 
     # Discovery-specific database operations

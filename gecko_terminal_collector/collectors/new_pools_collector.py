@@ -720,14 +720,26 @@ class NewPoolsCollector(BaseDataCollector):
                 self.logger.warning("Auto-watchlist: is_pool_in_watchlist method not available - proceeding without duplicate check")
             
             # Extract token information for watchlist entry
+            # Handle both nested (attributes) and flat data formats
             attributes = pool_data.get('attributes', {})
+            
+            # Helper function to get field from either attributes or root level
+            def get_field(field_name, default=''):
+                return attributes.get(field_name, pool_data.get(field_name, default))
+            
+            # Get pool name and address
+            pool_name = get_field('name', f"Pool {pool_id[:8]}...")
+            pool_address = get_field('address', '')
+            
+            # Extract token symbol from pool name
+            token_symbol = self._extract_token_symbol_from_name(pool_name, pool_id)
             
             # Create watchlist entry
             watchlist_data = {
                 'pool_id': pool_id,
-                'token_symbol': self._extract_token_symbol(pool_data),
-                'token_name': attributes.get('name', f"Pool {pool_id[:8]}..."),
-                'network_address': attributes.get('address', ''),
+                'token_symbol': token_symbol,
+                'token_name': pool_name,
+                'network_address': pool_address,
                 'is_active': True,
                 'metadata_json': {
                     'auto_added': True,
@@ -765,26 +777,52 @@ class NewPoolsCollector(BaseDataCollector):
             Token symbol string
         """
         try:
+            # Handle both nested (attributes) and flat data formats
             attributes = pool_data.get('attributes', {})
-            
-            # Try to extract from name
-            name = attributes.get('name', '')
-            if name and '/' in name:
-                # Handle "TOKEN/SOL" format
-                return name.split('/')[0].strip().upper()
-            elif name:
-                # Use first word of name
-                return name.split()[0].upper()
-            
-            # Fallback to pool ID prefix
+            name = attributes.get('name', pool_data.get('name', ''))
             pool_id = pool_data.get('id', '')
-            if pool_id:
-                return f"POOL{pool_id[:6].upper()}"
             
-            return "UNKNOWN"
+            return self._extract_token_symbol_from_name(name, pool_id)
             
         except Exception as e:
             self.logger.error(f"Error extracting token symbol: {e}")
+            return "UNKNOWN"
+    
+    def _extract_token_symbol_from_name(self, name: str, pool_id: str = '') -> str:
+        """
+        Extract token symbol from pool name.
+        
+        Args:
+            name: Pool name (e.g., "TOKEN / SOL" or "TOKEN/SOL")
+            pool_id: Pool ID for fallback
+            
+        Returns:
+            Token symbol string
+        """
+        try:
+            if not name:
+                # Fallback to pool ID prefix if no name
+                if pool_id:
+                    return f"POOL{pool_id.split('_')[-1][:6].upper()}"
+                return "UNKNOWN"
+            
+            # Handle "TOKEN / SOL" or "TOKEN/SOL" format
+            if '/' in name:
+                token_part = name.split('/')[0].strip()
+                # Don't uppercase if it has mixed case (preserve branding)
+                return token_part if token_part else "UNKNOWN"
+            
+            # Handle space-separated format
+            if ' ' in name:
+                # Use first word
+                token_part = name.split()[0].strip()
+                return token_part if token_part else "UNKNOWN"
+            
+            # Single word name
+            return name.strip() if name.strip() else "UNKNOWN"
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting token symbol from name '{name}': {e}")
             return "UNKNOWN"
     
     async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]:

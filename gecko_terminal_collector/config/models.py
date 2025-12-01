@@ -93,6 +93,25 @@ class WatchlistConfig:
 
 
 @dataclass
+class SignalDetectionConfig:
+    """Signal detection configuration for new pools."""
+    enabled: bool = True
+    min_signal_score: float = 60.0
+    volume_spike_threshold: float = 2.0
+    liquidity_growth_threshold: float = 1.5
+    momentum_lookback_hours: int = 6
+    auto_watchlist_threshold: float = 75.0
+    use_colors: bool = True
+    use_emojis: bool = True
+    enable_file_alerts: bool = True
+    enable_sound_alerts: bool = False
+    enable_desktop_notifications: bool = False
+    enable_webhook: bool = False
+    webhook_url: Optional[str] = None
+    alerts_dir: str = "alerts"
+
+
+@dataclass
 class NetworkConfig:
     """Network-specific configuration for new pools collection."""
     enabled: bool = True
@@ -109,6 +128,7 @@ class NewPoolsConfig:
         "solana": NetworkConfig(enabled=True, interval="30m", rate_limit_key="new_pools_solana"),
         "ethereum": NetworkConfig(enabled=False, interval="30m", rate_limit_key="new_pools_ethereum")
     })
+    signal_detection: SignalDetectionConfig = field(default_factory=SignalDetectionConfig)
 
 
 @dataclass
