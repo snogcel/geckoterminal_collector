@@ -256,6 +256,14 @@ class NewPoolsHistory(Base):
     network_id = Column(String(50))
     collected_at = Column(DateTime, default=func.current_timestamp())
     
+    # Signal Analysis Fields
+    signal_score = Column(Numeric(10, 4))  # Overall signal strength (0-100)
+    volume_trend = Column(String(20))  # 'increasing', 'decreasing', 'stable', 'spike'
+    liquidity_trend = Column(String(20))  # 'growing', 'shrinking', 'stable'
+    momentum_indicator = Column(Numeric(10, 4))  # Price momentum indicator
+    activity_score = Column(Numeric(10, 4))  # Trading activity score
+    volatility_score = Column(Numeric(10, 4))  # Volatility score
+    
     # Unique constraint to prevent duplicate records for same pool at same collection time
     __table_args__ = (
         UniqueConstraint('pool_id', 'collected_at', name='uq_new_pools_history_pool_collected'),

@@ -296,10 +296,10 @@ class NewPoolsHistory(Base):
     address = Column(String(255))
     reserve_in_usd = Column(Numeric(20, 4))
     pool_created_at = Column(TIMESTAMP(timezone=True))
-    fdv_usd = Column(Numeric(20, 4))
-    market_cap_usd = Column(Numeric(20, 4))
-    price_change_percentage_h1 = Column(Numeric(10, 4))
-    price_change_percentage_h24 = Column(Numeric(10, 4))
+    fdv_usd = Column(Numeric(30, 4))  # Increased to handle large FDV values (billions)
+    market_cap_usd = Column(Numeric(30, 4))  # Increased to handle large market cap values
+    price_change_percentage_h1 = Column(Numeric(15, 4))  # Increased to handle extreme price changes
+    price_change_percentage_h24 = Column(Numeric(15, 4))  # Increased to handle extreme price changes
     transactions_h1_buys = Column(Integer)
     transactions_h1_sells = Column(Integer)
     transactions_h24_buys = Column(Integer)
@@ -315,7 +315,7 @@ class NewPoolsHistory(Base):
     signal_score = Column(Numeric(10, 4), index=True)  # Overall signal strength (0-100)
     volume_trend = Column(String(20))  # 'increasing', 'decreasing', 'stable', 'spike'
     liquidity_trend = Column(String(20))  # 'growing', 'shrinking', 'stable'
-    momentum_indicator = Column(Numeric(10, 4))  # Price momentum indicator
+    momentum_indicator = Column(Numeric(15, 4))  # Price momentum indicator (increased for extreme values)
     activity_score = Column(Numeric(10, 4))  # Trading activity score
     volatility_score = Column(Numeric(10, 4))  # Price volatility score
     

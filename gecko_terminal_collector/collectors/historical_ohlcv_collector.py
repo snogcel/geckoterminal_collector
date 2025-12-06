@@ -225,9 +225,9 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                             elif end_date > latest_existing:
                                 start_date = max(start_date, latest_existing)
                     
-                    #print("=_HistoricalOHLCVCollector==")
-                    #print(pool_id)
-                    #print("===")
+                    print("=_HistoricalOHLCVCollector==")
+                    print(pool_id)
+                    print("===")
 
                     print("--__pool_id for lookup in SQL db: ", pool_id)
                     print("self.network context: ", self.network)
@@ -327,7 +327,6 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                                                 
                         # The unique constraint on (pool_id, timeframe, timestamp) prevents duplicates.
                         # watchlist_pool_id is passed to this function to preserve duplicate prevention                        
-                        
 
                         # overloading SQLite Database, also known as a Race Condition
                         stored_count = await self.db_manager.store_ohlcv_data(records)
@@ -437,6 +436,10 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 # Parse OHLCV data from response
                 records = self._parse_direct_ohlcv_response(response_data, watchlist_pool_id, timeframe)
                 
+                # print("===records===")
+                # print(records)
+                # print("===end_records===")
+                
                 if not records:
                     logger.debug(f"No records parsed from response for pool {pool_id}, timeframe {timeframe}")
                     break
@@ -447,14 +450,25 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     record for record in records
                     if (start_time - timedelta(hours=1)) <= record.datetime <= (end_time + timedelta(hours=1))
                 ]
+
+                # print("===filtered_records===")
+                # print(filtered_records)
+                # print("===end_filtered_records===")
                 
                 all_records.extend(filtered_records)
-                
+
+                # print("===all_records===")
+                # print(all_records)
+                # print("===end_all_records===")
+
                 # Update pagination cursor to the earliest timestamp from this batch
                 earliest_timestamp = min(record.timestamp for record in records)
                 
                 # If we've reached our start time or got no new data, stop
                 if earliest_timestamp <= start_timestamp or len(records) < self.limit_per_request:
+                    print("===store_data===")
+                    # overloading SQLite Database, also known as a Race Condition
+                    stored_count = await self.db_manager.store_ohlcv_data(all_records)
                     break
                 
                 current_before_timestamp = earliest_timestamp
@@ -462,7 +476,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 # Add delay between paginated requests to respect rate limits
                 if self.pagination_delay > 0:
                     await asyncio.sleep(self.pagination_delay)
-                
+
                 logger.debug(
                     f"Collected {len(filtered_records)} records for pool {pool_id}, "
                     f"timeframe {timeframe}, continuing from timestamp {current_before_timestamp}"

@@ -103,13 +103,19 @@ class NewPoolsSignalAnalyzer:
                 activity_analysis, volatility_analysis
             )
             
+            # Cap extreme values to prevent database overflow
+            # Scores should be 0-100, momentum can be larger but needs capping
             return SignalResult(
-                signal_score=signal_score,
+                signal_score=self._cap_extreme_value(signal_score, 100.0, 0.0),
                 volume_trend=volume_analysis.get('trend', 'stable'),
                 liquidity_trend=liquidity_analysis.get('trend', 'stable'),
-                momentum_indicator=momentum_analysis.get('indicator', 0.0),
-                activity_score=activity_analysis.get('score', 0.0),
-                volatility_score=volatility_analysis.get('score', 0.0),
+                momentum_indicator=self._cap_extreme_value(
+                    momentum_analysis.get('indicator', 0.0), 
+                    max_value=99999.0,  # Cap at 99,999 for NUMERIC(15,4)
+                    min_value=-99999.0
+                ),
+                activity_score=self._cap_extreme_value(activity_analysis.get('score', 0.0), 100.0, 0.0),
+                volatility_score=self._cap_extreme_value(volatility_analysis.get('score', 0.0), 100.0, 0.0),
                 signals=signals
             )
             
@@ -228,6 +234,15 @@ class NewPoolsSignalAnalyzer:
             price_change_1h = self._safe_decimal(current_data.get('price_change_percentage_h1', 0))
             price_change_24h = self._safe_decimal(current_data.get('price_change_percentage_h24', 0))
             
+            # Cap extreme price changes to prevent database overflow
+            # Max value for NUMERIC(10,4) is 999,999.9999
+            MAX_PRICE_CHANGE = Decimal('100000')  # Cap at 100,000% (1000x)
+            
+            if abs(price_change_1h) > MAX_PRICE_CHANGE:
+                price_change_1h = MAX_PRICE_CHANGE if price_change_1h > 0 else -MAX_PRICE_CHANGE
+            if abs(price_change_24h) > MAX_PRICE_CHANGE:
+                price_change_24h = MAX_PRICE_CHANGE if price_change_24h > 0 else -MAX_PRICE_CHANGE
+            
             # Calculate momentum indicator
             momentum_indicator = float((price_change_1h * 2 + price_change_24h) / 3)
             
@@ -321,6 +336,11 @@ class NewPoolsSignalAnalyzer:
         try:
             price_change_1h = abs(self._safe_decimal(current_data.get('price_change_percentage_h1', 0)))
             price_change_24h = abs(self._safe_decimal(current_data.get('price_change_percentage_h24', 0)))
+            
+            # Cap extreme values
+            MAX_PRICE_CHANGE = Decimal('100000')  # Cap at 100,000%
+            price_change_1h = min(price_change_1h, MAX_PRICE_CHANGE)
+            price_change_24h = min(price_change_24h, MAX_PRICE_CHANGE)
             
             # Calculate volatility score
             volatility_score = float((price_change_1h * 2 + price_change_24h) / 3)
@@ -425,6 +445,38 @@ class NewPoolsSignalAnalyzer:
             return int(float(value))
         except (ValueError, TypeError):
             return 0
+    
+    def _cap_extreme_value(self, value: float, max_value: float = 999999.0, 
+                          min_value: float = -999999.0) -> float:
+        """
+        Cap extreme values to prevent database numeric overflow.
+        
+        Args:
+            value: The value to cap
+            max_value: Maximum allowed value
+            min_value: Minimum allowed value
+            
+        Returns:
+            Capped value within the specified range
+        """
+        if value is None:
+            return 0.0
+        
+        # Handle infinity and NaN
+        if not isinstance(value, (int, float, Decimal)):
+            return 0.0
+        
+        value = float(value)
+        
+        if value != value:  # NaN check
+            return 0.0
+        if value == float('inf'):
+            return max_value
+        if value == float('-inf'):
+            return min_value
+        
+        # Cap to range
+        return max(min_value, min(max_value, value))
     
     def should_add_to_watchlist(self, signal_result: SignalResult, threshold: float = None) -> bool:
         """

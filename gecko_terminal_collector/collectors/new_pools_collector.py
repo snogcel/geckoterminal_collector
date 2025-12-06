@@ -15,6 +15,7 @@ from gecko_terminal_collector.database.postgresql_models import NewPoolsHistory
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.analysis.signal_analyzer import NewPoolsSignalAnalyzer, SignalResult
+from gecko_terminal_collector.utils.signal_alerting import setup_signal_logging, SignalAlerter
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,37 @@ class NewPoolsCollector(BaseDataCollector):
             network_config = new_pools_config.networks.get(network, None)
             if network_config and hasattr(network_config, 'auto_watchlist_integration'):
                 self.auto_watchlist_enabled = network_config.auto_watchlist_integration
+        
+        # Log auto-watchlist configuration
+        if self.auto_watchlist_enabled:
+            threshold = signal_config.get('auto_watchlist_threshold', 75.0)
+            self.logger.info(
+                f"Auto-watchlist ENABLED for {network} - "
+                f"threshold: {threshold:.1f}, "
+                f"signal analysis: {self.signal_analysis_enabled}"
+            )
+        else:
+            self.logger.info(f"Auto-watchlist DISABLED for {network}")
+        
+        # Get target dexes for filtering signal alerts
+        self.target_dexes = []
+        if hasattr(config, 'dexes') and hasattr(config.dexes, 'targets'):
+            self.target_dexes = [dex.lower() for dex in config.dexes.targets]
+            self.logger.info(f"Signal alerts will be filtered to target dexes: {self.target_dexes}")
+        
+        # Setup enhanced signal alerting
+        alert_config = {
+            'enable_file_alerts': signal_config.get('enable_file_alerts', True),
+            'enable_sound_alerts': signal_config.get('enable_sound_alerts', False),
+            'enable_desktop_notifications': signal_config.get('enable_desktop_notifications', False),
+            'enable_webhook': signal_config.get('enable_webhook', False),
+            'webhook_url': signal_config.get('webhook_url'),
+            'min_signal_score': signal_config.get('min_signal_score', 60.0),
+            'alerts_dir': signal_config.get('alerts_dir', 'alerts'),
+            'use_colors': signal_config.get('use_colors', True),
+            'use_emojis': signal_config.get('use_emojis', True)
+        }
+        self.signal_alerter = setup_signal_logging(self.logger, alert_config)
         
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
@@ -153,8 +185,11 @@ class NewPoolsCollector(BaseDataCollector):
                         signal_result = await self._analyze_pool_signals(pool_data)
                         
                         # Auto-add to watchlist if signal is strong enough
-                        if self.auto_watchlist_enabled and signal_result:
-                            await self._handle_auto_watchlist(pool_data, signal_result)
+                        if signal_result:
+                            if self.auto_watchlist_enabled:
+                                await self._handle_auto_watchlist(pool_data, signal_result)
+                            else:
+                                self.logger.debug(f"Auto-watchlist disabled for network {self.network}")
                     
                     # Always create historical record for predictive modeling
                     history_record = self._create_history_record(pool_data, signal_result)
@@ -322,7 +357,22 @@ class NewPoolsCollector(BaseDataCollector):
                 except (ValueError, TypeError):
                     return default
             
-            # Base record data
+            # Helper function to cap extreme values to prevent database overflow
+            def cap_value(value, max_val=999999.0):
+                """Cap value to database field limits."""
+                if value is None:
+                    return None
+                decimal_val = safe_decimal(value)
+                if decimal_val is None:
+                    return None
+                # Cap to max value while preserving sign
+                if decimal_val > Decimal(str(max_val)):
+                    return Decimal(str(max_val))
+                elif decimal_val < Decimal(str(-max_val)):
+                    return Decimal(str(-max_val))
+                return decimal_val
+            
+            # Base record data with capped extreme values
             record_data = {
                 'pool_id': pool_data.get('id'),
                 'type': pool_data.get('type', 'pool'),
@@ -334,10 +384,14 @@ class NewPoolsCollector(BaseDataCollector):
                 'address': get_field('address'),
                 'reserve_in_usd': safe_decimal(get_field('reserve_in_usd')),
                 'pool_created_at': pool_created_at,
-                'fdv_usd': safe_decimal(get_field('fdv_usd')),
-                'market_cap_usd': safe_decimal(get_field('market_cap_usd')),
-                'price_change_percentage_h1': safe_decimal(get_field('price_change_percentage_h1')),
-                'price_change_percentage_h24': safe_decimal(get_field('price_change_percentage_h24')),
+                # Cap FDV and market cap - these can be in billions, but we'll cap at reasonable limits
+                # After migration, these will support NUMERIC(30,4), but cap at 999 billion for safety
+                'fdv_usd': cap_value(get_field('fdv_usd'), 999999999999.0),
+                'market_cap_usd': cap_value(get_field('market_cap_usd'), 999999999999.0),
+                # Cap price change percentages - extreme values indicate data issues or pump/dumps
+                # After migration, these will support NUMERIC(15,4), cap at 99,999%
+                'price_change_percentage_h1': cap_value(get_field('price_change_percentage_h1'), 99999.0),
+                'price_change_percentage_h24': cap_value(get_field('price_change_percentage_h24'), 99999.0),
                 'transactions_h1_buys': safe_int(get_field('transactions_h1_buys')),
                 'transactions_h1_sells': safe_int(get_field('transactions_h1_sells')),
                 'transactions_h24_buys': safe_int(get_field('transactions_h24_buys')),
@@ -353,12 +407,13 @@ class NewPoolsCollector(BaseDataCollector):
             # Add signal analysis data if available
             if signal_result:
                 record_data.update({
-                    'signal_score': safe_decimal(signal_result.signal_score),
+                    'signal_score': cap_value(signal_result.signal_score, 100.0),  # Max 100
                     'volume_trend': signal_result.volume_trend,
                     'liquidity_trend': signal_result.liquidity_trend,
-                    'momentum_indicator': safe_decimal(signal_result.momentum_indicator),
-                    'activity_score': safe_decimal(signal_result.activity_score),
-                    'volatility_score': safe_decimal(signal_result.volatility_score)
+                    # After migration, momentum_indicator will support NUMERIC(15,4), cap at 99,999
+                    'momentum_indicator': cap_value(signal_result.momentum_indicator, 99999.0),
+                    'activity_score': cap_value(signal_result.activity_score, 100.0),  # Max 100
+                    'volatility_score': cap_value(signal_result.volatility_score, 100.0)  # Max 100
                 })
             
             return record_data
@@ -528,6 +583,21 @@ class NewPoolsCollector(BaseDataCollector):
             self.logger.error(f"Error storing history record for {history_record.get('pool_id')}: {e}")
             raise
     
+    def _get_pool_dex_id(self, pool_data: Dict) -> Optional[str]:
+        """
+        Extract dex_id from pool data.
+        
+        Args:
+            pool_data: Pool data dictionary
+            
+        Returns:
+            DEX ID string or None if not found
+        """
+        # Handle both nested (attributes) and flat data formats
+        attributes = pool_data.get('attributes', {})
+        dex_id = attributes.get('dex_id', pool_data.get('dex_id', '')).strip()
+        return dex_id if dex_id else None
+    
     async def _analyze_pool_signals(self, pool_data: Dict) -> Optional[SignalResult]:
         """
         Analyze pool data for trading signals.
@@ -549,10 +619,31 @@ class NewPoolsCollector(BaseDataCollector):
             # Perform signal analysis
             signal_result = self.signal_analyzer.analyze_pool_signals(pool_data, historical_data)
             
-            # Log significant signals
-            if signal_result.signal_score >= self.signal_analyzer.min_signal_score:
-                alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
-                self.logger.info(f"Strong signal detected: {alert_message}")
+            # Log significant signals (only if signal detection is enabled and for target dexes)
+            if (self.signal_analysis_enabled and 
+                signal_result.signal_score >= self.signal_analyzer.min_signal_score):
+                # Check if this pool's dex is in our target list
+                pool_dex_id = self._get_pool_dex_id(pool_data)
+                should_alert = not self.target_dexes or (pool_dex_id and pool_dex_id.lower() in self.target_dexes)
+                
+                if should_alert:
+                    alert_message = self.signal_analyzer.generate_alert_message(pool_id, signal_result)
+                    
+                    # Use custom TRADE_SIGNAL log level for high visibility
+                    self.logger.trade_signal(f"STRONG SIGNAL DETECTED: {alert_message}")
+                    
+                    # Send multi-channel alerts (file, sound, notification, webhook)
+                    signal_data = {
+                        'signal_score': signal_result.signal_score,
+                        'volume_trend': signal_result.volume_trend,
+                        'liquidity_trend': signal_result.liquidity_trend,
+                        'momentum_indicator': signal_result.momentum_indicator,
+                        'activity_score': signal_result.activity_score,
+                        'volatility_score': signal_result.volatility_score,
+                        'dex_id': pool_dex_id,
+                        'network': self.network
+                    }
+                    self.signal_alerter.alert(pool_id, signal_data, alert_message)
             
             return signal_result
             
@@ -598,27 +689,67 @@ class NewPoolsCollector(BaseDataCollector):
         try:
             pool_id = pool_data.get('id')
             if not pool_id:
+                self.logger.debug("Auto-watchlist: No pool_id found in pool_data")
                 return
+            
+            # Get the threshold for logging
+            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 75.0)
             
             # Check if signal is strong enough for watchlist addition
             if not self.signal_analyzer.should_add_to_watchlist(signal_result):
+                self.logger.debug(
+                    f"Auto-watchlist: Pool {pool_id} signal score {signal_result.signal_score:.1f} "
+                    f"below threshold {threshold:.1f} - not adding to watchlist"
+                )
                 return
+            
+            # Check if pool's DEX is in our target list (same logic as signal alerts)
+            pool_dex_id = self._get_pool_dex_id(pool_data)
+            should_add = not self.target_dexes or (pool_dex_id and pool_dex_id.lower() in self.target_dexes)
+            
+            if not should_add:
+                self.logger.debug(
+                    f"Auto-watchlist: Pool {pool_id} DEX '{pool_dex_id}' not in target dexes {self.target_dexes} - skipping"
+                )
+                return
+            
+            self.logger.info(
+                f"Auto-watchlist: Pool {pool_id} has strong signal ({signal_result.signal_score:.1f} >= {threshold:.1f}) "
+                f"and is from target DEX '{pool_dex_id}' - checking if already in watchlist..."
+            )
             
             # Check if pool is already in watchlist
             if hasattr(self.db_manager, 'is_pool_in_watchlist'):
-                if await self.db_manager.is_pool_in_watchlist(pool_id):
-                    self.logger.debug(f"Pool {pool_id} already in watchlist")
+                is_in_watchlist = await self.db_manager.is_pool_in_watchlist(pool_id)
+                if is_in_watchlist:
+                    self.logger.info(f"Auto-watchlist: Pool {pool_id} already in watchlist - skipping")
                     return
+                else:
+                    self.logger.info(f"Auto-watchlist: Pool {pool_id} not in watchlist - proceeding with addition")
+            else:
+                self.logger.warning("Auto-watchlist: is_pool_in_watchlist method not available - proceeding without duplicate check")
             
             # Extract token information for watchlist entry
+            # Handle both nested (attributes) and flat data formats
             attributes = pool_data.get('attributes', {})
+            
+            # Helper function to get field from either attributes or root level
+            def get_field(field_name, default=''):
+                return attributes.get(field_name, pool_data.get(field_name, default))
+            
+            # Get pool name and address
+            pool_name = get_field('name', f"Pool {pool_id[:8]}...")
+            pool_address = get_field('address', '')
+            
+            # Extract token symbol from pool name
+            token_symbol = self._extract_token_symbol_from_name(pool_name, pool_id)
             
             # Create watchlist entry
             watchlist_data = {
                 'pool_id': pool_id,
-                'token_symbol': self._extract_token_symbol(pool_data),
-                'token_name': attributes.get('name', f"Pool {pool_id[:8]}..."),
-                'network_address': attributes.get('address', ''),
+                'token_symbol': token_symbol,
+                'token_name': pool_name,
+                'network_address': pool_address,
                 'is_active': True,
                 'metadata_json': {
                     'auto_added': True,
@@ -628,15 +759,22 @@ class NewPoolsCollector(BaseDataCollector):
                 }
             }
             
+            self.logger.info(f"Auto-watchlist: Adding pool {pool_id} to watchlist with data: {watchlist_data}")
+            
             # Add to watchlist
             if hasattr(self.db_manager, 'add_to_watchlist'):
                 await self.db_manager.add_to_watchlist(watchlist_data)
-                self.logger.info(f"Auto-added pool {pool_id} to watchlist (signal score: {signal_result.signal_score:.1f})")
+                self.logger.info(
+                    f"✅ Auto-watchlist: Successfully added pool {pool_id} to watchlist "
+                    f"(signal score: {signal_result.signal_score:.1f})"
+                )
             else:
-                self.logger.warning("Watchlist functionality not available in database manager")
+                self.logger.warning("Auto-watchlist: add_to_watchlist method not available in database manager")
                 
         except Exception as e:
-            self.logger.error(f"Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+            self.logger.error(f"Auto-watchlist: Error handling auto-watchlist for pool {pool_data.get('id')}: {e}")
+            import traceback
+            self.logger.error(f"Auto-watchlist: Traceback: {traceback.format_exc()}")
     
     def _extract_token_symbol(self, pool_data: Dict) -> str:
         """
@@ -649,26 +787,52 @@ class NewPoolsCollector(BaseDataCollector):
             Token symbol string
         """
         try:
+            # Handle both nested (attributes) and flat data formats
             attributes = pool_data.get('attributes', {})
-            
-            # Try to extract from name
-            name = attributes.get('name', '')
-            if name and '/' in name:
-                # Handle "TOKEN/SOL" format
-                return name.split('/')[0].strip().upper()
-            elif name:
-                # Use first word of name
-                return name.split()[0].upper()
-            
-            # Fallback to pool ID prefix
+            name = attributes.get('name', pool_data.get('name', ''))
             pool_id = pool_data.get('id', '')
-            if pool_id:
-                return f"POOL{pool_id[:6].upper()}"
             
-            return "UNKNOWN"
+            return self._extract_token_symbol_from_name(name, pool_id)
             
         except Exception as e:
             self.logger.error(f"Error extracting token symbol: {e}")
+            return "UNKNOWN"
+    
+    def _extract_token_symbol_from_name(self, name: str, pool_id: str = '') -> str:
+        """
+        Extract token symbol from pool name.
+        
+        Args:
+            name: Pool name (e.g., "TOKEN / SOL" or "TOKEN/SOL")
+            pool_id: Pool ID for fallback
+            
+        Returns:
+            Token symbol string
+        """
+        try:
+            if not name:
+                # Fallback to pool ID prefix if no name
+                if pool_id:
+                    return f"POOL{pool_id.split('_')[-1][:6].upper()}"
+                return "UNKNOWN"
+            
+            # Handle "TOKEN / SOL" or "TOKEN/SOL" format
+            if '/' in name:
+                token_part = name.split('/')[0].strip()
+                # Don't uppercase if it has mixed case (preserve branding)
+                return token_part if token_part else "UNKNOWN"
+            
+            # Handle space-separated format
+            if ' ' in name:
+                # Use first word
+                token_part = name.split()[0].strip()
+                return token_part if token_part else "UNKNOWN"
+            
+            # Single word name
+            return name.strip() if name.strip() else "UNKNOWN"
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting token symbol from name '{name}': {e}")
             return "UNKNOWN"
     
     async def _validate_specific_data(self, data: Any) -> Optional[ValidationResult]:

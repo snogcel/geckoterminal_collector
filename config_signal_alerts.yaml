@@ -1,0 +1,46 @@
+# Signal Alerting Configuration Example
+# Add these settings to your config.yaml under new_pools.signal_detection
+
+new_pools:
+  signal_detection:
+    enabled: true
+    min_signal_score: 60.0
+    
+    # Visual Enhancements (recommended)
+    use_colors: true          # Color-coded log levels
+    use_emojis: true          # Emoji indicators (🚀💰 for signals)
+    
+    # File-based Alerts (recommended for external monitoring)
+    enable_file_alerts: true
+    alerts_dir: "alerts"      # Directory for alert files
+    
+    # Sound Alerts (optional - requires winsound on Windows)
+    enable_sound_alerts: false  # Set to true to enable beep on signals
+    
+    # Desktop Notifications (optional - requires plyer or win10toast)
+    enable_desktop_notifications: false  # Set to true for popup notifications
+    
+    # Webhook Alerts (optional - for Discord/Slack/Telegram integration)
+    enable_webhook: false
+    webhook_url: null  # Set to your webhook URL
+    # Example Discord webhook:
+    # webhook_url: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+    
+    # Signal thresholds
+    volume_spike_threshold: 2.0
+    liquidity_growth_threshold: 1.5
+    momentum_lookback_hours: 6
+
+# Example: Full configuration with all features enabled
+# new_pools:
+#   signal_detection:
+#     enabled: true
+#     min_signal_score: 70.0
+#     use_colors: true
+#     use_emojis: true
+#     enable_file_alerts: true
+#     alerts_dir: "trading_alerts"
+#     enable_sound_alerts: true
+#     enable_desktop_notifications: true
+#     enable_webhook: true
+#     webhook_url: "https://discord.com/api/webhooks/123456789/abcdefg"

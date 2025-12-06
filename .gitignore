@@ -168,3 +168,5 @@ cython_debug/
 /.rate_limiter_state
 
 config.yaml
+
+/alerts/

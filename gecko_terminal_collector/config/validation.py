@@ -3,7 +3,7 @@ Enhanced configuration validation using Pydantic.
 """
 
 import re
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 from decimal import Decimal
 from pydantic import BaseModel, Field, field_validator, model_validator
 from enum import Enum
@@ -79,20 +79,22 @@ class IntervalConfigValidator(BaseModel):
     @field_validator('top_pools_monitoring', 'ohlcv_collection', 'trade_collection', 'watchlist_check')
     @classmethod
     def validate_interval_format(cls, v):
-        """Validate interval format (e.g., '1h', '30m', '1d')."""
+        """Validate interval format (e.g., '15s', '1h', '30m', '1d')."""
         if not v:
             raise ValueError("Interval cannot be empty")
         
-        pattern = r'^(\d+)([mhd])$'
+        pattern = r'^(\d+)([smhd])$'
         match = re.match(pattern, v)
         if not match:
-            raise ValueError(f"Invalid interval format: {v}. Expected format: number + unit (m/h/d)")
+            raise ValueError(f"Invalid interval format: {v}. Expected format: number + unit (s/m/h/d)")
         
         number, unit = match.groups()
         number = int(number)
         
         # Validate reasonable ranges
-        if unit == 'm' and (number < 1 or number > 1440):  # 1 minute to 24 hours
+        if unit == 's' and (number < 1 or number > 3600):  # 1 second to 1 hour
+            raise ValueError(f"Second interval must be between 1 and 3600: {v}")
+        elif unit == 'm' and (number < 1 or number > 1440):  # 1 minute to 24 hours
             raise ValueError(f"Minute interval must be between 1 and 1440: {v}")
         elif unit == 'h' and (number < 1 or number > 168):  # 1 hour to 1 week
             raise ValueError(f"Hour interval must be between 1 and 168: {v}")
@@ -254,6 +256,8 @@ class NetworkConfigValidator(BaseModel):
     enabled: bool = Field(default=True, description="Enable collection for this network")
     interval: str = Field(default="30m", description="Collection interval for this network")
     rate_limit_key: str = Field(default=None, description="Rate limiter key for this network")
+    signal_analysis: bool = Field(default=True, description="Enable signal analysis for collected pools")
+    auto_watchlist_integration: bool = Field(default=False, description="Auto-add high-signal pools to watchlist")
     
     @field_validator('interval')
     @classmethod
@@ -270,6 +274,24 @@ class NetworkConfigValidator(BaseModel):
         return v
 
 
+class SignalDetectionConfigValidator(BaseModel):
+    """Pydantic model for signal detection configuration validation."""
+    enabled: bool = Field(default=True, description="Enable signal detection system")
+    min_signal_score: float = Field(default=60.0, ge=0.0, le=100.0, description="Minimum signal score for alerts")
+    volume_spike_threshold: float = Field(default=2.0, ge=1.0, le=10.0, description="Volume spike detection threshold")
+    liquidity_growth_threshold: float = Field(default=1.5, ge=1.0, le=10.0, description="Liquidity growth threshold")
+    momentum_lookback_hours: int = Field(default=6, ge=1, le=168, description="Hours to look back for momentum")
+    auto_watchlist_threshold: float = Field(default=75.0, ge=0.0, le=100.0, description="Signal score threshold for auto-watchlist")
+    use_colors: bool = Field(default=True, description="Use colors in console output")
+    use_emojis: bool = Field(default=True, description="Use emojis in console output")
+    enable_file_alerts: bool = Field(default=True, description="Enable file-based alerts")
+    enable_sound_alerts: bool = Field(default=False, description="Enable sound alerts")
+    enable_desktop_notifications: bool = Field(default=False, description="Enable desktop notifications")
+    enable_webhook: bool = Field(default=False, description="Enable webhook alerts")
+    webhook_url: Optional[str] = Field(default=None, description="Webhook URL for alerts")
+    alerts_dir: str = Field(default="alerts", description="Directory for alert files")
+
+
 class NewPoolsConfigValidator(BaseModel):
     """Pydantic model for new pools configuration validation."""
     networks: Dict[str, NetworkConfigValidator] = Field(
@@ -278,6 +300,10 @@ class NewPoolsConfigValidator(BaseModel):
             "ethereum": NetworkConfigValidator(enabled=False, interval="30m", rate_limit_key="new_pools_ethereum")
         },
         description="Network-specific new pools collection configuration"
+    )
+    signal_detection: SignalDetectionConfigValidator = Field(
+        default_factory=SignalDetectionConfigValidator,
+        description="Signal detection configuration"
     )
     
     @field_validator('networks')
@@ -330,8 +356,29 @@ class CollectionConfigValidator(BaseModel):
             new_pools_networks[network_name] = NetworkConfig(
                 enabled=network_validator.enabled,
                 interval=network_validator.interval,
-                rate_limit_key=network_validator.rate_limit_key
+                rate_limit_key=network_validator.rate_limit_key,
+                signal_analysis=network_validator.signal_analysis,
+                auto_watchlist_integration=network_validator.auto_watchlist_integration
             )
+        
+        # Convert signal detection configuration
+        from gecko_terminal_collector.config.models import SignalDetectionConfig
+        signal_detection = SignalDetectionConfig(
+            enabled=self.new_pools.signal_detection.enabled,
+            min_signal_score=self.new_pools.signal_detection.min_signal_score,
+            volume_spike_threshold=self.new_pools.signal_detection.volume_spike_threshold,
+            liquidity_growth_threshold=self.new_pools.signal_detection.liquidity_growth_threshold,
+            momentum_lookback_hours=self.new_pools.signal_detection.momentum_lookback_hours,
+            auto_watchlist_threshold=self.new_pools.signal_detection.auto_watchlist_threshold,
+            use_colors=self.new_pools.signal_detection.use_colors,
+            use_emojis=self.new_pools.signal_detection.use_emojis,
+            enable_file_alerts=self.new_pools.signal_detection.enable_file_alerts,
+            enable_sound_alerts=self.new_pools.signal_detection.enable_sound_alerts,
+            enable_desktop_notifications=self.new_pools.signal_detection.enable_desktop_notifications,
+            enable_webhook=self.new_pools.signal_detection.enable_webhook,
+            webhook_url=self.new_pools.signal_detection.webhook_url,
+            alerts_dir=self.new_pools.signal_detection.alerts_dir
+        )
         
         return CollectionConfig(
             dexes=DEXConfig(
@@ -389,7 +436,8 @@ class CollectionConfigValidator(BaseModel):
                 remove_inactive_tokens=self.watchlist.remove_inactive_tokens
             ),
             new_pools=NewPoolsConfig(
-                networks=new_pools_networks
+                networks=new_pools_networks,
+                signal_detection=signal_detection
             )
         )
 
