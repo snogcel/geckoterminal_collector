@@ -250,6 +250,6 @@ if __name__ == "__main__":
         asyncio.run(collect_historical_with_delays(
             timeframes=['1m'],  # Conservative timeframes
             days_back=30,
-            delay_between_pools=10,  # 10 seconds between pools
+            delay_between_pools=3,  # 3 seconds between pools
             delay_between_timeframes=5  # 5 seconds between timeframes
         ))
