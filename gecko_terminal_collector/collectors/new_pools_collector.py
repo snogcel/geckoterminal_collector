@@ -703,9 +703,19 @@ class NewPoolsCollector(BaseDataCollector):
                 )
                 return
             
+            # Check if pool's DEX is in our target list (same logic as signal alerts)
+            pool_dex_id = self._get_pool_dex_id(pool_data)
+            should_add = not self.target_dexes or (pool_dex_id and pool_dex_id.lower() in self.target_dexes)
+            
+            if not should_add:
+                self.logger.debug(
+                    f"Auto-watchlist: Pool {pool_id} DEX '{pool_dex_id}' not in target dexes {self.target_dexes} - skipping"
+                )
+                return
+            
             self.logger.info(
                 f"Auto-watchlist: Pool {pool_id} has strong signal ({signal_result.signal_score:.1f} >= {threshold:.1f}) "
-                f"- checking if already in watchlist..."
+                f"and is from target DEX '{pool_dex_id}' - checking if already in watchlist..."
             )
             
             # Check if pool is already in watchlist
