@@ -131,8 +131,8 @@ class BaseGeckoClient(ABC):
         pass
     
     @abstractmethod
-    async def get_new_pools_by_network(self, network: str) -> Any:
-        """Get new pools by network."""
+    async def get_new_pools_by_network(self, network: str, page: int = 1) -> Any:
+        """Get new pools by network with pagination support."""
         pass
 
 
@@ -307,10 +307,45 @@ class GeckoTerminalClient(BaseGeckoClient):
         
         return await self._execute_with_retry(_get_token)
     
-    async def get_new_pools_by_network(self, network: str) -> Any:
-        """Get new pools by network."""
+    async def get_new_pools_by_network(self, network: str, page: int = 1) -> Any:
+        """
+        Get new pools by network with pagination support.
+        
+        Args:
+            network: Network identifier (e.g., 'solana')
+            page: Page number (1-10 for free tier)
+            
+        Returns:
+            API response with pool data (dict format, not DataFrame)
+        """
         async def _get_new_pools():
-            return await self._sdk_client.get_new_pools_by_network(network)
+            # Always use direct API call to support pagination
+            # The SDK returns DataFrame and doesn't support page parameter
+            
+            # Use direct API call for pagination
+            if not self._session:
+                # Create temporary session if not in context manager
+                async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=self.api_config.timeout)
+                ) as session:
+                    url = f"https://api.geckoterminal.com/api/v2/networks/{network}/new_pools"
+                    params = {
+                        'page': page,
+                        'include': 'base_token,quote_token,dex'
+                    }
+                    async with session.get(url, params=params) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            else:
+                # Use existing session
+                url = f"https://api.geckoterminal.com/api/v2/networks/{network}/new_pools"
+                params = {
+                    'page': page,
+                    'include': 'base_token,quote_token,dex'
+                }
+                async with self._session.get(url, params=params) as response:
+                    response.raise_for_status()
+                    return await response.json()
         
         return await self._execute_with_retry(_get_new_pools)
     
@@ -682,8 +717,8 @@ class MockGeckoTerminalClient(BaseGeckoClient):
             }
         }
     
-    async def get_new_pools_by_network(self, network: str) -> Dict[str, Any]:
-        """Get new pools by network (mock)."""
+    async def get_new_pools_by_network(self, network: str, page: int = 1) -> Dict[str, Any]:
+        """Get new pools by network (mock) with pagination support."""
         # Load new pools data from fixture if available
         new_pools_data = self.fixtures.get("new_pools", [])
         

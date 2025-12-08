@@ -114,6 +114,27 @@ class ThresholdConfigValidator(BaseModel):
     max_retries: int = Field(default=3, ge=0, le=10, description="Maximum retry attempts")
     rate_limit_delay: float = Field(default=1.0, ge=0.1, le=60.0, description="Rate limit delay")
     backoff_factor: float = Field(default=2.0, ge=1.0, le=10.0, description="Exponential backoff factor")
+    high_volume_threshold_usd: Decimal = Field(
+        default=Decimal("10000"),
+        ge=Decimal("0"),
+        description="Threshold for high-volume pool prioritization in USD"
+    )
+
+
+class TradeCollectionConfigValidator(BaseModel):
+    """Pydantic model for trade collection configuration validation."""
+    max_pools_per_batch: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum pools to collect per batch (round-robin rotation)"
+    )
+    rotation_window_minutes: int = Field(
+        default=30,
+        ge=1,
+        le=1440,
+        description="Time window for fair rotation tracking in minutes"
+    )
 
 
 class TimeframeConfigValidator(BaseModel):
@@ -258,6 +279,8 @@ class NetworkConfigValidator(BaseModel):
     rate_limit_key: str = Field(default=None, description="Rate limiter key for this network")
     signal_analysis: bool = Field(default=True, description="Enable signal analysis for collected pools")
     auto_watchlist_integration: bool = Field(default=False, description="Auto-add high-signal pools to watchlist")
+    max_pages: Optional[int] = Field(default=None, ge=1, le=10, description="Network-specific max pages (overrides global)")
+    page_delay: Optional[float] = Field(default=None, ge=0.1, le=10.0, description="Network-specific page delay (overrides global)")
     
     @field_validator('interval')
     @classmethod
@@ -305,6 +328,8 @@ class NewPoolsConfigValidator(BaseModel):
         default_factory=SignalDetectionConfigValidator,
         description="Signal detection configuration"
     )
+    max_pages: int = Field(default=10, ge=1, le=10, description="Maximum pages to fetch per collection (1-10 for free tier)")
+    page_delay: float = Field(default=1.0, ge=0.1, le=10.0, description="Delay between page requests in seconds")
     
     @field_validator('networks')
     @classmethod
@@ -335,6 +360,7 @@ class CollectionConfigValidator(BaseModel):
     rate_limiting: RateLimitConfigValidator = Field(default_factory=RateLimitConfigValidator)
     watchlist: WatchlistConfigValidator = Field(default_factory=WatchlistConfigValidator)
     new_pools: NewPoolsConfigValidator = Field(default_factory=NewPoolsConfigValidator)
+    trade_collection: TradeCollectionConfigValidator = Field(default_factory=TradeCollectionConfigValidator)
     
     model_config = {
         "validate_assignment": True,
@@ -347,7 +373,7 @@ class CollectionConfigValidator(BaseModel):
         from gecko_terminal_collector.config.models import (
             CollectionConfig, DEXConfig, IntervalConfig, ThresholdConfig,
             TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, RateLimitConfig, WatchlistConfig,
-            NewPoolsConfig, NetworkConfig
+            NewPoolsConfig, NetworkConfig, TradeCollectionConfig
         )
         
         # Convert new pools configuration
@@ -358,7 +384,9 @@ class CollectionConfigValidator(BaseModel):
                 interval=network_validator.interval,
                 rate_limit_key=network_validator.rate_limit_key,
                 signal_analysis=network_validator.signal_analysis,
-                auto_watchlist_integration=network_validator.auto_watchlist_integration
+                auto_watchlist_integration=network_validator.auto_watchlist_integration,
+                max_pages=network_validator.max_pages,
+                page_delay=network_validator.page_delay
             )
         
         # Convert signal detection configuration
@@ -395,7 +423,8 @@ class CollectionConfigValidator(BaseModel):
                 min_trade_volume_usd=self.thresholds.min_trade_volume_usd,
                 max_retries=self.thresholds.max_retries,
                 rate_limit_delay=self.thresholds.rate_limit_delay,
-                backoff_factor=self.thresholds.backoff_factor
+                backoff_factor=self.thresholds.backoff_factor,
+                high_volume_threshold_usd=self.thresholds.high_volume_threshold_usd
             ),
             timeframes=TimeframeConfig(
                 ohlcv_default=self.timeframes.ohlcv_default.value,
@@ -437,7 +466,13 @@ class CollectionConfigValidator(BaseModel):
             ),
             new_pools=NewPoolsConfig(
                 networks=new_pools_networks,
-                signal_detection=signal_detection
+                signal_detection=signal_detection,
+                max_pages=self.new_pools.max_pages,
+                page_delay=self.new_pools.page_delay
+            ),
+            trade_collection=TradeCollectionConfig(
+                max_pools_per_batch=self.trade_collection.max_pools_per_batch,
+                rotation_window_minutes=self.trade_collection.rotation_window_minutes
             )
         )
 
@@ -521,4 +556,8 @@ def get_env_var_mappings() -> Dict[str, str]:
         'GECKO_WATCHLIST_CHECK_INTERVAL': 'watchlist.check_interval',
         'GECKO_WATCHLIST_AUTO_ADD': 'watchlist.auto_add_new_tokens',
         'GECKO_WATCHLIST_REMOVE_INACTIVE': 'watchlist.remove_inactive_tokens',
+        
+        # Trade collection configuration
+        'GECKO_TRADE_MAX_POOLS_PER_BATCH': 'trade_collection.max_pools_per_batch',
+        'GECKO_TRADE_ROTATION_WINDOW_MINUTES': 'trade_collection.rotation_window_minutes',
     }

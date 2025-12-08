@@ -2,6 +2,7 @@
 New pools collector for systematic collection and historical tracking with signal analysis.
 """
 
+import asyncio
 import logging
 import decimal
 from datetime import datetime, timedelta
@@ -108,9 +109,61 @@ class NewPoolsCollector(BaseDataCollector):
         """Get unique key for this collector type."""
         return f"new_pools_{self.network}"
     
+    def _get_max_pages(self) -> int:
+        """
+        Get maximum number of pages to fetch from config.
+        
+        Returns:
+            Maximum number of pages (default: 10 for free tier)
+        """
+        try:
+            new_pools_config = getattr(self.config, 'new_pools', None)
+            if new_pools_config:
+                # Check for network-specific setting first
+                if hasattr(new_pools_config, 'networks'):
+                    network_config = new_pools_config.networks.get(self.network, None)
+                    if network_config and hasattr(network_config, 'max_pages') and network_config.max_pages is not None:
+                        return network_config.max_pages
+                
+                # Fall back to global setting
+                if hasattr(new_pools_config, 'max_pages') and new_pools_config.max_pages is not None:
+                    return new_pools_config.max_pages
+            
+            # Default to 10 pages (free tier limit)
+            return 10
+        except Exception as e:
+            self.logger.warning(f"Error getting max_pages config: {e}, using default of 10")
+            return 10
+    
+    def _get_page_delay(self) -> float:
+        """
+        Get delay between page requests from config.
+        
+        Returns:
+            Delay in seconds (default: 1.0)
+        """
+        try:
+            new_pools_config = getattr(self.config, 'new_pools', None)
+            if new_pools_config:
+                # Check for network-specific setting first
+                if hasattr(new_pools_config, 'networks'):
+                    network_config = new_pools_config.networks.get(self.network, None)
+                    if network_config and hasattr(network_config, 'page_delay') and network_config.page_delay is not None:
+                        return network_config.page_delay
+                
+                # Fall back to global setting
+                if hasattr(new_pools_config, 'page_delay') and new_pools_config.page_delay is not None:
+                    return new_pools_config.page_delay
+            
+            # Default to 1 second delay
+            return 1.0
+        except Exception as e:
+            self.logger.warning(f"Error getting page_delay config: {e}, using default of 1.0s")
+            return 1.0
+    
     async def collect(self) -> CollectionResult:
         """
-        Collect new pools data for the specified network.
+        Collect new pools data for the specified network with pagination support.
         
         Returns:
             CollectionResult with collection status and statistics
@@ -123,29 +176,93 @@ class NewPoolsCollector(BaseDataCollector):
         try:
             self.logger.info(f"Starting new pools collection for network: {self.network}")
             
-            # Fetch new pools data using the SDK method
-            response = await self.make_api_request(
-                self.client.get_new_pools_by_network,
-                self.network
+            # Get pagination settings from config
+            max_pages = self._get_max_pages()
+            page_delay = self._get_page_delay()
+            
+            # Validate pagination settings
+            if max_pages is None or max_pages < 1:
+                self.logger.warning(f"Invalid max_pages value: {max_pages}, using default of 10")
+                max_pages = 10
+            if page_delay is None or page_delay < 0:
+                self.logger.warning(f"Invalid page_delay value: {page_delay}, using default of 1.0")
+                page_delay = 1.0
+            
+            self.logger.info(f"Pagination enabled: fetching up to {max_pages} pages with {page_delay}s delay")
+            
+            all_pools_data = []
+            seen_pool_ids = set()  # Track pool IDs to avoid duplicates
+            pages_fetched = 0
+            
+            # Fetch multiple pages
+            for page in range(1, max_pages + 1):
+                pages_fetched = page
+                try:
+                    self.logger.info(f"Fetching page {page}/{max_pages} for network: {self.network}")
+                    
+                    # Fetch new pools data using the SDK method with pagination
+                    response = await self.make_api_request(
+                        self.client.get_new_pools_by_network,
+                        self.network,
+                        page=page
+                    )
+                    
+                    if response is None or (isinstance(response, dict) and 'data' not in response):
+                        self.logger.warning(f"No data received on page {page}, stopping pagination")
+                        break
+                    
+                    # Handle different response formats (dict with 'data' key, DataFrame, or direct list)
+                    if isinstance(response, dict) and 'data' in response:
+                        pools_data = response['data']
+                    elif hasattr(response, 'to_dict'):  # pandas DataFrame
+                        pools_data = response.to_dict('records')
+                    elif isinstance(response, list):
+                        pools_data = response
+                    else:
+                        # Try to normalize the response using the data normalizer
+                        pools_data = self.normalize_response_data(response)
+                    
+                    if not pools_data or len(pools_data) == 0:
+                        self.logger.info(f"Empty page {page}, stopping pagination")
+                        break
+                    
+                    # Deduplicate pools by ID
+                    page_new_pools = 0
+                    for pool in pools_data:
+                        pool_id = pool.get('id')
+                        if pool_id and pool_id not in seen_pool_ids:
+                            all_pools_data.append(pool)
+                            seen_pool_ids.add(pool_id)
+                            page_new_pools += 1
+                    
+                    self.logger.info(
+                        f"Page {page}: Received {len(pools_data)} pools, "
+                        f"{page_new_pools} new (after deduplication)"
+                    )
+                    
+                    # Stop if we got fewer pools than expected (likely last page)
+                    if len(pools_data) < 20:  # Typical page size is ~20 pools
+                        self.logger.info(f"Page {page} has fewer pools than expected, likely last page")
+                        break
+                    
+                    # Add delay between pages to respect rate limits (except after last page)
+                    if page < max_pages:
+                        await asyncio.sleep(page_delay)
+                        
+                except Exception as e:
+                    error_msg = f"Error fetching page {page}: {str(e)}"
+                    self.logger.error(error_msg)
+                    errors.append(error_msg)
+                    # Continue to next page on error (could be transient)
+                    if page < max_pages:
+                        await asyncio.sleep(page_delay * 2)  # Longer delay after error
+                    continue
+            
+            pools_data = all_pools_data
+            self.logger.info(
+                f"Pagination complete: collected {len(pools_data)} unique pools "
+                f"across {pages_fetched} pages"
             )
-            
-            if response is None or (isinstance(response, dict) and 'data' not in response):
-                error_msg = f"No data received from API for network {self.network}"
-                self.logger.warning(error_msg)
-                return self.create_failure_result([error_msg], 0, start_time)
-            
-            # Handle different response formats (dict with 'data' key, DataFrame, or direct list)
-            if isinstance(response, dict) and 'data' in response:
-                pools_data = response['data']
-            elif hasattr(response, 'to_dict'):  # pandas DataFrame
-                pools_data = response.to_dict('records')
-            elif isinstance(response, list):
-                pools_data = response
-            else:
-                # Try to normalize the response using the data normalizer
-                pools_data = self.normalize_response_data(response)
-            
-            self.logger.info(f"Received {len(pools_data)} new pools from API")
             
             #print("-_NewPoolsCollector--")
             #print(pools_data)
@@ -226,7 +343,11 @@ class NewPoolsCollector(BaseDataCollector):
                     'network': self.network,
                     'pools_created': pools_created,
                     'history_records': history_records,
-                    'api_pools_received': len(pools_data)
+                    'api_pools_received': len(pools_data),
+                    'pages_fetched': pages_fetched,
+                    'max_pages_configured': max_pages,
+                    'unique_pools_collected': len(seen_pool_ids),
+                    'duplicates_filtered': sum(1 for _ in all_pools_data) - len(seen_pool_ids) if all_pools_data else 0
                 }
             )
             
@@ -268,7 +389,14 @@ class NewPoolsCollector(BaseDataCollector):
             pool_id = PoolIDUtils.normalize_pool_id(pool_id, self.network)
             
             # Validate DEX ID - this is required for foreign key constraint
+            # Try to get from attributes first, then from relationships
             dex_id = get_field('dex_id', '').strip()
+            if not dex_id:
+                # Try to extract from relationships (new API format)
+                relationships = pool_data.get('relationships', {})
+                dex_data = relationships.get('dex', {}).get('data', {})
+                dex_id = dex_data.get('id', '').strip()
+            
             if not dex_id:
                 self.logger.warning(f"Pool {pool_id} has empty dex_id, skipping")
                 return None
@@ -288,8 +416,27 @@ class NewPoolsCollector(BaseDataCollector):
             # Clean and validate other fields
             address = get_field('address', '').strip()
             name = get_field('name', '').strip()
+            
+            # Extract token IDs - try attributes first, then relationships
             base_token_id = get_field('base_token_id', '').strip()
             quote_token_id = get_field('quote_token_id', '').strip()
+            
+            if not base_token_id or not quote_token_id:
+                # Try to extract from relationships (new API format)
+                relationships = pool_data.get('relationships', {})
+                if not base_token_id:
+                    base_token_data = relationships.get('base_token', {}).get('data', {})
+                    base_token_id = base_token_data.get('id', '').strip()
+                if not quote_token_id:
+                    quote_token_data = relationships.get('quote_token', {}).get('data', {})
+                    quote_token_id = quote_token_data.get('id', '').strip()
+            
+            # Strip network prefix from token IDs for database storage
+            # Token IDs come as "solana_ADDRESS" but database expects just "ADDRESS"
+            if base_token_id and '_' in base_token_id:
+                base_token_id = base_token_id.split('_', 1)[1]
+            if quote_token_id and '_' in quote_token_id:
+                quote_token_id = quote_token_id.split('_', 1)[1]
             
             return {
                 'id': pool_id,
@@ -326,6 +473,14 @@ class NewPoolsCollector(BaseDataCollector):
             def get_field(field_name, default=None):
                 # Try attributes first, then root level
                 return attributes.get(field_name, pool_data.get(field_name, default))
+            
+            # Helper function to get nested field values
+            def get_nested_field(parent_key, child_key, default=None):
+                """Get value from nested dict like price_change_percentage.h1"""
+                parent = get_field(parent_key, {})
+                if isinstance(parent, dict):
+                    return parent.get(child_key, default)
+                return default
             
             # Parse pool creation timestamp
             pool_created_at = None
@@ -390,16 +545,19 @@ class NewPoolsCollector(BaseDataCollector):
                 'market_cap_usd': cap_value(get_field('market_cap_usd'), 999999999999.0),
                 # Cap price change percentages - extreme values indicate data issues or pump/dumps
                 # After migration, these will support NUMERIC(15,4), cap at 99,999%
-                'price_change_percentage_h1': cap_value(get_field('price_change_percentage_h1'), 99999.0),
-                'price_change_percentage_h24': cap_value(get_field('price_change_percentage_h24'), 99999.0),
-                'transactions_h1_buys': safe_int(get_field('transactions_h1_buys')),
-                'transactions_h1_sells': safe_int(get_field('transactions_h1_sells')),
-                'transactions_h24_buys': safe_int(get_field('transactions_h24_buys')),
-                'transactions_h24_sells': safe_int(get_field('transactions_h24_sells')),
-                'volume_usd_h24': safe_decimal(get_field('volume_usd_h24')),
-                'dex_id': get_field('dex_id'),
-                'base_token_id': get_field('base_token_id'),
-                'quote_token_id': get_field('quote_token_id'),
+                # Extract from nested structure: price_change_percentage.h1
+                'price_change_percentage_h1': cap_value(get_nested_field('price_change_percentage', 'h1'), 99999.0),
+                'price_change_percentage_h24': cap_value(get_nested_field('price_change_percentage', 'h24'), 99999.0),
+                # Extract from nested structure: transactions.h1.buys
+                'transactions_h1_buys': safe_int(get_nested_field('transactions', 'h1', {}).get('buys') if get_nested_field('transactions', 'h1') else None),
+                'transactions_h1_sells': safe_int(get_nested_field('transactions', 'h1', {}).get('sells') if get_nested_field('transactions', 'h1') else None),
+                'transactions_h24_buys': safe_int(get_nested_field('transactions', 'h24', {}).get('buys') if get_nested_field('transactions', 'h24') else None),
+                'transactions_h24_sells': safe_int(get_nested_field('transactions', 'h24', {}).get('sells') if get_nested_field('transactions', 'h24') else None),
+                # Extract from nested structure: volume_usd.h24
+                'volume_usd_h24': safe_decimal(get_nested_field('volume_usd', 'h24')),
+                'dex_id': self._extract_dex_id(pool_data),
+                'base_token_id': self._extract_base_token_id(pool_data),
+                'quote_token_id': self._extract_quote_token_id(pool_data),
                 'network_id': get_field('network_id', self.network),
                 'collected_at': datetime.now()
             }
@@ -454,8 +612,10 @@ class NewPoolsCollector(BaseDataCollector):
             quote_token_id = pool_info.get('quote_token_id', '').strip()
             
             if base_token_id:
+                self.logger.debug(f"Ensuring base token exists: {base_token_id}")
                 await self._ensure_token_exists(base_token_id)
             if quote_token_id:
+                self.logger.debug(f"Ensuring quote token exists: {quote_token_id}")
                 await self._ensure_token_exists(quote_token_id)
             
             # Create new pool record with optimized storage
@@ -514,31 +674,29 @@ class NewPoolsCollector(BaseDataCollector):
             self.logger.error(f"Error ensuring DEX exists for {dex_id}: {e}")
             raise
     
-    async def _ensure_token_exists(self, token_id: str) -> None:
+    async def _ensure_token_exists(self, token_address: str) -> None:
         """
         Ensure token exists in the database, create if it doesn't.
         
         Args:
-            token_id: Token identifier (usually network_address format)
+            token_address: Token address (without network prefix)
         """
         try:
             from gecko_terminal_collector.database.models import Token as TokenModel
             
             # Check if token already exists
-            existing_token = await self.db_manager.get_token_by_id(token_id)
+            existing_token = await self.db_manager.get_token_by_id(token_address)
             if existing_token:
                 return
             
-            # Parse token ID to extract network and address
-            if '_' in token_id:
-                network, address = token_id.split('_', 1)
-            else:
-                network = self.network
-                address = token_id
+            # Token ID in database is just the address (no network prefix)
+            # Network is stored separately
+            address = token_address
+            network = self.network
             
             # Create new token record with minimal information
             token_data = {
-                'id': token_id,
+                'id': address,  # Just the address, no network prefix
                 'address': address,
                 'network': network,
                 'name': f"Token {address[:8]}...",  # Placeholder name
@@ -557,12 +715,12 @@ class NewPoolsCollector(BaseDataCollector):
                     session.add(token)
                     session.commit()
             
-            self.logger.debug(f"Created new token: {token_id}")
+            self.logger.debug(f"Created new token: {address}")
             
         except Exception as e:
-            self.logger.error(f"Error ensuring token exists for {token_id}: {e}")
-            # Don't raise for tokens - they're optional
-            pass
+            self.logger.error(f"Error ensuring token exists for {token_address}: {e}")
+            # Raise the error so pool creation knows tokens failed
+            raise
     
     async def _store_history_record(self, history_record: Dict) -> None:
         """
@@ -583,9 +741,9 @@ class NewPoolsCollector(BaseDataCollector):
             self.logger.error(f"Error storing history record for {history_record.get('pool_id')}: {e}")
             raise
     
-    def _get_pool_dex_id(self, pool_data: Dict) -> Optional[str]:
+    def _extract_dex_id(self, pool_data: Dict) -> Optional[str]:
         """
-        Extract dex_id from pool data.
+        Extract dex_id from pool data (handles both old and new API formats).
         
         Args:
             pool_data: Pool data dictionary
@@ -593,10 +751,130 @@ class NewPoolsCollector(BaseDataCollector):
         Returns:
             DEX ID string or None if not found
         """
-        # Handle both nested (attributes) and flat data formats
+        # Try attributes first (old format)
         attributes = pool_data.get('attributes', {})
         dex_id = attributes.get('dex_id', pool_data.get('dex_id', '')).strip()
+        
+        # If not found, try relationships (new API format)
+        if not dex_id:
+            relationships = pool_data.get('relationships', {})
+            dex_data = relationships.get('dex', {}).get('data', {})
+            dex_id = dex_data.get('id', '').strip()
+        
         return dex_id if dex_id else None
+    
+    def _extract_base_token_id(self, pool_data: Dict) -> Optional[str]:
+        """
+        Extract base_token_id from pool data (handles both old and new API formats).
+        Returns address without network prefix for database storage.
+        
+        Args:
+            pool_data: Pool data dictionary
+            
+        Returns:
+            Base token address (without network prefix) or None if not found
+        """
+        # Try attributes first (old format)
+        attributes = pool_data.get('attributes', {})
+        token_id = attributes.get('base_token_id', pool_data.get('base_token_id', '')).strip()
+        
+        # If not found, try relationships (new API format)
+        if not token_id:
+            relationships = pool_data.get('relationships', {})
+            token_data = relationships.get('base_token', {}).get('data', {})
+            token_id = token_data.get('id', '').strip()
+        
+        # Strip network prefix (e.g., "solana_ADDRESS" -> "ADDRESS")
+        if token_id and '_' in token_id:
+            token_id = token_id.split('_', 1)[1]
+        
+        return token_id if token_id else None
+    
+    def _extract_quote_token_id(self, pool_data: Dict) -> Optional[str]:
+        """
+        Extract quote_token_id from pool data (handles both old and new API formats).
+        Returns address without network prefix for database storage.
+        
+        Args:
+            pool_data: Pool data dictionary
+            
+        Returns:
+            Quote token address (without network prefix) or None if not found
+        """
+        # Try attributes first (old format)
+        attributes = pool_data.get('attributes', {})
+        token_id = attributes.get('quote_token_id', pool_data.get('quote_token_id', '')).strip()
+        
+        # If not found, try relationships (new API format)
+        if not token_id:
+            relationships = pool_data.get('relationships', {})
+            token_data = relationships.get('quote_token', {}).get('data', {})
+            token_id = token_data.get('id', '').strip()
+        
+        # Strip network prefix (e.g., "solana_ADDRESS" -> "ADDRESS")
+        if token_id and '_' in token_id:
+            token_id = token_id.split('_', 1)[1]
+        
+        return token_id if token_id else None
+    
+    def _get_pool_dex_id(self, pool_data: Dict) -> Optional[str]:
+        """
+        Extract dex_id from pool data (legacy method, calls _extract_dex_id).
+        
+        Args:
+            pool_data: Pool data dictionary
+            
+        Returns:
+            DEX ID string or None if not found
+        """
+        return self._extract_dex_id(pool_data)
+    
+    def _flatten_pool_data_for_analysis(self, pool_data: Dict) -> Dict:
+        """
+        Flatten nested API response fields for signal analyzer.
+        
+        The signal analyzer expects flat fields like 'volume_usd_h24',
+        but the API returns nested structures like volume_usd.h24.
+        
+        Args:
+            pool_data: Raw pool data from API with nested structure
+            
+        Returns:
+            Flattened dictionary with fields the analyzer expects
+        """
+        attributes = pool_data.get('attributes', {})
+        
+        # Helper to get nested values
+        def get_nested(parent_key, child_key, default=None):
+            parent = attributes.get(parent_key, {})
+            if isinstance(parent, dict):
+                return parent.get(child_key, default)
+            return default
+        
+        # Create flattened structure
+        flattened = {
+            # Copy basic fields
+            'id': pool_data.get('id'),
+            'type': pool_data.get('type'),
+            'name': attributes.get('name'),
+            'address': attributes.get('address'),
+            'reserve_in_usd': attributes.get('reserve_in_usd'),
+            
+            # Flatten price change percentages
+            'price_change_percentage_h1': get_nested('price_change_percentage', 'h1'),
+            'price_change_percentage_h24': get_nested('price_change_percentage', 'h24'),
+            
+            # Flatten transactions
+            'transactions_h1_buys': get_nested('transactions', 'h1', {}).get('buys') if get_nested('transactions', 'h1') else None,
+            'transactions_h1_sells': get_nested('transactions', 'h1', {}).get('sells') if get_nested('transactions', 'h1') else None,
+            'transactions_h24_buys': get_nested('transactions', 'h24', {}).get('buys') if get_nested('transactions', 'h24') else None,
+            'transactions_h24_sells': get_nested('transactions', 'h24', {}).get('sells') if get_nested('transactions', 'h24') else None,
+            
+            # Flatten volume
+            'volume_usd_h24': get_nested('volume_usd', 'h24'),
+        }
+        
+        return flattened
     
     async def _analyze_pool_signals(self, pool_data: Dict) -> Optional[SignalResult]:
         """
@@ -613,11 +891,14 @@ class NewPoolsCollector(BaseDataCollector):
             if not pool_id:
                 return None
             
+            # Flatten nested fields for signal analyzer
+            flattened_data = self._flatten_pool_data_for_analysis(pool_data)
+            
             # Get historical data for the pool (last 24 hours)
             historical_data = await self._get_pool_historical_data(pool_id, hours=24)
             
-            # Perform signal analysis
-            signal_result = self.signal_analyzer.analyze_pool_signals(pool_data, historical_data)
+            # Perform signal analysis with flattened data
+            signal_result = self.signal_analyzer.analyze_pool_signals(flattened_data, historical_data)
             
             # Log significant signals (only if signal detection is enabled and for target dexes)
             if (self.signal_analysis_enabled and 

@@ -43,6 +43,14 @@ class ThresholdConfig:
     max_retries: int = 3
     rate_limit_delay: float = 1.0
     backoff_factor: float = 2.0
+    high_volume_threshold_usd: Decimal = Decimal("10000")
+
+
+@dataclass
+class TradeCollectionConfig:
+    """Trade collection specific configuration."""
+    max_pools_per_batch: int = 20
+    rotation_window_minutes: int = 30
 
 
 @dataclass
@@ -119,16 +127,20 @@ class NetworkConfig:
     rate_limit_key: Optional[str] = None
     signal_analysis: bool = True  # Enable signal analysis for collected pools
     auto_watchlist_integration: bool = False  # Auto-add high-signal pools to watchlist
+    max_pages: Optional[int] = None  # Network-specific max pages (overrides global)
+    page_delay: Optional[float] = None  # Network-specific page delay (overrides global)
 
 
 @dataclass
 class NewPoolsConfig:
-    """New pools collection configuration."""
+    """New pools collection configuration with pagination support."""
     networks: Dict[str, NetworkConfig] = field(default_factory=lambda: {
         "solana": NetworkConfig(enabled=True, interval="30m", rate_limit_key="new_pools_solana"),
         "ethereum": NetworkConfig(enabled=False, interval="30m", rate_limit_key="new_pools_ethereum")
     })
     signal_detection: SignalDetectionConfig = field(default_factory=SignalDetectionConfig)
+    max_pages: int = 10  # Maximum pages to fetch per collection (1-10 for free tier)
+    page_delay: float = 1.0  # Delay between page requests in seconds
 
 
 @dataclass
@@ -162,6 +174,7 @@ class CollectionConfig:
     watchlist: Optional[WatchlistConfig] = field(default_factory=WatchlistConfig)  # Make watchlist optional
     new_pools: NewPoolsConfig = field(default_factory=NewPoolsConfig)
     discovery: DiscoveryConfig = field(default_factory=DiscoveryConfig)
+    trade_collection: TradeCollectionConfig = field(default_factory=TradeCollectionConfig)
     
     def validate(self) -> List[str]:
         """

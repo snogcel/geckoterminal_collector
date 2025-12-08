@@ -69,8 +69,16 @@ class TradeCollector(BaseDataCollector):
         
         # Fair rotation and prioritization settings
         self.api_rate_limit_threshold = getattr(config, 'api_rate_limit_threshold', 0.8)  # 80% of limit
-        self.high_volume_threshold_usd = getattr(config, 'high_volume_threshold_usd', 10000.0)
-        self.rotation_window_minutes = getattr(config, 'rotation_window_minutes', 30)
+        self.high_volume_threshold_usd = getattr(config.thresholds, 'high_volume_threshold_usd', 10000.0)
+        
+        # Trade collection specific settings
+        trade_config = getattr(config, 'trade_collection', None)
+        if trade_config:
+            self.max_pools_per_batch = getattr(trade_config, 'max_pools_per_batch', 20)
+            self.rotation_window_minutes = getattr(trade_config, 'rotation_window_minutes', 30)
+        else:
+            self.max_pools_per_batch = 20  # Default for larger watchlists
+            self.rotation_window_minutes = 30
         
         # Track pool priorities and rotation state
         self._pool_priorities: Dict[str, float] = {}
@@ -1240,8 +1248,8 @@ class TradeCollector(BaseDataCollector):
             # Get pool priorities
             prioritized_pools = await self.prioritize_pools_by_activity(pool_ids)
             
-            # Calculate how many pools we can process based on rate limits
-            max_pools = min(len(pool_ids), 10)  # Conservative limit
+            # Calculate how many pools we can process based on rate limits and config
+            max_pools = min(len(pool_ids), self.max_pools_per_batch)
             
             # Select top priority pools
             selected_pools = [pool_id for pool_id, _ in prioritized_pools[:max_pools]]
