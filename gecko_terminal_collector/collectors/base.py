@@ -4,7 +4,7 @@ Base collector interface and common functionality.
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from gecko_terminal_collector.models.core import CollectionResult, ValidationResult
@@ -228,7 +228,7 @@ class BaseDataCollector(ABC):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors: List[str] = []
         records_collected = 0
         
@@ -477,7 +477,7 @@ class BaseDataCollector(ABC):
             success=True,
             records_collected=records_collected,
             errors=[],
-            collection_time=collection_time or datetime.now(),
+            collection_time=collection_time or datetime.now(tz=timezone.utc),
             collector_type=self.get_collection_key()
         )
     
@@ -502,7 +502,7 @@ class BaseDataCollector(ABC):
             success=False,
             records_collected=records_collected,
             errors=errors,
-            collection_time=collection_time or datetime.now(),
+            collection_time=collection_time or datetime.now(tz=timezone.utc),
             collector_type=self.get_collection_key()
         )
 
@@ -613,7 +613,7 @@ class CollectorRegistry:
                     success=False,
                     records_collected=0,
                     errors=[f"Unexpected error: {str(e)}"],
-                    collection_time=datetime.now(),
+                    collection_time=datetime.now(tz=timezone.utc),
                     collector_type=key
                 )
         

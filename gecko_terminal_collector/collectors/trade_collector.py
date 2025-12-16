@@ -7,7 +7,7 @@ prevention using trade IDs and composite keys.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -84,7 +84,7 @@ class TradeCollector(BaseDataCollector):
         self._pool_priorities: Dict[str, float] = {}
         self._last_collection_times: Dict[str, datetime] = {}
         self._api_call_count = 0
-        self._rotation_start_time = datetime.now()
+        self._rotation_start_time = datetime.now(tz=timezone.utc)
         
     def get_collection_key(self) -> str:
         """Get unique key for this collector type."""
@@ -97,7 +97,7 @@ class TradeCollector(BaseDataCollector):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors = []
         records_collected = 0
         self._collection_errors = []  # Reset error tracking
@@ -352,13 +352,12 @@ class TradeCollector(BaseDataCollector):
                     # Handle ISO format timestamp
                     if 'T' in block_timestamp:
                         block_timestamp = datetime.fromisoformat(block_timestamp.replace('Z', '+00:00'))
-                        # Convert to naive datetime for consistency
-                        block_timestamp = block_timestamp.replace(tzinfo=None)
+                        # Keep as UTC timezone-aware datetime
                     else:
-                        # Try parsing as timestamp
-                        block_timestamp = datetime.fromtimestamp(float(block_timestamp))
+                        # Try parsing as timestamp in UTC
+                        block_timestamp = datetime.fromtimestamp(float(block_timestamp), tz=timezone.utc)
                 elif isinstance(block_timestamp, (int, float)):
-                    block_timestamp = datetime.fromtimestamp(block_timestamp)
+                    block_timestamp = datetime.fromtimestamp(block_timestamp, tz=timezone.utc)
                 else:
                     logger.warning(f"Invalid timestamp format for trade {trade_id}: {block_timestamp}")
                     return None
@@ -372,7 +371,7 @@ class TradeCollector(BaseDataCollector):
                 return None
             
             # Validate trade age (within 24 hours as per API constraints)
-            now = datetime.now()
+            now = datetime.now(tz=timezone.utc)
             if block_timestamp < now - timedelta(hours=self.max_trade_age_hours):
                 logger.debug(f"Trade {trade_id} is older than {self.max_trade_age_hours} hours, skipping")
                 return None
@@ -534,7 +533,7 @@ class TradeCollector(BaseDataCollector):
                 continue
             
             # Check timestamp is reasonable (not too far in future or past)
-            now = datetime.now()
+            now = datetime.now(tz=timezone.utc)
             if record.block_timestamp > now + timedelta(hours=1):
                 warnings.append(
                     f"Future timestamp detected: {record.block_timestamp} for trade {record.id}"
@@ -601,8 +600,8 @@ class TradeCollector(BaseDataCollector):
                 # Check if we have recent trade data
                 recent_data = await self.db_manager.get_trade_data(
                     pool_id=pool_id,
-                    start_time=datetime.now() - timedelta(hours=2),
-                    end_time=datetime.now(),
+                    start_time=datetime.now(tz=timezone.utc) - timedelta(hours=2),
+                    end_time=datetime.now(tz=timezone.utc),
                     min_volume_usd=self.min_trade_volume_usd
                 )
                 
@@ -635,8 +634,8 @@ class TradeCollector(BaseDataCollector):
             for pool_id in watchlist_pools:
                 recent_data = await self.db_manager.get_trade_data(
                     pool_id=pool_id,
-                    start_time=datetime.now() - timedelta(hours=24),
-                    end_time=datetime.now(),
+                    start_time=datetime.now(tz=timezone.utc) - timedelta(hours=24),
+                    end_time=datetime.now(tz=timezone.utc),
                     min_volume_usd=self.min_trade_volume_usd
                 )
                 
@@ -676,7 +675,7 @@ class TradeCollector(BaseDataCollector):
         """
         try:
             # Check trade data for the last 24 hours (API constraint)
-            end_time = datetime.now()
+            end_time = datetime.now(tz=timezone.utc)
             start_time = end_time - timedelta(hours=24)
             
             # Get trade data for the period
@@ -712,7 +711,7 @@ class TradeCollector(BaseDataCollector):
             
             # Calculate data quality score
             total_volume = sum(trade.volume_usd for trade in trades)
-            avg_volume = total_volume / len(trades) if trades else Decimal('0')
+            avg_volume = total_volume / Decimal(len(trades)) if trades else Decimal('0')
             
             # Simple quality score based on trade frequency and volume
             quality_score = min(1.0, len(trades) / 100.0)  # Normalize by expected trade count
@@ -749,7 +748,7 @@ class TradeCollector(BaseDataCollector):
         """
         try:
             # Define the 24-hour window (API constraint)
-            end_time = datetime.now()
+            end_time = datetime.now(tz=timezone.utc)
             start_time = end_time - timedelta(hours=24)
             
             print("---TradeCollector---")
@@ -881,7 +880,7 @@ class TradeCollector(BaseDataCollector):
         """
         try:
             # Get recent trade data (last 4 hours for activity assessment)
-            recent_end = datetime.now()
+            recent_end = datetime.now(tz=timezone.utc)
             recent_start = recent_end - timedelta(hours=4)
             
             recent_trades = await self.db_manager.get_trade_data(
@@ -954,7 +953,7 @@ class TradeCollector(BaseDataCollector):
             Reordered list of pool IDs based on fair rotation logic
         """
         try:
-            current_time = datetime.now()
+            current_time = datetime.now(tz=timezone.utc)
             
             # Check if we need to reset rotation window
             if (current_time - self._rotation_start_time).total_seconds() > (self.rotation_window_minutes * 60):
@@ -1079,7 +1078,7 @@ class TradeCollector(BaseDataCollector):
                 results["pool_details"][pool_id] = pool_result
                 
                 # Update last collection time
-                self._last_collection_times[pool_id] = datetime.now()
+                self._last_collection_times[pool_id] = datetime.now(tz=timezone.utc)
             
             logger.info(
                 f"Continuity verification complete: {results['pools_with_gaps']}/{results['pools_checked']} "
@@ -1106,7 +1105,7 @@ class TradeCollector(BaseDataCollector):
         """
         try:
             # Only attempt recovery for recent gaps (within API window)
-            current_time = datetime.now()
+            current_time = datetime.now(tz=timezone.utc)
             recoverable_gaps = [
                 gap for gap in gaps 
                 if (current_time - gap.start_time).total_seconds() < (24 * 3600)  # Within 24 hours
@@ -1141,7 +1140,7 @@ class TradeCollector(BaseDataCollector):
         """
         try:
             # Get trade data for the last 24 hours
-            end_time = datetime.now()
+            end_time = datetime.now(tz=timezone.utc)
             start_time = end_time - timedelta(hours=24)
             
             trades = await self.db_manager.get_trade_data(
@@ -1206,15 +1205,15 @@ class TradeCollector(BaseDataCollector):
                 # Get recent trade data
                 recent_trades = await self.db_manager.get_trade_data(
                     pool_id=pool_id,
-                    start_time=datetime.now() - timedelta(minutes=self.rotation_window_minutes),
-                    end_time=datetime.now(),
+                    start_time=datetime.now(tz=timezone.utc) - timedelta(minutes=self.rotation_window_minutes),
+                    end_time=datetime.now(tz=timezone.utc),
                     min_volume_usd=self.min_trade_volume_usd
                 )
                 
                 # Calculate priority score based on activity and volume
                 trade_count = len(recent_trades)
                 total_volume = sum(trade.volume_usd for trade in recent_trades)
-                avg_volume = total_volume / trade_count if trade_count > 0 else Decimal('0')
+                avg_volume = total_volume / Decimal(trade_count) if trade_count > 0 else Decimal('0')
                 
                 # Check for gaps
                 gaps = await self.detect_trade_data_gaps(pool_id)

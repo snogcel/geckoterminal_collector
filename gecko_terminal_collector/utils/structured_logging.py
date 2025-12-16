@@ -10,7 +10,7 @@ import threading
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
 
@@ -62,7 +62,7 @@ class StructuredFormatter(logging.Formatter):
         """Format log record as structured JSON."""
         # Base log structure
         log_entry = {
-            "timestamp": datetime.fromtimestamp(record.created).strftime(self.timestamp_format),
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).strftime(self.timestamp_format),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

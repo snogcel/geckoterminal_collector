@@ -4,7 +4,7 @@ Health check endpoints and system status monitoring.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import asdict
 
@@ -76,7 +76,7 @@ class SystemHealthEndpoints:
     async def _check_database_health(self) -> Dict[str, Any]:
         """Check database connectivity and performance."""
         try:
-            start_time = datetime.now()
+            start_time = datetime.now(tz=timezone.utc)
             
             # Test database connection with a simple query
             async with self.db_manager.get_session() as session:
@@ -112,14 +112,14 @@ class SystemHealthEndpoints:
     async def _check_api_health(self) -> Dict[str, Any]:
         """Check API client connectivity and performance."""
         try:
-            start_time = datetime.now()
+            start_time = datetime.now(tz=timezone.utc)
             
             # Test API connectivity with a simple request
             # This would depend on the specific API client implementation
             # For now, we'll simulate a basic connectivity check
             await asyncio.sleep(0.1)  # Simulate API call
             
-            response_time = (datetime.now() - start_time).total_seconds() * 1000
+            response_time = (datetime.now(tz=timezone.utc) - start_time).total_seconds() * 1000
             
             status = HealthStatus.HEALTHY
             message = f"API client healthy (response: {response_time:.1f}ms)"

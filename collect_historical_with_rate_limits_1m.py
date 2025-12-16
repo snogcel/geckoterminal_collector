@@ -5,7 +5,7 @@ Collect historical OHLCV data with better rate limit handling.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
 from gecko_terminal_collector.database.enhanced_sqlalchemy_manager import EnhancedSQLAlchemyDatabaseManager
 from gecko_terminal_collector.config.manager import ConfigManager
@@ -80,7 +80,7 @@ async def collect_historical_with_delays(
             print(f"Using timeframes: {timeframes}")
         
         # Set date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days_back)
         
         print(f"Date range: {start_date.date()} to {end_date.date()}")

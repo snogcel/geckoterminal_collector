@@ -5,7 +5,7 @@ Performance metrics collection and reporting for operational visibility.
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, Callable
 from enum import Enum
 import asyncio
@@ -143,7 +143,7 @@ class MetricsCollector:
         metrics.update_from_execution(execution_time, records_collected, success)
         
         # Record time-series data
-        now = datetime.now()
+        now = datetime.now(tz=timezone.utc)
         self._add_time_series_point(collector_type, "execution_time", execution_time, now)
         self._add_time_series_point(collector_type, "records_collected", records_collected, now)
         self._add_time_series_point(collector_type, "success", 1.0 if success else 0.0, now)
@@ -177,7 +177,7 @@ class MetricsCollector:
         """
         metric_value = MetricValue(
             value=value,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(tz=timezone.utc),
             labels=labels or {}
         )
         
@@ -198,19 +198,36 @@ class MetricsCollector:
         series.append((timestamp, value))
         
         # Maintain retention limit
-        cutoff_time = datetime.now() - timedelta(hours=self.retention_hours)
-        while series and series[0][0] < cutoff_time:
-            series.popleft()
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.retention_hours)
+        while series:
+            stored_timestamp = series[0][0]
+            
+            # Convert naive datetime to UTC if needed for comparison
+            if stored_timestamp.tzinfo is None:
+                stored_timestamp = stored_timestamp.replace(tzinfo=timezone.utc)
+                
+            if stored_timestamp < cutoff_time:
+                series.popleft()
+            else:
+                break
     
     def _cleanup_custom_metrics(self, metric_name: str) -> None:
         """Clean up old custom metric values."""
-        cutoff_time = datetime.now() - timedelta(hours=self.retention_hours)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.retention_hours)
         metrics = self._custom_metrics[metric_name]
         
-        # Remove old values
-        self._custom_metrics[metric_name] = [
-            m for m in metrics if m.timestamp >= cutoff_time
-        ]
+        # Remove old values - handle timezone compatibility
+        filtered_metrics = []
+        for m in metrics:
+            metric_timestamp = m.timestamp
+            # Convert naive datetime to UTC if needed for comparison
+            if metric_timestamp.tzinfo is None:
+                metric_timestamp = metric_timestamp.replace(tzinfo=timezone.utc)
+            
+            if metric_timestamp >= cutoff_time:
+                filtered_metrics.append(m)
+        
+        self._custom_metrics[metric_name] = filtered_metrics
     
     def get_metrics(self, collector_type: Optional[str] = None) -> Dict[str, PerformanceMetrics]:
         """
@@ -281,7 +298,7 @@ class MetricsCollector:
             overall_success_rate = 100.0
             average_execution_time = 0.0
         
-        uptime = datetime.now() - self._start_time
+        uptime = datetime.now(tz=timezone.utc) - self._start_time
         
         return {
             "total_collectors": len(self._metrics),
@@ -389,8 +406,8 @@ class MetricsCollector:
             Exported metrics data
         """
         export_data = {
-            "export_time": datetime.now().isoformat(),
-            "system_uptime_seconds": (datetime.now() - self._start_time).total_seconds(),
+            "export_time": datetime.now(tz=timezone.utc).isoformat(),
+            "system_uptime_seconds": (datetime.now(tz=timezone.utc) - self._start_time).total_seconds(),
             "performance_metrics": {
                 name: metrics.to_dict() for name, metrics in self._metrics.items()
             },

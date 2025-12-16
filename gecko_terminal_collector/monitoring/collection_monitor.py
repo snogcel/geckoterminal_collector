@@ -5,7 +5,7 @@ Collection status monitoring and failure alerting system.
 import logging
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, Callable, Set
 from enum import Enum
 
@@ -224,7 +224,16 @@ class CollectionMonitor:
             return True
         
         stale_threshold = timedelta(hours=self.health_config["stale_threshold_hours"])
-        return datetime.now() - health.last_success > stale_threshold
+        
+        # Ensure timezone compatibility for comparison
+        now = datetime.now(tz=timezone.utc)
+        last_success = health.last_success
+        
+        # Convert naive datetime to UTC if needed
+        if last_success.tzinfo is None:
+            last_success = last_success.replace(tzinfo=timezone.utc)
+            
+        return now - last_success > stale_threshold
     
     def _check_for_alerts(self, collector_type: str) -> None:
         """Check if alerts should be generated for a collector."""
@@ -261,7 +270,14 @@ class CollectionMonitor:
         # Check cooldown period
         if alert_key in self._last_alert_times:
             cooldown = timedelta(minutes=self.health_config["alert_cooldown_minutes"])
-            if datetime.now() - self._last_alert_times[alert_key] < cooldown:
+            now = datetime.now(tz=timezone.utc)
+            last_alert_time = self._last_alert_times[alert_key]
+            
+            # Convert naive datetime to UTC if needed
+            if last_alert_time.tzinfo is None:
+                last_alert_time = last_alert_time.replace(tzinfo=timezone.utc)
+                
+            if now - last_alert_time < cooldown:
                 return True
         
         return False
@@ -275,14 +291,14 @@ class CollectionMonitor:
     ) -> Alert:
         """Create and process a new alert."""
         self._alert_counter += 1
-        alert_id = f"alert_{self._alert_counter}_{int(datetime.now().timestamp())}"
+        alert_id = f"alert_{self._alert_counter}_{int(datetime.now(tz=timezone.utc).timestamp())}"
         
         alert = Alert(
             id=alert_id,
             level=level,
             collector_type=collector_type,
             message=message,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(tz=timezone.utc),
             metadata=metadata or {}
         )
         
@@ -481,7 +497,7 @@ class CollectionMonitor:
         Returns:
             Number of alerts removed
         """
-        cutoff_time = datetime.now() - timedelta(days=days_to_keep)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(days=days_to_keep)
         
         alerts_to_remove = [
             alert_id for alert_id, alert in self._alerts.items()
@@ -504,7 +520,7 @@ class CollectionMonitor:
             Dictionary with all monitoring information
         """
         return {
-            "export_time": datetime.now().isoformat(),
+            "export_time": datetime.now(tz=timezone.utc).isoformat(),
             "system_health": self.get_system_health_summary(),
             "collector_health": {
                 name: health.to_dict() for name, health in self._collector_health.items()

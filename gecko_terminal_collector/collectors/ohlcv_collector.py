@@ -7,7 +7,7 @@ prevention, and gap detection algorithms.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -78,7 +78,7 @@ class OHLCVCollector(BaseDataCollector):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors = []
         records_collected = 0
         self._collection_errors = []  # Reset error tracking
@@ -149,7 +149,7 @@ class OHLCVCollector(BaseDataCollector):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors = []
         records_collected = 0
         
@@ -257,7 +257,7 @@ class OHLCVCollector(BaseDataCollector):
         logger.debug(f"Starting enhanced OHLCV collection for pool {pool_id}")
         
         for timeframe in self.supported_timeframes:
-            timeframe_start_time = datetime.now()
+            timeframe_start_time = datetime.now(tz=timezone.utc)
             
             try:
                 logger.debug(f"Collecting OHLCV data for pool {pool_id}, timeframe {timeframe}")
@@ -327,7 +327,7 @@ class OHLCVCollector(BaseDataCollector):
                     collection_metadata['timeframes_failed'].append(timeframe)
                 
                 # Log timeframe processing time
-                timeframe_duration = (datetime.now() - timeframe_start_time).total_seconds()
+                timeframe_duration = (datetime.now(tz=timezone.utc) - timeframe_start_time).total_seconds()
                 logger.debug(f"Processed timeframe {timeframe} for pool {pool_id} in {timeframe_duration:.2f}s")
                 
             except Exception as e:
@@ -627,16 +627,16 @@ class OHLCVCollector(BaseDataCollector):
                 return None
             
             # Validate timestamp range (not too far in past or future)
-            current_time = datetime.now().timestamp()
+            current_time = datetime.now(tz=timezone.utc).timestamp()
             min_timestamp = current_time - (2 * 365 * 24 * 3600)  # 2 years ago (more lenient for historical data)
             max_timestamp = current_time + (7 * 24 * 3600)  # 1 week in future
             
             if timestamp < min_timestamp:
-                logger.warning(f"Timestamp too old for pool {pool_id}: {timestamp} ({datetime.fromtimestamp(timestamp)})")
+                logger.warning(f"Timestamp too old for pool {pool_id}: {timestamp} ({datetime.fromtimestamp(timestamp, tz=timezone.utc)})")
                 return None
             
             if timestamp > max_timestamp:
-                logger.warning(f"Timestamp too far in future for pool {pool_id}: {timestamp} ({datetime.fromtimestamp(timestamp)})")
+                logger.warning(f"Timestamp too far in future for pool {pool_id}: {timestamp} ({datetime.fromtimestamp(timestamp, tz=timezone.utc)})")
                 return None
             
             # Enhanced price conversion and validation
@@ -702,9 +702,9 @@ class OHLCVCollector(BaseDataCollector):
             if price_relationship_errors:
                 logger.debug(f"Price relationship anomalies for pool {pool_id} at timestamp {timestamp}: {'; '.join(price_relationship_errors)}")
             
-            # Convert timestamp to datetime with proper timezone handling
+            # Convert timestamp to datetime in UTC
             try:
-                datetime_obj = datetime.fromtimestamp(timestamp)
+                datetime_obj = datetime.fromtimestamp(timestamp, tz=timezone.utc)
             except (ValueError, OSError) as e:
                 logger.warning(f"Failed to convert timestamp {timestamp} to datetime for pool {pool_id}: {e}")
                 return None
@@ -856,7 +856,7 @@ class OHLCVCollector(BaseDataCollector):
                     warnings.append(
                         f"Duplicate timestamp in batch: pool {record.pool_id}, "
                         f"timeframe {record.timeframe}, timestamp {record.timestamp} "
-                        f"({datetime.fromtimestamp(record.timestamp)}). "
+                        f"({datetime.fromtimestamp(record.timestamp, tz=timezone.utc)}). "
                         f"Original: O:{original_record.open_price}, New: O:{record.open_price}"
                     )
             else:
@@ -866,7 +866,7 @@ class OHLCVCollector(BaseDataCollector):
             warnings.append(f"Found {duplicate_count} total duplicate timestamps in batch (showing first 5)")
         
         # Enhanced individual record validation
-        now = datetime.now()
+        now = datetime.now(tz=timezone.utc)
         price_anomaly_count = 0
         volume_anomaly_count = 0
         
@@ -969,8 +969,8 @@ class OHLCVCollector(BaseDataCollector):
                     if large_gaps <= 3:
                         warnings.append(
                             f"Large time gap detected: {time_diff}s between records "
-                            f"({datetime.fromtimestamp(sorted_records[i-1].timestamp)} -> "
-                            f"{datetime.fromtimestamp(sorted_records[i].timestamp)})"
+                            f"({datetime.fromtimestamp(sorted_records[i-1].timestamp, tz=timezone.utc)} -> "
+                            f"{datetime.fromtimestamp(sorted_records[i].timestamp, tz=timezone.utc)})"
                         )
             
             if large_gaps > 3:
@@ -1056,7 +1056,7 @@ class OHLCVCollector(BaseDataCollector):
         try:
             for timeframe in self.supported_timeframes:
                 # Check continuity for the last 24 hours
-                end_time = datetime.now()
+                end_time = datetime.now(tz=timezone.utc)
                 start_time = end_time - timedelta(hours=self.max_gap_hours)
                 
                 # Get continuity report
@@ -1118,8 +1118,8 @@ class OHLCVCollector(BaseDataCollector):
                     recent_data = await self.db_manager.get_ohlcv_data(
                         pool_id=pool_id,
                         timeframe=timeframe,
-                        start_time=datetime.now() - timedelta(hours=2),
-                        end_time=datetime.now()
+                        start_time=datetime.now(tz=timezone.utc) - timedelta(hours=2),
+                        end_time=datetime.now(tz=timezone.utc)
                     )
                     
                     if not recent_data:
@@ -1157,8 +1157,8 @@ class OHLCVCollector(BaseDataCollector):
                     recent_data = await self.db_manager.get_ohlcv_data(
                         pool_id=pool_id,
                         timeframe=timeframe,
-                        start_time=datetime.now() - timedelta(hours=24),
-                        end_time=datetime.now()
+                        start_time=datetime.now(tz=timezone.utc) - timedelta(hours=24),
+                        end_time=datetime.now(tz=timezone.utc)
                     )
                     
                     if recent_data:

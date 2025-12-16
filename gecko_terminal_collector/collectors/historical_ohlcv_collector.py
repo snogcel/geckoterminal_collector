@@ -8,7 +8,7 @@ logic for large historical data sets, and backfill functionality for data gaps.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -86,7 +86,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors = []
         records_collected = 0
         self._collection_stats = {
@@ -181,7 +181,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         Returns:
             CollectionResult with details about the collection operation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(tz=timezone.utc)
         errors = []
         records_collected = 0
         
@@ -193,7 +193,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             
             # Set default date range if not provided
             if end_date is None:
-                end_date = datetime.utcnow()
+                end_date = datetime.now(tz=timezone.utc)
             if start_date is None:
                 start_date = end_date - timedelta(days=self.max_history_days)
             
@@ -288,7 +288,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 logger.debug(f"Collecting historical OHLCV data for pool {pool_id}, timeframe {timeframe}")
                 
                 # Determine the time range for historical data collection
-                end_time = datetime.now()
+                end_time = datetime.now(tz=timezone.utc)
                 start_time = end_time - timedelta(days=self.max_history_days)
                 
                 # Check what data we already have to avoid unnecessary requests
@@ -446,9 +446,13 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 
                 # Filter records to only include those in our target time range
                 # Use a more lenient time range for backfill scenarios
+                # Ensure timezone compatibility for comparison
+                start_time_aware = start_time.replace(tzinfo=timezone.utc) if start_time.tzinfo is None else start_time
+                end_time_aware = end_time.replace(tzinfo=timezone.utc) if end_time.tzinfo is None else end_time
+                
                 filtered_records = [
                     record for record in records
-                    if (start_time - timedelta(hours=1)) <= record.datetime <= (end_time + timedelta(hours=1))
+                    if (start_time_aware - timedelta(hours=1)) <= record.datetime <= (end_time_aware + timedelta(hours=1))
                 ]
 
                 # print("===filtered_records===")
@@ -686,8 +690,8 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             close_price = Decimal(str(ohlcv_data[4]))
             volume_usd = Decimal(str(ohlcv_data[5]))
             
-            # Convert timestamp to datetime
-            datetime_obj = datetime.fromtimestamp(timestamp)
+            # Convert timestamp to datetime in UTC
+            datetime_obj = datetime.fromtimestamp(timestamp, tz=timezone.utc)
             
             # Validate price relationships (log warning but don't reject)
             if not self._validate_price_relationships(open_price, high_price, low_price, close_price):
@@ -857,7 +861,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         # Validate individual records
         for record in records:
             # Check timestamp is reasonable (not in future)
-            now = datetime.now()
+            now = datetime.now(tz=timezone.utc)
             if record.datetime > now + timedelta(hours=1):
                 warnings.append(
                     f"Future timestamp in historical data: {record.datetime} for pool {record.pool_id}"
@@ -969,12 +973,12 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             for pool_id in watchlist_pools:
                 for timeframe in self.supported_timeframes:
                     # Check if we have historical OHLCV data
-                    historical_start = datetime.now() - timedelta(days=self.max_history_days)
+                    historical_start = datetime.now(tz=timezone.utc) - timedelta(days=self.max_history_days)
                     historical_data = await self.db_manager.get_ohlcv_data(
                         pool_id=pool_id,
                         timeframe=timeframe,
                         start_time=historical_start,
-                        end_time=datetime.now() - timedelta(days=1)  # Exclude very recent data
+                        end_time=datetime.now(tz=timezone.utc) - timedelta(days=1)  # Exclude very recent data
                     )
                     
                     if not historical_data:
@@ -1004,7 +1008,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             # Count pools with historical OHLCV data for each timeframe
             timeframe_coverage = {}
             total_historical_records = 0
-            historical_start = datetime.now() - timedelta(days=self.max_history_days)
+            historical_start = datetime.now(tz=timezone.utc) - timedelta(days=self.max_history_days)
             
             for timeframe in self.supported_timeframes:
                 pools_with_historical_data = 0
@@ -1014,7 +1018,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                         pool_id=pool_id,
                         timeframe=timeframe,
                         start_time=historical_start,
-                        end_time=datetime.now() - timedelta(days=1)
+                        end_time=datetime.now(tz=timezone.utc) - timedelta(days=1)
                     )
                     
                     if historical_data:

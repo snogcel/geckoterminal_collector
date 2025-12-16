@@ -4,7 +4,7 @@ Database manager extension for monitoring data persistence.
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_, or_
@@ -183,7 +183,7 @@ class MonitoringDatabaseManager:
                     collector_type=collector_type,
                     metric_name=metric_name,
                     metric_value=value,
-                    timestamp=timestamp or datetime.now(),
+                    timestamp=timestamp or datetime.now(tz=timezone.utc),
                     labels=json.dumps(labels) if labels else None
                 )
                 session.add(metric)
@@ -225,7 +225,7 @@ class MonitoringDatabaseManager:
                     query = query.filter(PerformanceMetrics.metric_name == metric_name)
                 
                 if time_window:
-                    cutoff_time = datetime.now() - time_window
+                    cutoff_time = datetime.now(tz=timezone.utc) - time_window
                     query = query.filter(PerformanceMetrics.timestamp >= cutoff_time)
                 
                 # Order by timestamp (most recent first)
@@ -404,13 +404,13 @@ class MonitoringDatabaseManager:
                     session.add(metadata)
                 
                 # Update metadata
-                metadata.last_run = datetime.now()
+                metadata.last_run = datetime.now(tz=timezone.utc)
                 metadata.run_count = (metadata.run_count or 0) + 1
                 metadata.total_execution_time = (metadata.total_execution_time or 0) + execution_time
                 metadata.total_records_collected = (metadata.total_records_collected or 0) + records_collected
                 
                 if success:
-                    metadata.last_success = datetime.now()
+                    metadata.last_success = datetime.now(tz=timezone.utc)
                     metadata.last_error = None
                 else:
                     metadata.error_count = (metadata.error_count or 0) + 1
@@ -449,7 +449,7 @@ class MonitoringDatabaseManager:
         Returns:
             Dictionary with counts of removed records
         """
-        cutoff_time = datetime.now() - timedelta(days=days_to_keep)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(days=days_to_keep)
         removed_counts = {}
         
         try:

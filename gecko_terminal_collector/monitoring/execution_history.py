@@ -4,7 +4,7 @@ Execution history tracking for collection operations.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from enum import Enum
 
@@ -39,7 +39,17 @@ class ExecutionRecord:
     def duration(self) -> Optional[timedelta]:
         """Calculate execution duration."""
         if self.end_time:
-            return self.end_time - self.start_time
+            # Ensure both timestamps are timezone-aware for comparison
+            start_time = self.start_time
+            end_time = self.end_time
+            
+            # Convert naive datetimes to UTC if needed
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+                
+            return end_time - start_time
         return None
     
     @property
@@ -103,7 +113,7 @@ class ExecutionHistoryTracker:
         record = ExecutionRecord(
             collector_type=collector_type,
             execution_id=execution_id,
-            start_time=datetime.now(),
+            start_time=datetime.now(tz=timezone.utc),
             metadata=metadata or {}
         )
         
@@ -175,7 +185,7 @@ class ExecutionHistoryTracker:
             return None
         
         record = self._active_executions.pop(execution_id)
-        record.end_time = datetime.now()
+        record.end_time = datetime.now(tz=timezone.utc)
         record.status = ExecutionStatus.CANCELLED
         record.errors.append(reason)
         
@@ -264,7 +274,7 @@ class ExecutionHistoryTracker:
         
         # Apply time window filter
         if time_window:
-            cutoff_time = datetime.now() - time_window
+            cutoff_time = datetime.now(tz=timezone.utc) - time_window
             records = [r for r in records if r.start_time >= cutoff_time]
         
         if not records:
@@ -317,7 +327,7 @@ class ExecutionHistoryTracker:
         time_window = timedelta(hours=hours)
         records = self.get_execution_history(collector_type, status_filter=ExecutionStatus.FAILURE)
         
-        cutoff_time = datetime.now() - time_window
+        cutoff_time = datetime.now(tz=timezone.utc) - time_window
         return [r for r in records if r.start_time >= cutoff_time]
     
     def cleanup_old_records(self, days_to_keep: int = 30) -> int:
@@ -330,7 +340,7 @@ class ExecutionHistoryTracker:
         Returns:
             Number of records removed
         """
-        cutoff_time = datetime.now() - timedelta(days=days_to_keep)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(days=days_to_keep)
         removed_count = 0
         
         for collector_type, history in self._execution_history.items():
@@ -363,7 +373,7 @@ class ExecutionHistoryTracker:
         records = self.get_execution_history(collector_type, limit)
         
         return {
-            "export_time": datetime.now().isoformat(),
+            "export_time": datetime.now(tz=timezone.utc).isoformat(),
             "total_records": len(records),
             "collector_type_filter": collector_type,
             "executions": [record.to_dict() for record in records],
