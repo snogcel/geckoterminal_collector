@@ -113,16 +113,47 @@ class SchedulerCLI:
         """Register all collectors with the scheduler and rate limiting."""
         logger.info("Registering collectors with enhanced rate limiting...")
         
+        # Load the raw config to check what's actually defined in the YAML
+        import yaml
+        with open(self.config_path, 'r') as f:
+            raw_config = yaml.safe_load(f)
+        
+        # Get intervals from raw config (only what's explicitly defined)
+        raw_intervals = raw_config.get('intervals', {})
+        
+        logger.info(f"Loading collectors from config - found {len(raw_intervals)} interval definitions")
+        
         # Standard collectors configuration (collector_id, collector_class, interval, enabled, additional_params)
-        collectors_config = [
-            ("dex_monitoring", DEXMonitoringCollector, "1h", True, {}),
-            ("top_pools", TopPoolsCollector, config.intervals.top_pools_monitoring, True, {}),
-            ("watchlist_monitor", WatchlistMonitor, config.intervals.watchlist_check, True, {}),
-            ("watchlist_collector", WatchlistCollector, config.intervals.watchlist_check, True, {}),
-            ("ohlcv", OHLCVCollector, config.intervals.ohlcv_collection, True, {}),
-            ("trade", TradeCollector, config.intervals.trade_collection, True, {}),
-            ("historical_ohlcv", HistoricalOHLCVCollector, "1d", True, {})
-        ]
+        # Only register collectors that have intervals explicitly defined in the YAML
+        collectors_config = []
+        
+        # Only add collectors if their interval is explicitly set in the raw YAML config
+        if 'top_pools_monitoring' in raw_intervals:
+            interval = raw_intervals['top_pools_monitoring']
+            logger.info(f"Enabling top_pools collectors (interval: {interval})")
+            collectors_config.append(("dex_monitoring", DEXMonitoringCollector, "1h", True, {}))
+            collectors_config.append(("top_pools", TopPoolsCollector, interval, True, {}))
+        
+        if 'watchlist_check' in raw_intervals:
+            interval = raw_intervals['watchlist_check']
+            logger.info(f"Enabling watchlist collectors (interval: {interval})")
+            collectors_config.append(("watchlist_monitor", WatchlistMonitor, interval, True, {}))
+            collectors_config.append(("watchlist_collector", WatchlistCollector, interval, True, {}))
+        
+        if 'ohlcv_collection' in raw_intervals:
+            interval = raw_intervals['ohlcv_collection']
+            logger.info(f"Enabling ohlcv collector (interval: {interval})")
+            collectors_config.append(("ohlcv", OHLCVCollector, interval, True, {}))
+        
+        if 'trade_collection' in raw_intervals:
+            interval = raw_intervals['trade_collection']
+            logger.info(f"Enabling trade collector (interval: {interval})")
+            collectors_config.append(("trade", TradeCollector, interval, True, {}))
+        
+        logger.info(f"Configured {len(collectors_config)} collectors based on config.yaml intervals")
+        
+        # Historical OHLCV is optional - only add if explicitly enabled
+        # collectors_config.append(("historical_ohlcv", HistoricalOHLCVCollector, "1d", False, {}))
 
         
 
