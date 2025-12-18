@@ -1,0 +1,4 @@
+timestamp,endpoint,timeframe,ranking,tokenSymbol,tokenName,chain,dex,price,age,transactions,volume,makers,priceChange5m,priceChange1h,priceChange6h,priceChange24h,liquidity,marketCap,detailUrl
+12/17/2025 21:20,reference,6h,1,DINO,DINOSOL,SOL,PumpSwap,0.001132,12d,29560,1100000,3838,1.05,-10.78,5.94,77.11,134000,996000,/solana/26m5m3nwgake4zavkd3zetys5hjwdxe6xbwpdtslhy1o
+12/17/2025 21:20,reference,6h,2,CALVIN,Calvin,SOL,PumpSwap,0.001829,7d,27122,1200000,12628,-5.66,6.78,6.27,62.59,175000,1800000,/solana/3ismqtviyuhggvmbxoui7h5fwq5ktjwaeonvcnq1uqds
+12/17/2025 21:20,reference,6h,3,SANTA,SANTA,SOL,Raydium,0.006221,1y,106224,268000,104729,-0.21,-6.71,-12.52,-14.82,113000,1000000,/solana/ejuwjjff9rcdm6ndrh84awhzfbcybytckzvsbspltwh9

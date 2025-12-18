@@ -1909,6 +1909,26 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error storing watchlist entry: {e}")
                 raise
     
+    async def store_enhanced_watchlist_history(self, entry) -> None:
+        """
+        Store an enhanced watchlist history entry.
+        
+        Args:
+            entry: EnhancedWatchlistHistory object to store
+        """
+        with self.connection.get_session() as session:
+            try:
+                session.add(entry)
+                session.commit()
+                logger.debug(f"Stored enhanced watchlist history entry for {entry.source} ranking {entry.ranking}")
+            except IntegrityError:
+                session.rollback()
+                logger.warning(f"Duplicate enhanced watchlist history entry for {entry.source} ranking {entry.ranking} at {entry.collected_at}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error storing enhanced watchlist history entry: {e}")
+                raise
+    
     async def update_watchlist_entry(self, entry) -> None:
         """
         Update an existing watchlist entry.

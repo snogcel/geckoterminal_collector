@@ -272,6 +272,80 @@ class WatchlistConfigValidator(BaseModel):
         return v
 
 
+class EnhancedWatchlistRateLimitingValidator(BaseModel):
+    """Pydantic model for enhanced watchlist rate limiting configuration."""
+    delay_between_calls: float = Field(default=1.0, ge=0.1, le=10.0, description="Seconds between API calls")
+    batch_size: int = Field(default=10, ge=1, le=100, description="Process entries in batches")
+    delay_between_sources: float = Field(default=2.0, ge=0.1, le=30.0, description="Seconds between processing different sources")
+
+
+class EnhancedWatchlistHistoryValidator(BaseModel):
+    """Pydantic model for enhanced watchlist history configuration."""
+    enabled: bool = Field(default=True, description="Enable historical data storage")
+    retention_days: int = Field(default=90, ge=0, le=3650, description="Days to retain historical data (0 = unlimited)")
+    cleanup_interval: str = Field(default="24h", description="How often to run cleanup")
+    
+    @field_validator('cleanup_interval')
+    @classmethod
+    def validate_cleanup_interval(cls, v):
+        """Validate cleanup interval format."""
+        return IntervalConfigValidator.validate_interval_format(v)
+
+
+class EnhancedWatchlistConfigValidator(BaseModel):
+    """Pydantic model for enhanced watchlist configuration validation."""
+    enabled: bool = Field(default=True, description="Enable enhanced watchlist collection")
+    interval: str = Field(default="1h", description="Collection interval (hourly updates)")
+    sources: List[str] = Field(
+        default=["reference", "lowcap", "micro", "midcap", "oldlowcap", "oldmicro"],
+        description="Available data sources"
+    )
+    rate_limiting: EnhancedWatchlistRateLimitingValidator = Field(
+        default_factory=EnhancedWatchlistRateLimitingValidator,
+        description="Rate limiting for API calls"
+    )
+    history: EnhancedWatchlistHistoryValidator = Field(
+        default_factory=EnhancedWatchlistHistoryValidator,
+        description="Historical data settings"
+    )
+    file_pattern: str = Field(
+        default="watchlist_updated_{source}.csv",
+        description="Pattern for source files"
+    )
+    
+    @field_validator('interval')
+    @classmethod
+    def validate_interval(cls, v):
+        """Validate collection interval format."""
+        return IntervalConfigValidator.validate_interval_format(v)
+    
+    @field_validator('sources')
+    @classmethod
+    def validate_sources(cls, v):
+        """Validate source list."""
+        if not v:
+            raise ValueError("At least one source must be specified")
+        
+        valid_sources = ["reference", "lowcap", "micro", "midcap", "oldlowcap", "oldmicro"]
+        for source in v:
+            if source not in valid_sources:
+                raise ValueError(f"Invalid source: {source}. Valid sources: {valid_sources}")
+        
+        return v
+    
+    @field_validator('file_pattern')
+    @classmethod
+    def validate_file_pattern(cls, v):
+        """Validate file pattern format."""
+        if not v:
+            raise ValueError("File pattern cannot be empty")
+        
+        if "{source}" not in v:
+            raise ValueError("File pattern must contain {source} placeholder")
+        
+        return v
+
+
 class NetworkConfigValidator(BaseModel):
     """Pydantic model for network-specific configuration validation."""
     enabled: bool = Field(default=True, description="Enable collection for this network")
@@ -359,6 +433,7 @@ class CollectionConfigValidator(BaseModel):
     error_handling: ErrorConfigValidator = Field(default_factory=ErrorConfigValidator)
     rate_limiting: RateLimitConfigValidator = Field(default_factory=RateLimitConfigValidator)
     watchlist: WatchlistConfigValidator = Field(default_factory=WatchlistConfigValidator)
+    enhanced_watchlist: EnhancedWatchlistConfigValidator = Field(default_factory=EnhancedWatchlistConfigValidator)
     new_pools: NewPoolsConfigValidator = Field(default_factory=NewPoolsConfigValidator)
     trade_collection: TradeCollectionConfigValidator = Field(default_factory=TradeCollectionConfigValidator)
     
@@ -373,6 +448,7 @@ class CollectionConfigValidator(BaseModel):
         from gecko_terminal_collector.config.models import (
             CollectionConfig, DEXConfig, IntervalConfig, ThresholdConfig,
             TimeframeConfig, DatabaseConfig, APIConfig, ErrorConfig, RateLimitConfig, WatchlistConfig,
+            EnhancedWatchlistConfig, EnhancedWatchlistRateLimitingConfig, EnhancedWatchlistHistoryConfig,
             NewPoolsConfig, NetworkConfig, TradeCollectionConfig
         )
         
@@ -463,6 +539,22 @@ class CollectionConfigValidator(BaseModel):
                 check_interval=self.watchlist.check_interval,
                 auto_add_new_tokens=self.watchlist.auto_add_new_tokens,
                 remove_inactive_tokens=self.watchlist.remove_inactive_tokens
+            ),
+            enhanced_watchlist=EnhancedWatchlistConfig(
+                enabled=self.enhanced_watchlist.enabled,
+                interval=self.enhanced_watchlist.interval,
+                sources=self.enhanced_watchlist.sources,
+                rate_limiting=EnhancedWatchlistRateLimitingConfig(
+                    delay_between_calls=self.enhanced_watchlist.rate_limiting.delay_between_calls,
+                    batch_size=self.enhanced_watchlist.rate_limiting.batch_size,
+                    delay_between_sources=self.enhanced_watchlist.rate_limiting.delay_between_sources
+                ),
+                history=EnhancedWatchlistHistoryConfig(
+                    enabled=self.enhanced_watchlist.history.enabled,
+                    retention_days=self.enhanced_watchlist.history.retention_days,
+                    cleanup_interval=self.enhanced_watchlist.history.cleanup_interval
+                ),
+                file_pattern=self.enhanced_watchlist.file_pattern
             ),
             new_pools=NewPoolsConfig(
                 networks=new_pools_networks,

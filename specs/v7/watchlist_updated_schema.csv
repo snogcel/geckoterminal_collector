@@ -1,0 +1,201 @@
+﻿timestamp,endpoint,timeframe,ranking,tokenSymbol,tokenName,chain,dex,price,age,transactions,volume,makers,priceChange5m,priceChange1h,priceChange6h,priceChange24h,liquidity,marketCap,detailUrl
+12/17/2025 21:20,reference,6h,1,DINO,DINOSOL,SOL,PumpSwap,0.001132,12d,29560,1100000,3838,1.05,-10.78,5.94,77.11,134000,996000,/solana/26m5m3nwgake4zavkd3zetys5hjwdxe6xbwpdtslhy1o
+12/17/2025 21:20,reference,6h,2,CALVIN,Calvin,SOL,PumpSwap,0.001829,7d,27122,1200000,12628,-5.66,6.78,6.27,62.59,175000,1800000,/solana/3ismqtviyuhggvmbxoui7h5fwq5ktjwaeonvcnq1uqds
+12/17/2025 21:20,reference,6h,3,SANTA,SANTA,SOL,Raydium,0.006221,1y,106224,268000,104729,-0.21,-6.71,-12.52,-14.82,113000,1000000,/solana/ejuwjjff9rcdm6ndrh84awhzfbcybytckzvsbspltwh9
+12/17/2025 21:20,reference,6h,4,2026,2026,SOL,PumpSwap,0.0001738,4d,38799,718000,30005,-9.53,-6,-27.93,120,41000,173000,/solana/4gfcd6rzk8cjqezwcnfjsp9wva3zstkswvbyqvaaj5hp
+12/17/2025 21:20,reference,6h,5,https,had to take profits sir,SOL,PumpSwap,0.0009551,18h,30610,2000000,5500,-3.33,2.81,190,1692,98000,955000,/solana/amk2hphohkte2tcjwkbfmpyr3jimds3j19xgdhx4zclk
+12/17/2025 21:20,reference,6h,6,PURK,Purple Wojak,SOL,PumpSwap,0.0001185,4h,4256,137000,2171,6.41,157,132,132,32000,118000,/solana/8rqzhgyopksvxqepimmel27ehcn3fczr1uwebbtwnyvm
+12/17/2025 21:20,reference,6h,7,BULLISH,Bullish Degen,SOL,PumpSwap,0.01524,2mo,6821,758000,1429,-0.74,-7.41,-21.36,-17.59,446000,15200000,/solana/gc1utsxrrlauwby3uwsemjuxhjmjhhv1sxj9a1jhvyxp
+12/17/2025 21:20,reference,6h,8,SPANKMAS,SPANKMAS,SOL,PumpSwap,0.0005573,4d,13267,565000,7529,-6.45,-7.31,-24.57,-3.28,73000,557000,/solana/gthnszpjpnrf1up1amxds24qzqggnwct8qycwudm16vw
+12/17/2025 21:20,reference,6h,9,pippin,Pippin,SOL,Raydium,0.4013,1y,85650,33600000,2057,0.05,-0.92,-0.5,4.98,12900000,401300000,/solana/8wwcnqdzjcy5pt7akhupafknv2txca9sq6ybkgzlbvdt
+12/17/2025 21:20,reference,6h,10,XMAS,xmas cult,SOL,PumpSwap,0.0002308,15d,109561,140000,108086,1.05,15.54,2.06,29.2,61000,225000,/solana/h6uxy1hggxuq82qkbid6ozanza2ot3g6r9k71guvaqdy
+12/17/2025 21:20,reference,6h,11,SNOW,Snow Bunny Season,SOL,PumpSwap,0.0002017,22h,43095,1700000,2444,5.34,-2.49,17.97,272,45000,201000,/solana/hn9tvhwvzjahbjfzynyhyjwekgqewjdmhsymy94shcpv
+12/17/2025 21:20,reference,6h,12,Dumplings,Squishy Dumplings,SOL,PumpSwap,0.001055,3d,12844,1600000,2663,-4.84,12.52,7.05,185,106000,1000000,/solana/5dykzgnyefb9wgakydkybepdgohygv63c7grqlsxs3fh
+12/17/2025 21:20,reference,6h,13,pSOQ,SoQuBit,SOL,PumpSwap,0.0006007,4h,8286,968000,1601,-3.74,51.44,1062,1062,74000,600000,/solana/em9nypqcbyrz8zbxzui2lazbtcy2zbvja49ntxhi3pq8
+12/17/2025 21:20,reference,6h,14,JEET,JEET,SOL,PumpSwap,0.0003981,1d,16779,1200000,3312,-11.42,-5.72,-6.77,155,62000,398000,/solana/hrmwhfwptsena5skn9ecprdq4fcdzowslytwykupfmhb
+12/17/2025 21:20,reference,6h,15,POLY,Polymarket,SOL,PumpSwap,0.01225,19h,12761,341000,3461,-0.2,233,3581,22975,7200000,12200000,/solana/8ntn93uzinhcchdtmbvktpswpv1uou5lbzkttims4szi
+12/17/2025 21:20,reference,6h,16,BARRON,Official Barron Trump,USD1,Raydium,0.0003574,2d,16642,1400000,3564,-1.86,16.48,-48.22,-38.41,68000,357000,/solana/j59dng72mwix445tkpgrpeznypkx9djg6wpnjmkxftqy
+12/17/2025 21:20,reference,6h,17,RYU,Ryu Inu,WBNB,PancakeSwap,0.064227,1mo,5566,463000,1770,0.19,5.73,10.38,36.39,89000,157000,/bsc/0xbddc278b8b4c692af2f18df2b42bf57d3fd61127
+12/17/2025 21:20,reference,6h,18,WOJAK,Wojak,SOL,PumpSwap,0.02737,1mo,9627,2800000,2121,-0.38,-3.46,-14.13,11.23,764000,27300000,/solana/fdry5i5kuadz1ik8gps26qjj9rw9mpufxmeggc2hnsp7
+12/17/2025 21:20,reference,6h,19,Franklin,Franklin The Turtle,SOL,PumpSwap,0.001914,16d,4408,813000,1652,-1.09,-1.58,-21.7,-28.28,231000,1900000,/solana/8wxzwpljk6qjmyyc1vhuennxrvw2nfgvqjgenv4mv8sy
+12/17/2025 21:20,reference,6h,20,FRANKLIN,Franklin the Based Turtle,USD1,Raydium,0.001562,16d,7007,1200000,1243,-1.07,5.71,1.76,35.8,234000,1500000,/solana/j3rkgt8jvj2crugawe5n1gtxuifl8runumqhszpcspvm
+12/17/2025 21:20,reference,6h,21,PURCH,Purch,SOL,PumpSwap,0.0002211,3h,6160,653000,1248,-3.51,1.49,333,333,44000,221000,/solana/arsufvuvr6p2ptvjoiuwimecobjc2bshrn2domgfidv6
+12/17/2025 21:20,reference,6h,22,TROLL,TROLL,SOL,PumpSwap,0.03759,7mo,4499,1900000,769,0.25,-1.44,-12.82,4.53,2300000,37500000,/solana/4w2cysotx6czaugmmwg13hdpy4qemg2czekyeqyk9ama
+12/17/2025 21:20,reference,6h,23,Hachiko,Hachiko Inu,WBNB,PancakeSwap,0.0003732,3d,3184,315000,1027,-0.33,2.67,-6.46,-27.97,69000,367000,/bsc/0xe6edc555061d1d9fe0145867b7ea7b07da840898
+12/17/2025 21:20,reference,6h,24,FKH,Flying Ketamine Horse,USD1,Raydium,0.00411,22d,9512,1400000,1807,-2.07,14.09,-19.56,43.65,260000,4000000,/solana/8lq7gz2aezkmqnflpymjv3v8jbd26lrbfd11snricce6
+12/17/2025 21:20,reference,6h,25,MAGA,Make America Great Again,USD1,Raydium,0.001077,6d,9524,1100000,2126,-0.56,-11.47,-34.19,-45.14,125000,1000000,/solana/8s9e7eb7b7muxzm2qxkm7brqed415dq2mvctxvsxy43o
+12/17/2025 21:20,reference,6h,26,67,The Official 67 Coin,SOL,PumpSwap,0.006934,2mo,5781,1300000,1734,0.94,6.57,-1.75,-10.64,466000,6900000,/solana/dmafl613xtipua3jfnyczavwt7xsiyf9cr3qmrmzqhb6
+12/17/2025 21:20,reference,6h,27,VFS,Voltaic Finance Systems,SOL,PumpSwap,0.000191,5h,3414,447000,1198,1.28,3.55,269,269,41000,191000,/solana/5qztrmkdwb8fyp5qybj9usyzbiuimxyd8grirpeldlmh
+12/17/2025 21:20,reference,6h,28,LGNS,Longinus,DAI,QuickSwap,7,1y,671049,33000000,120880,,,0.29,2.8,432800000,1160000000,/polygon/0x882df4b0fb50a229c3b4124eb18c759911485bfb
+12/17/2025 21:20,reference,6h,29,WFM,Weaponized Fent Machine,USD1,Raydium,0.0003261,1d,3881,430000,1058,6.91,-15.61,47.16,43.62,60000,326000,/solana/6gmosxfcyvfxutt6wpwenbqjjsfrfv9ga8rug6js13nq
+12/17/2025 21:20,reference,6h,30,SPSC,Shit Piss Skin Can,USD1,Raydium,0.004316,1mo,6644,1000000,1139,-2.05,-4.78,-9.22,31.88,300000,4300000,/solana/6mhj1z5bgc1uitnewrnjfbgtqpupdh2qgdwkemgxt2c5
+12/17/2025 21:20,reference,6h,31,CCAI,Creators Coalition on AI,SOL,PumpSwap,0.0001126,16h,22166,1300000,3442,15.24,-7.99,-3.24,117,33000,112000,/solana/gpufd7aoxxbhf7oohckkrc7qpgfdx9qjzyphyvexzuwz
+12/17/2025 21:20,reference,6h,32,MINER,Never Give Up,SOL,PumpSwap,0.001825,13d,3971,586000,1061,1.45,-6.28,-12.2,4.74,172000,1800000,/solana/7rewgb9exilbafdlu14cqly46wh4ccn46dxsmh51igay
+12/17/2025 21:20,reference,6h,33,PRISONERS,Crypto Prisoners Fund,WBNB,PancakeSwap,0.005954,1h,2739,677000,651,7.51,101,32964,32964,65000,595000,/bsc/0x266086b6dbcf17575710aa120afb16efc1625df9
+12/17/2025 21:20,reference,6h,34,GROOVE,GROOVE,WETH,Uniswap,0.0002913,1y,4805,419000,1617,5.96,8.02,105,1023,122000,131000,/base/0xef0a856b572108ef0ad9dac10580811939ca3bb7
+12/17/2025 21:20,reference,6h,35,PIPPIN,Pippin Network,SOL,PumpSwap,0.0001154,13h,8140,487000,1708,-0.68,-7.31,97.65,119,32000,115000,/solana/7ble2kh3hskjabvqmj5raxahbnumnbxuzrnsnfji2k9u
+12/17/2025 21:20,reference,6h,36,RILIE,GameStop Goth Girl,SOL,PumpSwap,0.0002036,6d,8873,428000,2535,3.82,0.14,-6.63,-21.35,47000,203000,/solana/28k1ldm3eugtxjrfewj7mtejjflh3tj1jzz3i5ufcufl
+12/17/2025 21:20,reference,6h,37,MACARON,MACARON,SOL,Raydium,0.153,8d,3640,539000,758,-4.35,-18.09,-49.31,-61.16,79000,160000,/solana/f7xdzsmdlqlf1htugz4nb8b3ufcmwdzwnjvzv32ylr7b
+12/17/2025 21:20,reference,6h,38,USELESS,USELESS COIN,SOL,Raydium,0.06788,7mo,5045,613000,694,-0.45,-1.12,-12.38,-11.7,2200000,67800000,/solana/q2sphpduwfmg7m7wwrqklrn619caucfrsmhvjffodsp
+12/17/2025 21:20,reference,6h,39,KERMIT,KERMIT THE FROG,SOL,PumpSwap,0.002125,1mo,3344,639000,901,-1.38,17.04,-9.68,25.56,182000,2100000,/solana/3cwtutmhyhldwrhxunngxoyyvvfc3deukm5hca3ypqv4
+12/17/2025 21:20,reference,6h,40,KABUTO,Kabuto,SOL,PumpSwap,0.0007956,19d,3031,437000,805,-1.41,6.9,2.53,26.43,125000,795000,/solana/gbsngtqldq6afv7a4jv6enhz6vhrdzgnc1e45dekqc1l
+12/17/2025 21:20,reference,6h,41,SANTACRASH,Santa Crash,ETH,Uniswap,0.0001134,12h,6004,122000,3573,9.81,13.23,35.22,27505,12000,113000,/base/0x106bb1f1b685a6446fbe34910d8a2b4f3b2ceb1f33995c23c4fde051182d4ddc
+12/17/2025 21:20,reference,6h,42,RUSSELL,RUSSELL,WETH,Uniswap,0.004007,1y,7087,2200000,2634,4.13,-2.47,-12.09,-18.78,449000,3800000,/base/0xea8b7ed6170e0ea3703dde6b496b065a8ececd7b
+12/17/2025 21:20,reference,6h,43,1,1 coin can change your life,USD1,Raydium,0.005946,2mo,4430,823000,953,-0.91,5.64,-10.1,17.85,502000,5900000,/solana/6sekz73vph5afymqtzav6h5vaqqlz2c8wqecq6mhlqfk
+12/17/2025 21:20,reference,6h,44,MVP,MVP,WBNB,PancakeSwap,0.0001512,21h,12175,1500000,5142,-0.1,-17.72,-7.26,43.46,46000,151000,/bsc/0x3486fde878910d847e5770d22f6150e6e0ace913
+12/17/2025 21:20,reference,6h,45,Fartcoin,Fartcoin,SOL,Raydium,0.307,1y,5059,2300000,407,-0.18,-2.4,-14.06,-11.13,10700000,307000000,/solana/bzc9nzfmqkxr6fz1dbph7bdf9broyef6pnzesp7v5iiw
+12/17/2025 21:20,reference,6h,46,NOBODY,Nobody Sausage,SOL,Meteora,0.007951,7mo,1068,309000,243,-0.12,-2.79,-18.77,-12.95,987000,7400000,/solana/7rqd8fhc1rimv3v9edcrz6rnfsjn1puxm9umjaurjrnj
+12/17/2025 21:20,reference,6h,47,ARK,ARK,USDT,PancakeSwap,24.01,3mo,51763,10600000,18381,,-0.11,-2.6,-5.82,95100000,60900000,/bsc/0xcaaf3c41a40103a23eeaa4bba468af3cf5b0e0d8
+12/17/2025 21:20,reference,6h,48,AVICI,Avici,USDC,Meteora,3.13,1mo,1076,739000,437,,3.27,-6.84,-7.53,1500000,40400000,/solana/5gb4npgfb3mhfhsekn4sbay6t9mb8ikce9hyikyid4td
+12/17/2025 21:20,reference,6h,49,NOTHING,Youâ€™ll own nothing & be happy,SOL,PumpSwap,0.001919,1mo,2958,377000,848,0.38,-6.62,-13.84,8.54,210000,1900000,/solana/2pa1gmh9wbpturmr6rt5oxns6rdplzxjphsjqcdyanfq
+12/17/2025 21:20,reference,6h,50,DOYR,DOYR,WBNB,PancakeSwap,0.003065,11d,6793,1100000,1672,0.36,0.45,-3.41,13.53,321000,3000000,/bsc/0x9b487fe6c7f4d62df0a63dbfb0b56b60e55c55f5
+12/17/2025 21:20,reference,6h,51,cbBTC,Coinbase Wrapped BTC,USDC,PancakeSwap,85880.27,1y,52817,57100000,5350,-0.12,-0.27,-4.46,-2.08,3500000,2290000000,/base/0xb94b22332abf5f89877a14cc88f2abc48c34b3df
+12/17/2025 21:20,reference,6h,52,HEX,HEX,WPLS,PulseX,0.002774,2y,3542,421000,1325,0.45,0.27,-4.72,-9.41,981000,1640000000,/pulsechain/0xf1f4ee610b2babb05c635f726ef8b0c568c8dc65
+12/17/2025 21:20,reference,6h,53,wkeyDAO,WebKey DAO,USDT,PancakeSwap,11.44,1y,156864,17000000,25855,-0.06,0.57,-2.64,-1.38,6200000,30500000,/bsc/0x8665a78ccc84d6df2acaa4b207d88c6bc9b70ec5
+12/17/2025 21:20,reference,6h,54,Rizzmas,Rizzmas,SOL,Raydium,0.054508,1y,4558,402000,1723,-1.05,-3.81,-22.15,-9.24,498000,2200000,/solana/hgrvezf83hm2x5hovx9ec2cbiajtmwfhk6vcuplh4ydy
+12/17/2025 21:20,reference,6h,55,CYAI,CyreneAI,SOL,Raydium,0.0005815,7mo,4288,470000,1008,8.36,9.95,-52.2,-57.54,89000,581000,/solana/4un6wpjhfb9eoqq4xuwwidj7nguw4iw9rx4igbuguxct
+12/17/2025 21:20,reference,6h,56,KIRKIFY,KIRKIFICATION,SOL,PumpSwap,0.0003565,1mo,1881,295000,548,-1.91,9.68,-21.69,145,70000,356000,/solana/bqv36lgsweqc76k6bfqcdnr1xb8volayyhif5mjaecds
+12/17/2025 21:20,reference,6h,57,4,4,WBNB,PancakeSwap,0.01889,2mo,3226,805000,1196,-1.84,-2.59,-16.1,-13.91,1100000,18800000,/bsc/0xf0a949d3d93b833c183a27ee067165b6f2c9625e
+12/17/2025 21:20,reference,6h,58,PLSX,PulseX,WPLS,PulseX,0.04123,2y,3995,608000,1324,0.7,1.45,-5.41,-11.19,3400000,1760000000,/pulsechain/0x1b45b9148791d3a104184cd5dfe5ce57193a3ee9
+12/17/2025 21:20,reference,6h,59,cbBTC,Coinbase Wrapped BTC,WETH,PancakeSwap,85930.33,1y,32423,70700000,3275,-0.15,-0.12,-4.5,-2.02,7300000,2290000000,/base/0xc211e1f853a898bd1302385ccde55f33a8c4b3f3
+12/17/2025 21:20,reference,6h,60,PNUTLINGS,The Peanut of Dumpling,SOL,PumpSwap,0.0001027,1h,4988,642000,1082,37.41,75.92,102,102,31000,102000,/solana/ajkjn1xvu3wbnogdcyrg9tdhumwhbafpptn8zjb6qep
+12/17/2025 21:20,reference,6h,61,LMAO!,LMAO!,SOL,PumpSwap,0.00226,1mo,3016,426000,807,1.74,2.99,-14.11,-5.83,209000,2200000,/solana/afayrfh7huynkv5mbvbnrhwx29m9jzul3ysgtqz69auv
+12/17/2025 21:20,reference,6h,62,FLY,FLY,flyBNB,PancakeSwap,0.006633,8d,3211,298000,297,0.41,1.74,3.28,-15,328000,6600000,/bsc/0x08b0d314caafea2fccc14e6313cee235d7f31cf4
+12/17/2025 21:20,reference,6h,63,jeff,jeff,SOL,PumpSwap,0.0001573,3d,7119,618000,1605,-0.01,-11.43,-48.91,-44.23,46000,153000,/solana/4s8fzae2g6zc3dmtnznmnuyevhpk6eflf99kcfmggh3b
+12/17/2025 21:20,reference,6h,64,BOXABL,BOXABL,SOL,PumpSwap,0.002238,7d,2408,353000,728,2.27,5.77,14.07,25.02,136000,2100000,/solana/9shhp1ywjq2jb4dup2upv96txaycbdjkcssqd8thqhxt
+12/17/2025 21:20,reference,6h,65,Yee,Yee Token,WETH,Uniswap,0.01497,2y,2305,1200000,652,-3.93,-9.4,-17.35,-7.36,782000,14900000,/ethereum/0xbc7ce7b6b5437d7d715fbb1cc7b4ec12399c5516
+12/17/2025 21:20,reference,6h,66,arc,AI Rig Complex,SOL,Raydium,0.03696,1y,12748,3400000,538,-0.63,-1.59,-12.2,-22.84,2900000,36900000,/solana/j3b6dvhes2y1cbmtvz5tcwxnegsjjdbukxduvdpoqms7
+12/17/2025 21:20,reference,6h,67,PUMP,Pump,USDC,PumpSwap,0.002108,5mo,4964,2600000,148,,0.9,-9.82,-8.65,14100000,1240000000,/solana/2uf4xh61rdwxng9woyxsvqp7zua6klfpb3nvnrqeoisd
+12/17/2025 21:20,reference,6h,68,SuperCycle,Crypto SuperCycle,WBNB,PancakeSwap,0.0003099,5d,5054,284000,1052,-1.56,-4.98,-11.1,-24.27,69000,309000,/bsc/0x459b2319c85afad8058eafa199012126b3d4de32
+12/17/2025 21:20,reference,6h,69,mr_lightspeed,mr_lightspeed,ZORA,Uniswap,0.0008966,1mo,2913,40000,221,0.6,1.89,-11.31,-11.26,137000,416000,/base/0xa2303437779ec2ebb5027aa47d8a5265d0ce9dd59b382dd7ec43eba2bc9dcbc6
+12/17/2025 21:20,reference,6h,70,PLOI,physical limits of intelligence,SOL,PumpSwap,0.001444,14d,2304,390000,640,0.59,1.1,-19.68,0.7,230000,1600000,/solana/5ujghxwfe4zxgvokmlk1m4aoyp6er8ns4dmeo2jss4tn
+12/17/2025 21:20,reference,6h,71,EverythingExchange,EverythingExchange,WETH,Uniswap,0.0001961,4mo,12486,129000,10667,-0.19,6.8,-23.45,58.07,147000,196000,/base/0x065adf5c39f5dbc739c77b762fa1b0fe322e77ed109f28509498e82d04255cca
+12/17/2025 21:20,reference,6h,72,BOOMER,Boomer,WETH,Uniswap,0.0007534,1y,12607,5700,12543,-0.2,-0.1,-8.9,-6.56,168000,698000,/base/0xa926342d7f9324a1dbde8f5ab77c92706f289b5d
+12/17/2025 21:20,reference,6h,73,ASTER,Aster,USDT,PancakeSwap,0.736,2mo,21689,8100000,4635,-0.07,-0.43,-6.1,-5.93,1300000,1690000000,/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47
+12/17/2025 21:20,reference,6h,74,cBNB,Community of BNB,WBNB,PancakeSwap,0.0002746,1mo,3021,257000,662,-0.55,-1.48,-17.53,-24.13,85000,274000,/bsc/0x37e8d5a7c7c95d1adc905e680ebd0c321b64ab13
+12/17/2025 21:20,reference,6h,75,fih,fih,USD1,Raydium,0.003933,15d,5845,734000,1401,-1.49,0.48,-0.32,18.39,304000,3900000,/solana/2bf5cukcxaxxh8xge3dkatcj3fvymzisxhtxodxsxntu
+12/17/2025 21:20,reference,6h,76,CREPE,CREPE,WBNB,PancakeSwap,0.042615,6mo,2392,154000,1457,-0.11,0.93,-5.97,-3.82,1100000,16800000,/bsc/0x7d90deedb9f15c1f8fdaccc3b6bc52dc208e9c9a
+12/17/2025 21:20,reference,6h,77,jellyjelly,jelly-my-jelly,SOL,Raydium,0.09079,10mo,21872,7800000,586,-0.3,0.35,-6.92,-3.35,6000000,90700000,/solana/3bc2e2rxcfvf9op22lvbansvwos2t98q6ercroayqydq
+12/17/2025 21:20,reference,6h,78,BAS,BNB Attestation,WBNB,PancakeSwap,0.006916,4mo,59569,9100000,6443,-0.39,-1.54,-11.36,-17.73,1100000,17200000,/bsc/0xa341e8e8ee6bf97fa1d18c2d12f00555dc78207e
+12/17/2025 21:20,reference,6h,79,ACT,Act I : The AI Prophecy,SOL,Raydium,0.02554,1y,9425,2000000,227,-0.13,2.05,-1.18,24.93,2200000,24200000,/solana/b4phskl6cezbxvqm1aupquvpc5erfcazj7u9dhtphmvx
+12/17/2025 21:20,reference,6h,80,å¸å®‰äººç”Ÿ,å¸å®‰äººç”Ÿ,WBNB,PancakeSwap,0.1315,2mo,6138,3200000,1776,0.08,-0.47,-4.16,6.54,3700000,131500000,/bsc/0x66f289de31eef70d52186729d2637ac978cfc56b
+12/17/2025 21:20,reference,6h,81,REPPO,REPPO,VIRTUAL,Uniswap,0.0211,29d,1359,811000,524,0.58,2.96,-13.42,18.69,969000,6200000,/base/0x70000c1cb3ee34a7323211607ac3162665b49549
+12/17/2025 21:20,reference,6h,82,VIRTUAL,Virtual Protocol,WETH,Aerodrome,0.6871,-,19800,10400000,3033,0.04,-1.09,-11.08,-4.45,771000,450800000,/base/0x3f0296bf652e19bca772ec3df08b32732f93014a
+12/17/2025 21:20,reference,6h,83,cbBTC,Coinbase Wrapped BTC,WETH,Aerodrome,85912.82,-,13006,93600000,966,-0.16,-0.16,-4.54,-2.08,23700000,2290000000,/base/0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1
+12/17/2025 21:20,reference,6h,84,SASHA,SASHA,SOL,PumpSwap,0.0001715,2d,4011,333000,996,-2.02,0.65,22.67,-61.04,42000,171000,/solana/7k1sdxwje15xix4hcjwfhbfqpiizbmauucmjwzoodtgw
+12/17/2025 21:20,reference,6h,85,SACHI,Sachicoin,SOL,PumpSwap,0.004597,2mo,3360,348000,1226,0.66,4.43,-1.85,-15.64,282000,4500000,/solana/j3s2eabdxatejd9nghavsrv88pugsqwmrggywxoel587
+12/17/2025 21:20,reference,6h,86,STBL,STBL_Token - STBL Governance Token,USDC,PancakeSwap,0.0417,3mo,14220,2800000,856,-0.36,-0.71,-8.02,-11.07,2200000,20800000,/bsc/0x90166b5795250fe7f0831e844121cc91799787e9
+12/17/2025 21:20,reference,6h,87,cbBTC,Coinbase Wrapped BTC,USDC,Aerodrome,85894.57,-,18561,81200000,927,-0.12,-0.23,-4.48,-2.08,12100000,2290000000,/base/0x4e962bb3889bf030368f56810a9c96b83cb3e778
+12/17/2025 21:20,reference,6h,88,KEY,Keystone,SOL,PumpSwap,0.000328,7d,4419,413000,725,3.81,-2.84,-33.89,-28.03,58000,328000,/solana/caotb7a3qsy1ugoydkkwb7a1ydngxtmgxedykrh6rabu
+12/17/2025 21:20,reference,6h,89,KOGE,BNB48 Club Token,USDT,Uniswap,48,6mo,52465,59800000,3848,,,,,9400000,162200000,/bsc/0x81c7294b66955824bc04acb642ae8dc58e6ce507
+12/17/2025 21:20,reference,6h,90,COAI,ChainOpera AI,USDC,PancakeSwap,0.5143,2mo,35357,9600000,1560,-0.25,-0.08,-4.42,-9.65,2100000,101000000,/bsc/0x778121b464151fe5d931587c457e48fcaaa0dc7a
+12/17/2025 21:20,reference,6h,91,WKC,WIKI CAT,WBNB,PancakeSwap,0.075018,3y,1846,86000,1158,-0.14,-0.95,2.44,-1.01,986000,27200000,/bsc/0x933477eba23726ca95a957cb85dbb1957267ef85
+12/17/2025 21:20,reference,6h,92,swarms,swarms,SOL,Raydium,0.01618,11mo,11005,2900000,734,0.46,-0.08,-5.36,-21.25,1900000,16100000,/solana/hl4kftfhzzmm7ngefszqxzj3m6cadwe7tesyuruqymmj
+12/17/2025 21:20,reference,6h,93,ZORA,Zora,USDC,Uniswap,0.04916,7mo,22832,3200000,1279,-0.49,0.39,-6.19,1.26,13100000,219700000,/base/0xedc625b74537ee3a10874f53d170e9c17a906b9c
+12/17/2025 21:20,reference,6h,94,SPESH,Spesh,SOL,PumpSwap,0.0001573,9d,2024,192000,539,-2.68,-14.24,316,177,41000,157000,/solana/bw1rmn4y76ctwgb1i9hj4lyytfuwwbb2d9bztuubokxv
+12/17/2025 21:20,reference,6h,95,Anon,HeyAnon,SOL,Raydium,1.87,11mo,5192,1300000,589,0.32,3.43,-5.58,1.94,413000,25100000,/solana/aegbjqtexiegdaxu1zhbeqmkxk6ruqncxjwvdo4n4cbg
+12/17/2025 21:20,reference,6h,96,JOBS,x402jobs,SOL,PumpSwap,0.001139,5d,3926,453000,728,-0.15,-12.53,-15.03,-27.79,106000,1100000,/solana/5bwdwbbt4fkmxadpamhzayztcg8xhqqznja9ahwnrk2
+12/17/2025 21:20,reference,6h,97,AIOT,OKZOO,WBNB,PancakeSwap,0.1366,7mo,22112,4600000,1771,-0.46,-0.69,0.52,-15.8,3700000,15300000,/bsc/0xb433ae7e7011a2fb9a4bbb86140e0f653dcfcfba
+12/17/2025 21:20,reference,6h,98,INC,Incentive,WPLS,PulseX,0.6458,2y,3230,269000,1015,0.59,1.18,0.75,-2.97,1400000,35900000,/pulsechain/0xf808bb6265e9ca27002c0a04562bf50d4fe37eaa
+12/17/2025 21:20,reference,6h,99,AS,AS Token,DAI,QuickSwap,1.99,6mo,22812,474000,5072,-0.01,-0.26,-0.7,-2.76,21600000,8220000000,/polygon/0x1a9221261dc445d773e66075b9e9e52f40e15ab1
+12/17/2025 21:20,reference,6h,100,WM,White Monkey,WBNB,PancakeSwap,0.004687,1mo,3616,226000,1132,-0.1,-0.09,-14.28,-2.87,458000,4200000,/bsc/0x9bce578abb591dd88e213bcfaeb5bdf56a33b236
+12/17/2025 22:20,reference,6h,1,CALVIN,Calvin,SOL,PumpSwap,0.00163,7d,25973,1200000,12371,0.82,-10.84,-15.23,31.3,165000,1600000,/solana/3ismqtviyuhggvmbxoui7h5fwq5ktjwaeonvcnq1uqds
+12/17/2025 22:20,reference,6h,2,SANTA,SANTA,SOL,Raydium,0.006107,1y,106187,269000,104712,0.81,-2.18,-2.28,-18.61,112000,982000,/solana/ejuwjjff9rcdm6ndrh84awhzfbcybytckzvsbspltwh9
+12/17/2025 22:20,reference,6h,3,https,had to take profits sir,SOL,PumpSwap,0.0007804,19h,32882,2200000,5785,4.4,-18.52,203,1364,88000,780000,/solana/amk2hphohkte2tcjwkbfmpyr3jimds3j19xgdhx4zclk
+12/17/2025 22:20,reference,6h,4,DINO,DINOSOL,SOL,PumpSwap,0.001066,12d,29622,1100000,3840,-0.34,-4.74,3.54,75.59,130000,938000,/solana/26m5m3nwgake4zavkd3zetys5hjwdxe6xbwpdtslhy1o
+12/17/2025 22:20,reference,6h,5,2026,2026,SOL,PumpSwap,0.0001955,4d,38700,720000,29951,1.7,12.46,0.71,90.94,43000,195000,/solana/4gfcd6rzk8cjqezwcnfjsp9wva3zstkswvbyqvaaj5hp
+12/17/2025 22:20,reference,6h,6,PURK,Purple Wojak,SOL,PumpSwap,0.0001386,5h,5843,214000,2618,8.46,16.62,171,171,34000,138000,/solana/8rqzhgyopksvxqepimmel27ehcn3fczr1uwebbtwnyvm
+12/17/2025 22:20,reference,6h,7,PEPPA,Justice For Peppa,SOL,PumpSwap,0.0004355,6h,12098,285000,3202,-2.7,4848,1149,663,224000,435000,/solana/eduapetcgbaeqkvasttrx1eru12u1pb5yjprcd3tezxm
+12/17/2025 22:20,reference,6h,8,BULLISH,Bullish Degen,SOL,PumpSwap,0.01502,2mo,7108,796000,1493,0.31,-0.95,-17.29,-18.65,443000,15000000,/solana/gc1utsxrrlauwby3uwsemjuxhjmjhhv1sxj9a1jhvyxp
+12/17/2025 22:20,reference,6h,9,POLY,Polymarket,SOL,PumpSwap,0.01226,20h,14946,342000,5637,-0.03,0.02,193,22981,6900000,12200000,/solana/8ntn93uzinhcchdtmbvktpswpv1uou5lbzkttims4szi
+12/17/2025 22:20,reference,6h,10,SPANKMAS,SPANKMAS,SOL,PumpSwap,0.0005954,4d,15403,530000,10005,-0.13,5.56,-11.8,23.22,75000,595000,/solana/gthnszpjpnrf1up1amxds24qzqggnwct8qycwudm16vw
+12/17/2025 22:20,reference,6h,11,pippin,Pippin,SOL,Raydium,0.4086,1y,85295,33400000,2042,1.3,1.83,-0.13,12.08,13100000,408600000,/solana/8wwcnqdzjcy5pt7akhupafknv2txca9sq6ybkgzlbvdt
+12/17/2025 22:20,reference,6h,12,XMAS,xmas cult,SOL,PumpSwap,0.0002099,15d,110848,143000,109356,-0.08,-9.05,8.43,1.42,58000,205000,/solana/h6uxy1hggxuq82qkbid6ozanza2ot3g6r9k71guvaqdy
+12/17/2025 22:20,reference,6h,13,SNOW,Snow Bunny Season,SOL,PumpSwap,0.0001912,23h,43254,1800000,2463,1.95,-5.21,-2.56,252,44000,191000,/solana/hn9tvhwvzjahbjfzynyhyjwekgqewjdmhsymy94shcpv
+12/17/2025 22:20,reference,6h,14,pSOQ,SoQuBit,SOL,PumpSwap,0.0006495,5h,8949,1000000,1733,8.36,8.11,1157,1157,77000,649000,/solana/em9nypqcbyrz8zbxzui2lazbtcy2zbvja49ntxhi3pq8
+12/17/2025 22:20,reference,6h,15,Dumplings,Squishy Dumplings,SOL,PumpSwap,0.0008881,3d,13059,1600000,2681,-4.14,-15.96,-31.16,109,98000,888000,/solana/5dykzgnyefb9wgakydkybepdgohygv63c7grqlsxs3fh
+12/17/2025 22:20,reference,6h,16,JEET,JEET,SOL,PumpSwap,0.0003534,1d,16652,1100000,3293,-9.38,-11.21,-38.94,50.4,58000,353000,/solana/hrmwhfwptsena5skn9ecprdq4fcdzowslytwykupfmhb
+12/17/2025 22:20,reference,6h,17,RYU,Ryu Inu,WBNB,PancakeSwap,0.064227,1mo,6261,467000,1967,0.01,,16.32,36.39,89000,157000,/bsc/0xbddc278b8b4c692af2f18df2b42bf57d3fd61127
+12/17/2025 22:20,reference,6h,18,Franklin,Franklin The Turtle,SOL,PumpSwap,0.001873,16d,4404,806000,1647,1.77,-2.13,-11.05,-29.33,229000,1800000,/solana/8wxzwpljk6qjmyyc1vhuennxrvw2nfgvqjgenv4mv8sy
+12/17/2025 22:20,reference,6h,19,WOJAK,Wojak,SOL,PumpSwap,0.02729,1mo,9639,2800000,2116,-0.72,-0.32,-9.31,5.58,763000,27200000,/solana/fdry5i5kuadz1ik8gps26qjj9rw9mpufxmeggc2hnsp7
+12/17/2025 22:20,reference,6h,20,BARRON,Official Barron Trump,USD1,Raydium,0.0003361,2d,16447,1400000,3526,-0.2,-5.63,-37.69,-38.94,66000,336000,/solana/j59dng72mwix445tkpgrpeznypkx9djg6wpnjmkxftqy
+12/17/2025 22:20,reference,6h,21,PURCH,Purch,SOL,PumpSwap,0.0002585,4h,6261,659000,1270,0.14,16.88,406,406,48000,258000,/solana/arsufvuvr6p2ptvjoiuwimecobjc2bshrn2domgfidv6
+12/17/2025 22:20,reference,6h,22,FRANKLIN,Franklin the Based Turtle,USD1,Raydium,0.001633,16d,7012,1200000,1247,-3.46,4.55,-22.14,22.76,239000,1600000,/solana/j3rkgt8jvj2crugawe5n1gtxuifl8runumqhszpcspvm
+12/17/2025 22:20,reference,6h,23,MAGA,Make America Great Again,USD1,Raydium,0.001038,6d,9697,1100000,2144,0.69,-3.61,-20.63,-45.8,123000,1000000,/solana/8s9e7eb7b7muxzm2qxkm7brqed415dq2mvctxvsxy43o
+12/17/2025 22:20,reference,6h,24,Q5,Quarter 5,SOL,PumpSwap,0.0001163,1h,4753,318000,1327,-15.49,90.13,130,130,32000,116000,/solana/6uii5h2tmhdbpvkxkcxqxdjgwkmjulfxa5dnwkevj7vg
+12/17/2025 22:20,reference,6h,25,TROLL,TROLL,SOL,PumpSwap,0.0374,7mo,4204,1800000,765,-0.07,-0.58,-3.33,-3.03,2300000,37300000,/solana/4w2cysotx6czaugmmwg13hdpy4qemg2czekyeqyk9ama
+12/17/2025 22:20,reference,6h,26,PRISONERS,Crypto Prisoners Fund,WBNB,PancakeSwap,0.002853,2h,3370,804000,737,-8.33,-52.08,15746,15746,45000,285000,/bsc/0x266086b6dbcf17575710aa120afb16efc1625df9
+12/17/2025 22:20,reference,6h,27,FKH,Flying Ketamine Horse,USD1,Raydium,0.003938,22d,9230,1300000,1770,1.14,-4.2,-2.98,10.7,255000,3900000,/solana/8lq7gz2aezkmqnflpymjv3v8jbd26lrbfd11snricce6
+12/17/2025 22:20,reference,6h,28,WFM,Weaponized Fent Machine,USD1,Raydium,0.0003471,1d,4090,454000,1076,4.32,6.44,89.7,58.93,62000,347000,/solana/6gmosxfcyvfxutt6wpwenbqjjsfrfv9ga8rug6js13nq
+12/17/2025 22:20,reference,6h,29,67,The Official 67 Coin,SOL,PumpSwap,0.006741,2mo,5507,1200000,1703,-0.32,-2.77,-0.59,-19.15,460000,6700000,/solana/dmafl613xtipua3jfnyczavwt7xsiyf9cr3qmrmzqhb6
+12/17/2025 22:20,reference,6h,30,VFS,Voltaic Finance Systems,SOL,PumpSwap,0.0001814,6h,3877,484000,1575,3.57,-5.03,15.68,251,40000,181000,/solana/5qztrmkdwb8fyp5qybj9usyzbiuimxyd8grirpeldlmh
+12/17/2025 22:20,reference,6h,31,BILLIONS,BILLIONS,USD1,Raydium,0.051847,5h,3576,305000,907,-16.42,128,127,127,52000,127000,/solana/2xwugzpbuwk2czqon8luzot15ffw8ulg55z56ntgvtm4
+12/17/2025 22:20,reference,6h,32,MINER,Never Give Up,SOL,PumpSwap,0.001684,13d,4017,583000,1057,-1.12,-8.74,-15.05,-6.05,165000,1600000,/solana/7rewgb9exilbafdlu14cqly46wh4ccn46dxsmh51igay
+12/17/2025 22:20,reference,6h,33,PIPPIN,Pippin Network,SOL,PumpSwap,0.0001109,14h,8614,511000,1743,50.42,-3.91,88.05,110,31000,110000,/solana/7ble2kh3hskjabvqmj5raxahbnumnbxuzrnsnfji2k9u
+12/17/2025 22:20,reference,6h,34,CCAI,Creators Coalition on AI,SOL,PumpSwap,0.0001029,17h,22343,1300000,3462,0.74,-8.61,13.85,98.66,32000,102000,/solana/gpufd7aoxxbhf7oohckkrc7qpgfdx9qjzyphyvexzuwz
+12/17/2025 22:20,reference,6h,35,LGNS,Longinus,DAI,QuickSwap,7,1y,654852,32500000,118565,0.01,0.01,0.24,2.77,432800000,1160000000,/polygon/0x882df4b0fb50a229c3b4124eb18c759911485bfb
+12/17/2025 22:20,reference,6h,36,USELESS,USELESS COIN,SOL,Raydium,0.06652,7mo,5090,605000,702,0.27,-2,-7.32,-14.17,2200000,66500000,/solana/q2sphpduwfmg7m7wwrqklrn619caucfrsmhvjffodsp
+12/17/2025 22:20,reference,6h,37,SPSC,Shit Piss Skin Can,USD1,Raydium,0.004366,1mo,6522,1000000,1115,0.5,1.15,-8.92,40.38,302000,4300000,/solana/6mhj1z5bgc1uitnewrnjfbgtqpupdh2qgdwkemgxt2c5
+12/17/2025 22:20,reference,6h,38,MACARON,MACARON,SOL,Raydium,0.1826,8d,3645,546000,765,-1.23,18.69,-32.7,-50.46,87000,191000,/solana/f7xdzsmdlqlf1htugz4nb8b3ufcmwdzwnjvzv32ylr7b
+12/17/2025 22:20,reference,6h,39,RILIE,GameStop Goth Girl,SOL,PumpSwap,0.0001837,6d,8701,419000,2456,2,-9.77,-8.54,-28.32,44000,183000,/solana/28k1ldm3eugtxjrfewj7mtejjflh3tj1jzz3i5ufcufl
+12/17/2025 22:20,reference,6h,40,KABUTO,Kabuto,SOL,PumpSwap,0.0008387,19d,3239,461000,815,-2.58,5.42,9.99,35.77,129000,838000,/solana/gbsngtqldq6afv7a4jv6enhz6vhrdzgnc1e45dekqc1l
+12/17/2025 22:20,reference,6h,41,EverythingExchange,EverythingExchange,WETH,Uniswap,0.0001627,4mo,15051,287000,12268,-19.19,-17.04,-19.36,31.27,137000,162000,/base/0x065adf5c39f5dbc739c77b762fa1b0fe322e77ed109f28509498e82d04255cca
+12/17/2025 22:20,reference,6h,42,KERMIT,KERMIT THE FROG,SOL,PumpSwap,0.002067,1mo,3424,657000,903,-0.21,-2.75,-1.59,23.02,180000,2000000,/solana/3cwtutmhyhldwrhxunngxoyyvvfc3deukm5hca3ypqv4
+12/17/2025 22:20,reference,6h,43,Fartcoin,Fartcoin,SOL,Raydium,0.3058,1y,5138,2300000,415,1.28,-0.38,-7.8,-13.27,10700000,305800000,/solana/bzc9nzfmqkxr6fz1dbph7bdf9broyef6pnzesp7v5iiw
+12/17/2025 22:20,reference,6h,44,RUSSELL,RUSSELL,WETH,Uniswap,0.004404,1y,6749,2100000,2551,0.52,9.89,-3.33,-17.12,472000,4200000,/base/0xea8b7ed6170e0ea3703dde6b496b065a8ececd7b
+12/17/2025 22:20,reference,6h,45,NOBODY,Nobody Sausage,SOL,Meteora,0.008524,7mo,1110,334000,244,0.46,7.2,-7.48,-7.77,1000000,7900000,/solana/7rqd8fhc1rimv3v9edcrz6rnfsjn1puxm9umjaurjrnj
+12/17/2025 22:20,reference,6h,46,MVP,MVP,WBNB,PancakeSwap,0.0001277,22h,12473,1500000,5254,-2.3,-16.12,-32.57,21.22,42000,127000,/bsc/0x3486fde878910d847e5770d22f6150e6e0ace913
+12/17/2025 22:20,reference,6h,47,1,1 coin can change your life,USD1,Raydium,0.005874,2mo,4426,820000,952,0.14,-1.22,-6.51,13.49,499000,5800000,/solana/6sekz73vph5afymqtzav6h5vaqqlz2c8wqecq6mhlqfk
+12/17/2025 22:20,reference,6h,48,ARK,ARK,USDT,PancakeSwap,23.98,3mo,52296,10700000,18461,-0.01,-0.14,-1.99,-5.92,95100000,60800000,/bsc/0xcaaf3c41a40103a23eeaa4bba468af3cf5b0e0d8
+12/17/2025 22:20,reference,6h,49,NOTHING,Youâ€™ll own nothing & be happy,SOL,PumpSwap,0.001892,1mo,3039,388000,874,1.3,-1.39,-9.75,6.62,209000,1800000,/solana/2pa1gmh9wbpturmr6rt5oxns6rdplzxjphsjqcdyanfq
+12/17/2025 22:20,reference,6h,50,LOOK,LOOK,SOL,Meteora,0.02481,3mo,888,232000,219,0.85,-0.49,-7.99,10.88,858000,22800000,/solana/hsemlnpwz3fk9innmpucxs6nsqoi7y3n941exyz9anbq
+12/17/2025 22:20,reference,6h,51,ASTER,Aster,USDT,PancakeSwap,0.7154,3mo,2562,1700000,507,0.08,-2.73,-4.72,-9.04,3500000,1640000000,/bsc/0xaead6bd31dd66eb3a6216aaf271d0e661585b0b1
+12/17/2025 22:20,reference,6h,52,HEX,HEX,WPLS,PulseX,0.002764,2y,3634,421000,1325,,-0.32,-1.49,-8.08,981000,1630000000,/pulsechain/0xf1f4ee610b2babb05c635f726ef8b0c568c8dc65
+12/17/2025 22:20,reference,6h,53,4,4,WBNB,PancakeSwap,0.01863,2mo,3356,891000,1241,0.2,-1.4,-15.55,-15.76,1100000,18600000,/bsc/0xf0a949d3d93b833c183a27ee067165b6f2c9625e
+12/17/2025 22:20,reference,6h,54,wkeyDAO,WebKey DAO,USDT,PancakeSwap,11.32,1y,157350,17000000,25827,-0.05,-1.03,-1.18,-2.99,6100000,30100000,/bsc/0x8665a78ccc84d6df2acaa4b207d88c6bc9b70ec5
+12/17/2025 22:20,reference,6h,55,CYAI,CyreneAI,SOL,Raydium,0.0005668,7mo,4336,467000,998,0.44,-2.54,-47.66,-58.59,88000,566000,/solana/4un6wpjhfb9eoqq4xuwwidj7nguw4iw9rx4igbuguxct
+12/17/2025 22:20,reference,6h,56,KIRKIFY,KIRKIFICATION,SOL,PumpSwap,0.0004493,1mo,1878,300000,546,-0.57,26.04,27.6,158,79000,449000,/solana/bqv36lgsweqc76k6bfqcdnr1xb8volayyhif5mjaecds
+12/17/2025 22:20,reference,6h,57,PLSX,PulseX,WPLS,PulseX,0.041227,2y,3822,580000,1309,0.09,-0.21,-2.14,-9.17,3400000,1750000000,/pulsechain/0x1b45b9148791d3a104184cd5dfe5ce57193a3ee9
+12/17/2025 22:20,reference,6h,58,DOYR,DOYR,WBNB,PancakeSwap,0.002969,11d,6839,1100000,1675,-0.18,-3.13,-2.9,9.04,316000,2900000,/bsc/0x9b487fe6c7f4d62df0a63dbfb0b56b60e55c55f5
+12/17/2025 22:20,reference,6h,59,cbBTC,Coinbase Wrapped BTC,USDC,PancakeSwap,86113.75,1y,53113,57100000,5359,0.08,0.27,-0.59,-1.82,3500000,2290000000,/base/0xb94b22332abf5f89877a14cc88f2abc48c34b3df
+12/17/2025 22:20,reference,6h,60,BOXABL,BOXABL,SOL,PumpSwap,0.002208,7d,2472,373000,737,-1.21,-1.34,14.74,20.01,135000,2100000,/solana/9shhp1ywjq2jb4dup2upv96txaycbdjkcssqd8thqhxt
+12/17/2025 22:20,reference,6h,61,Rizzmas,Rizzmas,SOL,Raydium,0.054697,1y,4286,382000,1642,-0.36,3.62,-8.82,-8.61,509000,2300000,/solana/hgrvezf83hm2x5hovx9ec2cbiajtmwfhk6vcuplh4ydy
+12/17/2025 22:20,reference,6h,62,å“ˆåŸºç±³,å“ˆåŸºç±³,WBNB,PancakeSwap,0.03213,2mo,7876,3200000,1604,2.28,-0.4,1.45,14.06,1500000,32100000,/bsc/0xc33bacff9141da689875e6381c1932348ab4c5cb
+12/17/2025 22:20,reference,6h,63,FLY,FLY,flyBNB,PancakeSwap,0.006558,8d,3151,297000,297,-0.86,-1.17,-1.35,-15.97,325000,6500000,/bsc/0x08b0d314caafea2fccc14e6313cee235d7f31cf4
+12/17/2025 22:20,reference,6h,64,jeff,jeff,SOL,PumpSwap,0.0001602,3d,6549,573000,1512,3.02,1.86,-44.77,-33.8,47000,156000,/solana/4s8fzae2g6zc3dmtnznmnuyevhpk6eflf99kcfmggh3b
+12/17/2025 22:20,reference,6h,65,arc,AI Rig Complex,SOL,Raydium,0.03774,1y,13806,3700000,541,-0.5,1.8,-2.56,-20.92,2900000,37700000,/solana/j3b6dvhes2y1cbmtvz5tcwxnegsjjdbukxduvdpoqms7
+12/17/2025 22:20,reference,6h,66,SuperCycle,Crypto SuperCycle,WBNB,PancakeSwap,0.0003085,5d,5064,287000,1061,-1.48,-0.45,-8.67,-25.16,69000,308000,/bsc/0x459b2319c85afad8058eafa199012126b3d4de32
+12/17/2025 22:20,reference,6h,67,PUMP,Pump,USDC,PumpSwap,0.002092,5mo,4786,2600000,151,0.69,-0.78,-5.86,-10.28,14100000,1230000000,/solana/2uf4xh61rdwxng9woyxsvqp7zua6klfpb3nvnrqeoisd
+12/17/2025 22:20,reference,6h,68,BOOMER,Boomer,WETH,Uniswap,0.0007737,1y,13171,6700,13112,0.07,2.69,-3.94,-4.21,170000,717000,/base/0xa926342d7f9324a1dbde8f5ab77c92706f289b5d
+12/17/2025 22:20,reference,6h,69,cbBTC,Coinbase Wrapped BTC,WETH,PancakeSwap,86223.54,1y,32489,70600000,3291,0.11,0.34,-0.44,-1.7,7200000,2300000000,/base/0xc211e1f853a898bd1302385ccde55f33a8c4b3f3
+12/17/2025 22:20,reference,6h,70,ASTER,Aster,USDT,PancakeSwap,0.7137,2mo,22890,8400000,4715,-0.06,-3.01,-5.05,-9.2,1300000,1630000000,/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47
+12/17/2025 22:20,reference,6h,71,cBNB,Community of BNB,WBNB,PancakeSwap,0.0002761,1mo,3019,256000,663,0.08,0.56,-14.09,-24.22,85000,275000,/bsc/0x37e8d5a7c7c95d1adc905e680ebd0c321b64ab13
+12/17/2025 22:20,reference,6h,72,CREPE,CREPE,WBNB,PancakeSwap,0.042563,6mo,2340,162000,1451,0.23,-1.97,-3.68,-6.15,1100000,16400000,/bsc/0x7d90deedb9f15c1f8fdaccc3b6bc52dc208e9c9a
+12/17/2025 22:20,reference,6h,73,BAS,BNB Attestation,WBNB,PancakeSwap,0.006854,4mo,58260,8900000,6384,1.07,-0.89,-9.53,-21.63,1100000,17100000,/bsc/0xa341e8e8ee6bf97fa1d18c2d12f00555dc78207e
+12/17/2025 22:20,reference,6h,74,fih,fih,USD1,Raydium,0.00418,15d,6014,726000,1493,4.1,6.27,7.28,25.45,313000,4100000,/solana/2bf5cukcxaxxh8xge3dkatcj3fvymzisxhtxodxsxntu
+12/17/2025 22:20,reference,6h,75,jellyjelly,jelly-my-jelly,SOL,Raydium,0.0921,10mo,21867,7800000,584,0.84,0.96,-2.69,-0.28,6000000,92100000,/solana/3bc2e2rxcfvf9op22lvbansvwos2t98q6ercroayqydq
+12/17/2025 22:20,reference,6h,76,SPESH,Spesh,SOL,PumpSwap,0.0001149,10d,2478,211000,571,12.07,-25.26,196,71.55,35000,114000,/solana/bw1rmn4y76ctwgb1i9hj4lyytfuwwbb2d9bztuubokxv
+12/17/2025 22:20,reference,6h,77,Mubarakah,Mubarakah,WBNB,PancakeSwap,0.001561,9mo,10080,1200000,1129,7.53,8.23,52.25,64.76,227000,1000000,/bsc/0xacb622435b634e75b61473be6f839c46e36bd754
+12/17/2025 22:20,reference,6h,78,ACT,Act I : The AI Prophecy,SOL,Raydium,0.02517,1y,9862,2100000,243,0.76,-1.95,7.95,22.62,2100000,23800000,/solana/b4phskl6cezbxvqm1aupquvpc5erfcazj7u9dhtphmvx
+12/17/2025 22:20,reference,6h,79,SASHA,SASHA,SOL,PumpSwap,0.000131,2d,3753,284000,949,7.28,-23.61,-17.25,-66.53,37000,131000,/solana/7k1sdxwje15xix4hcjwfhbfqpiizbmauucmjwzoodtgw
+12/17/2025 22:20,reference,6h,80,Baby,Niche Baby,SOL,PumpSwap,0.0003847,1mo,2050,242000,707,-0.69,-3.61,-14.56,-18.49,80000,384000,/solana/4qbzhs2ecgmvyx77hrexrlvu4hyy4eesmwrdr8xsefqo
+12/17/2025 22:20,reference,6h,81,VIRTUAL,Virtual Protocol,WETH,Aerodrome,0.6807,-,19917,10500000,3032,0.35,-0.89,-5.26,-6.01,717000,446600000,/base/0x3f0296bf652e19bca772ec3df08b32732f93014a
+12/17/2025 22:20,reference,6h,82,KEY,Keystone,SOL,PumpSwap,0.0003424,7d,4473,408000,724,1.68,4.38,-20.38,-19.55,59000,342000,/solana/caotb7a3qsy1ugoydkkwb7a1ydngxtmgxedykrh6rabu
+12/17/2025 22:20,reference,6h,83,WOJAK,Wojak,SOL,Raydium,0.0004337,1y,4610,378000,1092,0.57,-1.78,-14.01,-47.73,167000,388000,/solana/6gdrrenvfyjqdcugmrkdg2ju7uj8ncvbt2ukal2mdj1l
+12/17/2025 22:20,reference,6h,84,STBL,STBL_Token - STBL Governance Token,USDC,PancakeSwap,0.04124,3mo,14086,2800000,856,0.02,-1.12,-6.14,-12.76,2100000,20600000,/bsc/0x90166b5795250fe7f0831e844121cc91799787e9
+12/17/2025 22:20,reference,6h,85,å¸å®‰äººç”Ÿ,å¸å®‰äººç”Ÿ,WBNB,PancakeSwap,0.1337,2mo,6169,3200000,1769,0.89,1.7,1.02,8.76,3700000,133700000,/bsc/0x66f289de31eef70d52186729d2637ac978cfc56b
+12/17/2025 22:20,reference,6h,86,cbBTC,Coinbase Wrapped BTC,WETH,Aerodrome,86202.43,-,13118,94300000,966,0.1,0.34,-0.44,-1.71,33300000,2300000000,/base/0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1
+12/17/2025 22:20,reference,6h,87,Yee,Yee Token,WETH,Uniswap,0.01441,2y,2235,1100000,628,1.24,-3.74,-13.15,-11.86,768000,14400000,/ethereum/0xbc7ce7b6b5437d7d715fbb1cc7b4ec12399c5516
+12/17/2025 22:20,reference,6h,88,cbBTC,Coinbase Wrapped BTC,USDC,Aerodrome,86143.26,-,18585,81700000,924,0.08,0.29,-0.58,-1.77,17300000,2290000000,/base/0x4e962bb3889bf030368f56810a9c96b83cb3e778
+12/17/2025 22:20,reference,6h,89,COAI,ChainOpera AI,USDC,PancakeSwap,0.5121,2mo,35332,9600000,1548,0.48,-0.5,-2.81,-9.52,2100000,100600000,/bsc/0x778121b464151fe5d931587c457e48fcaaa0dc7a
+12/17/2025 22:20,reference,6h,90,ZORA,Zora,USDC,Uniswap,0.04762,7mo,22497,3000000,1277,0.13,-3.11,-5.54,-5.11,12800000,212800000,/base/0xedc625b74537ee3a10874f53d170e9c17a906b9c
+12/17/2025 22:20,reference,6h,91,DREAM,Dream Job,USD1,Meteora,0.0003445,16h,4131,628000,813,-10.39,-21.46,-45.92,451,60000,344000,/solana/d7ogqvevasc1pmhscwypkkxunmpgy3xcc1mr4z9pk8yb
+12/17/2025 22:20,reference,6h,92,UMBRA,Umbra,USDC,Meteora,0.9291,2mo,976,996000,376,-2.15,-4.46,-17.79,-3.29,2200000,9200000,/solana/7dvri3qjyd3uobszl3zth8vscgu6r6r2nvfsh7uvfdte
+12/17/2025 22:20,reference,6h,93,Teddy Bat,Teddy Batman,SOL,Raydium,0.1674,15d,21152,3300000,12488,-3.92,6.01,-7.23,-27.46,351000,167400000,/solana/6k86rrmklwotny1gjjczfnzsr7aegzwnwesfdjrpfu7g
+12/17/2025 22:20,reference,6h,94,INC,Incentive,WPLS,PulseX,0.6444,2y,3130,278000,1004,-0.19,-0.22,3.18,-1.37,1400000,35800000,/pulsechain/0xf808bb6265e9ca27002c0a04562bf50d4fe37eaa
+12/17/2025 22:20,reference,6h,95,ZERA,ZERA,SOL,Meteora,0.01029,1mo,1156,291000,447,0.23,-11.26,-13.52,-32.14,522000,10200000,/solana/6oujd1ehnvbnmetpytmy2nxkwicz5c2jubbyurhesjhc
+12/17/2025 22:20,reference,6h,96,ALCH,Alchemist AI,SOL,Raydium,0.1979,1y,7794,2600000,231,0.36,-2.1,13.7,14.18,6300000,168200000,/solana/fydf3vkqfbcvntsbi7l7lremrfpmxkbqqgagnpg1hxxd
+12/17/2025 22:20,reference,6h,97,SORA,Sora Oracle,WBNB,PancakeSwap,0.001308,1mo,1967,280000,721,-1.1,-4.48,-9.41,-23.59,209000,1300000,/bsc/0x3e1d78a38235d1fab9cfd02d7eb99cd9bcb19f4f
+12/17/2025 22:20,reference,6h,98,KOGE,BNB48 Club Token,USDT,Uniswap,48,6mo,52185,59500000,3844,,,,,9400000,162200000,/bsc/0x81c7294b66955824bc04acb642ae8dc58e6ce507
+12/17/2025 22:20,reference,6h,99,WM,White Monkey,WBNB,PancakeSwap,0.004678,1mo,3603,224000,1128,-0.01,-0.15,-7.95,-2.47,457000,4200000,/bsc/0x9bce578abb591dd88e213bcfaeb5bdf56a33b236
+12/17/2025 22:20,reference,6h,100,HERO,Aussie Hero,SOL,PumpSwap,0.0001017,3d,3584,276000,1073,4.05,-23.42,-35.31,-56.97,37000,101000,/solana/euabmnyqkcomqdcknkyfpfpdkgffyge361b9w2nz5wcv

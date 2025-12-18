@@ -101,6 +101,35 @@ class WatchlistConfig:
 
 
 @dataclass
+class EnhancedWatchlistRateLimitingConfig:
+    """Enhanced watchlist rate limiting configuration."""
+    delay_between_calls: float = 1.0
+    batch_size: int = 10
+    delay_between_sources: float = 2.0
+
+
+@dataclass
+class EnhancedWatchlistHistoryConfig:
+    """Enhanced watchlist history configuration."""
+    enabled: bool = True
+    retention_days: int = 90
+    cleanup_interval: str = "24h"
+
+
+@dataclass
+class EnhancedWatchlistConfig:
+    """Enhanced watchlist configuration with multiple sources and historical tracking."""
+    enabled: bool = True
+    interval: str = "1h"
+    sources: List[str] = field(default_factory=lambda: [
+        "reference", "lowcap", "micro", "midcap", "oldlowcap", "oldmicro"
+    ])
+    rate_limiting: EnhancedWatchlistRateLimitingConfig = field(default_factory=EnhancedWatchlistRateLimitingConfig)
+    history: EnhancedWatchlistHistoryConfig = field(default_factory=EnhancedWatchlistHistoryConfig)
+    file_pattern: str = "watchlist_updated_{source}.csv"
+
+
+@dataclass
 class SignalDetectionConfig:
     """Signal detection configuration for new pools."""
     enabled: bool = True
@@ -172,6 +201,7 @@ class CollectionConfig:
     error_handling: ErrorConfig = field(default_factory=ErrorConfig)
     rate_limiting: RateLimitConfig = field(default_factory=RateLimitConfig)
     watchlist: Optional[WatchlistConfig] = field(default_factory=WatchlistConfig)  # Make watchlist optional
+    enhanced_watchlist: EnhancedWatchlistConfig = field(default_factory=EnhancedWatchlistConfig)
     new_pools: NewPoolsConfig = field(default_factory=NewPoolsConfig)
     discovery: DiscoveryConfig = field(default_factory=DiscoveryConfig)
     trade_collection: TradeCollectionConfig = field(default_factory=TradeCollectionConfig)
