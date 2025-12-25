@@ -41,16 +41,18 @@ class SolanaAddressParser:
     @staticmethod
     def correct_case_sensitivity(lowercase_address: str) -> Optional[str]:
         """
-        Attempt to correct case sensitivity for Solana addresses.
+        Handle corrupted lowercase Solana addresses.
         
-        This is a best-effort approach since we can't definitively determine
-        the correct case without checking against the blockchain.
+        Since lowercase conversion corrupts base58 data irreversibly, we'll:
+        1. Return None for clearly invalid addresses (to skip them)
+        2. Try simple character replacements for borderline cases
+        3. Let valid addresses pass through
         
         Args:
-            lowercase_address: Lowercase address string
+            lowercase_address: Potentially corrupted lowercase address string
             
         Returns:
-            Corrected address or None if invalid
+            Corrected address if possible, None if clearly invalid
         """
         if not lowercase_address:
             return None
@@ -59,35 +61,42 @@ class SolanaAddressParser:
         if SolanaAddressParser.is_valid_solana_address(lowercase_address):
             return lowercase_address
         
-        # Common Solana address patterns for case correction
-        # This is heuristic-based and may not be 100% accurate
-        corrected = ""
+        # Check for obviously invalid addresses that we should skip
+        invalid_indicators = [
+            len(lowercase_address) > 50,  # Too long
+            len(lowercase_address) < 30,  # Too short
+            'l' in lowercase_address and len(lowercase_address) > 44,  # Contains 'l' and too long
+        ]
         
-        for i, char in enumerate(lowercase_address):
-            if char.isdigit():
-                corrected += char
-            elif char.isalpha():
-                # Apply some heuristics for common patterns
-                # In practice, you'd want to validate against actual addresses
-                if i % 3 == 0:  # Every 3rd character more likely uppercase
-                    corrected += char.upper()
-                else:
-                    corrected += char
-            else:
-                corrected += char
+        if any(invalid_indicators):
+            logger.info(f"Skipping clearly invalid address: {lowercase_address}")
+            return None
         
-        # Validate the corrected address
-        if SolanaAddressParser.is_valid_solana_address(corrected):
-            return corrected
+        # Try simple character replacement for addresses that might be salvageable
+        if 'l' in lowercase_address:
+            # Try replacing 'l' with '1' (most common case)
+            test_address = lowercase_address.replace('l', '1')
+            try:
+                decoded = b58decode(test_address)
+                if len(decoded) == 32:  # Valid Solana address length
+                    logger.info(f"Corrected address by replacing 'l' with '1': {lowercase_address} → {test_address}")
+                    return test_address
+            except Exception:
+                pass
+            
+            # Try replacing 'l' with 'i'
+            test_address = lowercase_address.replace('l', 'i')
+            try:
+                decoded = b58decode(test_address)
+                if len(decoded) == 32:
+                    logger.info(f"Corrected address by replacing 'l' with 'i': {lowercase_address} → {test_address}")
+                    return test_address
+            except Exception:
+                pass
         
-        # If heuristic failed, try all uppercase
-        upper_address = lowercase_address.upper()
-        if SolanaAddressParser.is_valid_solana_address(upper_address):
-            return upper_address
-        
-        # If still invalid, return original and log warning
-        logger.warning(f"Could not correct case for address: {lowercase_address}")
-        return lowercase_address
+        # If we can't fix it, return None to skip this entry
+        logger.warning(f"Cannot correct corrupted address, skipping: {lowercase_address}")
+        return None
     
     @staticmethod
     def extract_pool_address_from_url(detail_url: str) -> Optional[str]:
@@ -119,6 +128,7 @@ class SolanaAddressParser:
         # Correct case sensitivity
         corrected_address = SolanaAddressParser.correct_case_sensitivity(address)
         
+
         if corrected_address:
             logger.debug(f"Extracted pool address: {address} → {corrected_address}")
         

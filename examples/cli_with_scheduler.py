@@ -28,6 +28,7 @@ from gecko_terminal_collector.collectors.dex_monitoring import DEXMonitoringColl
 from gecko_terminal_collector.collectors.top_pools import TopPoolsCollector
 from gecko_terminal_collector.collectors.watchlist_monitor import WatchlistMonitor
 from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
+from gecko_terminal_collector.collectors.enhanced_watchlist_collector import EnhancedWatchlistCollector
 from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
 from gecko_terminal_collector.collectors.trade_collector import TradeCollector
 from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
@@ -134,6 +135,16 @@ class SchedulerCLI:
             collectors_config.append(("dex_monitoring", DEXMonitoringCollector, "1h", True, {}))
             collectors_config.append(("top_pools", TopPoolsCollector, interval, True, {}))
         
+        # Enhanced watchlist collector - check for enhanced_watchlist config section
+        enhanced_watchlist_config = raw_config.get('enhanced_watchlist', {})
+        if enhanced_watchlist_config.get('enabled', False):
+            interval = enhanced_watchlist_config.get('interval', '1h')
+            sources = enhanced_watchlist_config.get('sources', ['reference'])
+            logger.info(f"Enabling enhanced watchlist collector (interval: {interval}, sources: {sources})")
+            collectors_config.append(("enhanced_watchlist", EnhancedWatchlistCollector, interval, True, {
+                'watchlist_sources': sources
+            }))           
+
         if 'watchlist_check' in raw_intervals:
             interval = raw_intervals['watchlist_check']
             logger.info(f"Enabling watchlist collectors (interval: {interval})")
@@ -994,6 +1005,90 @@ def new_pools_errors(config, network, hours):
             await scheduler_cli.shutdown()
     
     asyncio.run(show_errors())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--sources', '-s', help='Comma-separated list of sources (e.g., reference,lowcap,micro)')
+@click.option('--mock', is_flag=True, help='Use mock clients for testing')
+def collect_enhanced_watchlist(config, sources, mock):
+    """Run enhanced watchlist collection for specified sources."""
+    async def run_collection():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=mock)
+        
+        try:
+            # Load configuration
+            config_manager = ConfigManager(config)
+            collection_config = config_manager.load_config()
+            
+            # Parse sources
+            if sources:
+                source_list = [s.strip() for s in sources.split(',')]
+            else:
+                source_list = collection_config.enhanced_watchlist.sources
+            
+            logger.info(f"Starting enhanced watchlist collection for sources: {source_list}")
+            
+            # Get rate limiter
+            rate_limiter = await scheduler_cli.rate_limit_coordinator.get_limiter("enhanced_watchlist")
+            
+            # Create metadata tracker
+            metadata_tracker = MetadataTracker(db_manager=scheduler_cli.db_manager)
+            
+            # Create collector instance
+            collector = EnhancedWatchlistCollector(
+                config=collection_config,
+                db_manager=scheduler_cli.db_manager,
+                metadata_tracker=metadata_tracker,
+                use_mock=mock,
+                watchlist_sources=source_list
+            )
+            
+            # Set rate limiter
+            if hasattr(collector, 'set_rate_limiter'):
+                collector.set_rate_limiter(rate_limiter)
+            
+            # Execute collection
+            result = await collector.collect()
+            
+            # Display results
+            print(f"\n=== Enhanced Watchlist Collection Results ===")
+            print(f"Sources: {', '.join(source_list)}")
+            print(f"Success: {result.success}")
+            print(f"Total Records: {result.records_collected}")
+            print(f"Collection Time: {result.collection_time}")
+            
+            if result.metadata:
+                print(f"\n=== Collection Details ===")
+                print(f"Sources Processed: {result.metadata.get('sources_processed', 0)}")
+                print(f"Entries Processed: {result.metadata.get('entries_processed', 0)}")
+                print(f"Addresses Resolved: {result.metadata.get('addresses_resolved', 0)}")
+                print(f"API Calls Made: {result.metadata.get('api_calls_made', 0)}")
+                print(f"Resolution Rate: {result.metadata.get('addresses_resolved', 0) / max(result.metadata.get('entries_processed', 1), 1) * 100:.1f}%")
+            
+            if result.errors:
+                print(f"\n=== Errors ({len(result.errors)}) ===")
+                for error in result.errors:
+                    print(f"  • {error}")
+            
+            # Show rate limiting status
+            global_status = await scheduler_cli.rate_limit_coordinator.get_global_status()
+            print(f"\n=== Rate Usage ===")
+            print(f"Daily Usage: {global_status['global_usage']['daily_usage_percentage']:.1f}%")
+            print(f"Total Daily Requests: {global_status['global_usage']['total_daily_requests']}")
+            
+        except Exception as e:
+            logger.error(f"Enhanced watchlist collection failed: {e}")
+            
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                logger.error("This appears to be a rate limiting issue.")
+                logger.error("Try again later or use --mock flag for testing")
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(run_collection())
 
 
 @cli.command()

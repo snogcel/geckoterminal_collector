@@ -20,6 +20,7 @@ from gecko_terminal_collector.database.manager import DatabaseManager
 from gecko_terminal_collector.models.core import CollectionResult
 from gecko_terminal_collector.utils.metadata import MetadataTracker
 from gecko_terminal_collector.utils.address_parser import EnhancedWatchlistParser
+from gecko_terminal_collector.utils.database_address_resolver import EnhancedWatchlistDatabaseParser
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,10 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         self.sources_to_collect = watchlist_sources or self.available_sources
         
         self.network = config.dexes['network'] if isinstance(config.dexes, dict) else config.dexes.network
-        self.parser = EnhancedWatchlistParser(self.client)
+        
+        # Use database parser instead of API parser for better efficiency
+        self.parser = EnhancedWatchlistDatabaseParser(self.db_manager)
+        self._parser_initialized = False
         
         # Rate limiting configuration
         self.rate_limit_delay = getattr(config, 'rate_limit_delay', 1.0)  # 1 second between API calls
@@ -88,10 +92,17 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         try:
             logger.info(f"Starting enhanced watchlist collection for sources: {self.sources_to_collect}")
             
+            # Initialize database parser if needed
+            if not self._parser_initialized:
+                logger.info("Initializing database address resolver...")
+                init_stats = await self.parser.initialize()
+                self._parser_initialized = True
+                logger.info(f"Database resolver ready: {init_stats['total_mappings']} address mappings loaded")
+            
             # Reset metrics
             self._entries_processed = 0
             self._addresses_resolved = 0
-            self._api_calls_made = 0
+            self._api_calls_made = 0  # Should be 0 with database resolver
             self._sources_processed = 0
             
             # Process each source
@@ -143,8 +154,8 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 f"Enhanced watchlist collection completed: "
                 f"{total_records_collected} total entries stored, "
                 f"{self._sources_processed} sources processed, "
-                f"{self._addresses_resolved} addresses resolved, "
-                f"{self._api_calls_made} API calls made"
+                f"{self._addresses_resolved} addresses resolved via database lookup "
+                f"(0 API calls - using database resolver)"
             )
             
             # Create result with metadata
@@ -154,7 +165,8 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 'sources_to_collect': self.sources_to_collect,
                 'entries_processed': self._entries_processed,
                 'addresses_resolved': self._addresses_resolved,
-                'api_calls_made': self._api_calls_made,
+                'api_calls_made': 0,  # Database resolver doesn't make API calls
+                'database_lookups': self._addresses_resolved,
                 'errors': errors
             }
             
@@ -189,9 +201,9 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                     self._entries_processed += 1
                     
                     try:
-                        # Parse and enrich the entry with rate limiting
+                        # Parse and enrich the entry using database lookup (no API calls)
                         entry = await self.parser.parse_watchlist_entry(row)
-                        self._api_calls_made += 1
+                        # No API calls made with database resolver
                         
                         if entry:
                             # Add source information
@@ -199,13 +211,13 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                             entry['ranking'] = row_num  # Position in the file (1-100)
                             entries.append(entry)
                             self._addresses_resolved += 1
-                            logger.debug(f"Processed {source} entry {row_num}: {entry['tokenSymbol']}")
+                            logger.debug(f"Processed {source} entry {row_num}: {entry['tokenSymbol']} (resolved from {entry.get('resolvedFrom', 'unknown')})")
                         else:
-                            logger.warning(f"Failed to parse {source} entry at row {row_num}")
+                            logger.warning(f"Failed to resolve {source} entry at row {row_num} from database")
                         
-                        # Rate limiting between API calls
-                        if row_num % self.batch_size == 0:
-                            await asyncio.sleep(self.rate_limit_delay)
+                        # Minimal delay for database operations (much faster than API calls)
+                        if row_num % (self.batch_size * 5) == 0:  # Less frequent delays
+                            await asyncio.sleep(0.1)  # Much shorter delay
                             
                     except Exception as e:
                         logger.error(f"Error processing {source} row {row_num}: {e}")
