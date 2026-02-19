@@ -584,6 +584,10 @@ class NewPoolsCollector(BaseDataCollector):
                     'volatility_score': cap_value(signal_result.volatility_score, 100.0)  # Max 100
                 })
             
+            # Filter out None values to let SQLAlchemy use column defaults (NULL)
+            # This prevents "conversion from NoneType to Decimal" errors
+            record_data = {k: v for k, v in record_data.items() if v is not None}
+            
             return record_data
             
         except Exception as e:

@@ -3,6 +3,7 @@ SQLAlchemy implementation of the DatabaseManager interface.
 """
 
 import asyncio
+import decimal
 import logging
 import time
 from contextlib import contextmanager
@@ -2048,10 +2049,22 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 # If a recent record exists, check if the data is identical
                 if recent_record:                
-
-                    fields_match = (
-                        Decimal(recent_record.reserve_in_usd) == Decimal(history_record.reserve_in_usd)
-                    )                    
+                    # Safely compare reserve_in_usd, handling None values
+                    def safe_compare_decimal(val1, val2):
+                        """Compare two values that might be None or Decimal."""
+                        if val1 is None and val2 is None:
+                            return True
+                        if val1 is None or val2 is None:
+                            return False
+                        try:
+                            return Decimal(str(val1)) == Decimal(str(val2))
+                        except (ValueError, TypeError, decimal.InvalidOperation):
+                            return False
+                    
+                    fields_match = safe_compare_decimal(
+                        recent_record.reserve_in_usd, 
+                        history_record.reserve_in_usd
+                    )
 
                     if fields_match:
                         logger.debug(
