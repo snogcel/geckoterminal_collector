@@ -379,6 +379,16 @@ class NewPoolsCollector(BaseDataCollector):
                 # Try attributes first, then root level
                 return attributes.get(field_name, pool_data.get(field_name, default))
             
+            # Helper function to safely convert to Decimal
+            def safe_decimal(value, default=None):
+                if value is None or value == '':
+                    return default
+                try:
+                    return Decimal(str(value))
+                except (ValueError, TypeError, decimal.InvalidOperation):
+                    self.logger.warning(f"Failed to convert value to Decimal: {value}")
+                    return default
+            
             # Validate required fields
             pool_id = pool_data.get('id')
             if not pool_id:
@@ -445,7 +455,7 @@ class NewPoolsCollector(BaseDataCollector):
                 'dex_id': dex_id,
                 'base_token_id': base_token_id if base_token_id else None,
                 'quote_token_id': quote_token_id if quote_token_id else None,
-                'reserve_usd': Decimal(str(get_field('reserve_in_usd', 0))),
+                'reserve_usd': safe_decimal(get_field('reserve_in_usd', 0), Decimal('0')),
                 'created_at': pool_created_at,
                 'last_updated': datetime.now()
             }
