@@ -1093,6 +1093,42 @@ def collect_enhanced_watchlist(config, sources, mock):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+def reset_watchlist(config):
+    """Set all watchlist entries to inactive (is_active = False)."""
+    async def reset_entries():
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=True)
+        
+        try:
+            logger.info("Resetting all watchlist entries to inactive...")
+            
+            # Use the database manager's session to execute raw SQL
+            from sqlalchemy import text
+            
+            with scheduler_cli.db_manager.connection.get_session() as session:
+                result = session.execute(
+                    text("UPDATE watchlist SET is_active = :is_active, updated_at = CURRENT_TIMESTAMP"),
+                    {"is_active": False}
+                )
+                session.commit()
+                rows_affected = result.rowcount
+            
+            logger.info(f"Successfully set {rows_affected} watchlist entries to inactive")
+            print(f"\n✅ Reset complete: {rows_affected} watchlist entries set to inactive")
+            print(f"💡 Now run: python -m examples.cli_with_scheduler collect-enhanced-watchlist --sources \"micro\"")
+            
+        except Exception as e:
+            logger.error(f"Failed to reset watchlist entries: {e}")
+            print(f"❌ Error: {e}")
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(reset_entries())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
 @click.option('--collector', help='Reset rate limiter for specific collector (e.g., dex_monitoring, new_pools_solana)')
 @click.option('--network', help='Reset rate limiter for new pools collector of specific network (e.g., solana, ethereum)')
 @click.option('--all', 'reset_all', is_flag=True, help='Reset all rate limiters')

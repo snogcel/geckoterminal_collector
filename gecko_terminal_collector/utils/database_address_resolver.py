@@ -32,17 +32,35 @@ class DatabaseAddressResolver:
         self._address_cache = {}  # Cache for resolved addresses
         self._lowercase_lookup = {}  # Lowercase to proper case mapping
     
-    async def build_address_lookup_cache(self) -> Dict[str, int]:
+    async def build_address_lookup_cache(self, 
+                                        network: Optional[str] = None,
+                                        days_back: Optional[int] = None,
+                                        use_lazy_loading: bool = True) -> Dict[str, int]:
         """
         Build a lookup cache from existing database tables.
         
         Creates mappings from lowercase addresses to their proper case versions
         using data from pools, tokens, and new_pools_history tables.
         
+        Args:
+            network: Optional network filter (e.g., 'solana') to limit cache size
+            days_back: Optional number of days to look back for recent data only
+            use_lazy_loading: If True, skip cache building and use on-demand queries (recommended)
+        
         Returns:
             Dictionary with cache statistics
         """
-        logger.info("Building address lookup cache from database...")
+        if use_lazy_loading:
+            logger.info("Using lazy loading mode - addresses will be resolved on-demand")
+            return {
+                'pools_processed': 0,
+                'tokens_processed': 0,
+                'history_processed': 0,
+                'total_mappings': 0,
+                'mode': 'lazy_loading'
+            }
+        
+        logger.info(f"Building address lookup cache from database (network: {network}, days_back: {days_back})...")
         
         stats = {
             'pools_processed': 0,
@@ -52,9 +70,28 @@ class DatabaseAddressResolver:
         }
         
         try:
+            from datetime import datetime, timedelta, timezone
+            
             with self.db_manager.connection.get_session() as session:
-                # 1. Process pools table
-                pools = session.query(self.db_manager.PoolModel).all()
+                # Calculate date filter if specified
+                date_filter = None
+                if days_back:
+                    date_filter = datetime.now(timezone.utc) - timedelta(days=days_back)
+                    logger.info(f"Filtering records from last {days_back} days (since {date_filter})")
+                
+                # 1. Process pools table with filters
+                pools_query = session.query(self.db_manager.PoolModel)
+                if network:
+                    # Extract network from pool ID (format: network_address)
+                    pools_query = pools_query.filter(
+                        self.db_manager.PoolModel.id.like(f"{network}_%")
+                    )
+                if date_filter:
+                    pools_query = pools_query.filter(
+                        self.db_manager.PoolModel.last_updated >= date_filter
+                    )
+                
+                pools = pools_query.all()
                 for pool in pools:
                     if pool.address:
                         lowercase_addr = pool.address.lower()
@@ -68,8 +105,18 @@ class DatabaseAddressResolver:
                         }
                         stats['pools_processed'] += 1
                 
-                # 2. Process tokens table
-                tokens = session.query(self.db_manager.TokenModel).all()
+                # 2. Process tokens table with filters
+                tokens_query = session.query(self.db_manager.TokenModel)
+                if network:
+                    tokens_query = tokens_query.filter(
+                        self.db_manager.TokenModel.network == network
+                    )
+                if date_filter:
+                    tokens_query = tokens_query.filter(
+                        self.db_manager.TokenModel.last_updated >= date_filter
+                    )
+                
+                tokens = tokens_query.all()
                 for token in tokens:
                     if token.address:
                         lowercase_addr = token.address.lower()
@@ -83,8 +130,18 @@ class DatabaseAddressResolver:
                             }
                         stats['tokens_processed'] += 1
                 
-                # 3. Process new_pools_history table
-                history_records = session.query(self.db_manager.NewPoolsHistoryModel).all()
+                # 3. Process new_pools_history table with filters
+                history_query = session.query(self.db_manager.NewPoolsHistoryModel)
+                if network:
+                    history_query = history_query.filter(
+                        self.db_manager.NewPoolsHistoryModel.network_id == network
+                    )
+                if date_filter:
+                    history_query = history_query.filter(
+                        self.db_manager.NewPoolsHistoryModel.collected_at >= date_filter
+                    )
+                
+                history_records = history_query.all()
                 for record in history_records:
                     if record.address:
                         lowercase_addr = record.address.lower()
@@ -115,6 +172,8 @@ class DatabaseAddressResolver:
         """
         Resolve a lowercase pool address to its proper case and related data.
         
+        Uses lazy loading: queries database on-demand if not in cache.
+        
         Args:
             lowercase_address: Lowercase pool address to resolve
             
@@ -124,16 +183,94 @@ class DatabaseAddressResolver:
         if not lowercase_address:
             return None
         
-        # Check cache first
         lookup_key = lowercase_address.lower()
+        
+        # Check cache first
         if lookup_key in self._lowercase_lookup:
             resolved = self._lowercase_lookup[lookup_key]
-            logger.debug(f"Resolved address from {resolved['source']}: {lowercase_address} → {resolved['address']}")
+            logger.debug(f"Resolved address from cache ({resolved['source']}): {lowercase_address} → {resolved['address']}")
             return resolved
         
-        # Not found in cache
-        logger.warning(f"Address not found in database cache: {lowercase_address}")
+        # Not in cache - query database directly (lazy loading)
+        logger.debug(f"Address not in cache, querying database for: {lowercase_address}")
+        resolved = self._query_address_from_database(lowercase_address)
+        
+        if resolved:
+            # Cache the result for future lookups
+            self._lowercase_lookup[lookup_key] = resolved
+            logger.debug(f"Resolved and cached address from {resolved['source']}: {lowercase_address} → {resolved['address']}")
+            return resolved
+        
+        # Not found in cache or database
+        logger.warning(f"Address not found in database: {lowercase_address}")
         return None
+    
+    def _query_address_from_database(self, lowercase_address: str) -> Optional[Dict[str, Any]]:
+        """
+        Query database directly for an address (lazy loading).
+        
+        This is much faster than loading all addresses upfront.
+        Uses LOWER() for proper case-insensitive matching.
+        
+        Args:
+            lowercase_address: Lowercase address to find
+            
+        Returns:
+            Resolved address data or None
+        """
+        try:
+            from sqlalchemy import func
+            
+            with self.db_manager.connection.get_session() as session:
+                # Try pools table first (most likely for watchlist)
+                pool = session.query(self.db_manager.PoolModel).filter(
+                    func.lower(self.db_manager.PoolModel.address) == lowercase_address.lower()
+                ).first()
+                
+                if pool:
+                    return {
+                        'address': pool.address,
+                        'pool_id': pool.id,
+                        'base_token_id': pool.base_token_id,
+                        'quote_token_id': pool.quote_token_id,
+                        'dex_id': pool.dex_id,
+                        'source': 'pools'
+                    }
+                
+                # Try new_pools_history table
+                history = session.query(self.db_manager.NewPoolsHistoryModel).filter(
+                    func.lower(self.db_manager.NewPoolsHistoryModel.address) == lowercase_address.lower()
+                ).first()
+                
+                if history:
+                    return {
+                        'address': history.address,
+                        'pool_id': history.pool_id,
+                        'base_token_id': history.base_token_id,
+                        'quote_token_id': history.quote_token_id,
+                        'dex_id': history.dex_id,
+                        'source': 'new_pools_history'
+                    }
+                
+                # Try tokens table as last resort
+                token = session.query(self.db_manager.TokenModel).filter(
+                    func.lower(self.db_manager.TokenModel.address) == lowercase_address.lower()
+                ).first()
+                
+                if token:
+                    return {
+                        'address': token.address,
+                        'token_id': token.id,
+                        'symbol': token.symbol,
+                        'name': token.name,
+                        'source': 'tokens'
+                    }
+                
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error querying address from database: {e}")
+            return None
     
     def get_pool_data_by_lowercase_address(self, lowercase_address: str) -> Optional[Dict[str, Any]]:
         """
@@ -267,17 +404,31 @@ class EnhancedWatchlistDatabaseParser:
         self.address_resolver = DatabaseAddressResolver(db_manager)
         self._cache_built = False
     
-    async def initialize(self) -> Dict[str, int]:
+    async def initialize(self, use_lazy_loading: bool = True, network: str = 'solana', days_back: int = 30) -> Dict[str, int]:
         """
         Initialize the parser by building the address lookup cache.
+        
+        Args:
+            use_lazy_loading: If True, skip cache building and query on-demand (much faster)
+            network: Network to filter cache by (default: 'solana')
+            days_back: Number of days to look back for recent data (default: 30)
         
         Returns:
             Cache build statistics
         """
         if not self._cache_built:
-            stats = await self.address_resolver.build_address_lookup_cache()
+            stats = await self.address_resolver.build_address_lookup_cache(
+                network=network if not use_lazy_loading else None,
+                days_back=days_back if not use_lazy_loading else None,
+                use_lazy_loading=use_lazy_loading
+            )
             self._cache_built = True
-            logger.info(f"Database address resolver initialized with {stats['total_mappings']} mappings")
+            
+            if use_lazy_loading:
+                logger.info("Database address resolver initialized in lazy loading mode (on-demand queries)")
+            else:
+                logger.info(f"Database address resolver initialized with {stats['total_mappings']} mappings")
+            
             return stats
         return await self.address_resolver.get_cache_statistics()
     

@@ -61,8 +61,29 @@ class BaseDataCollector(ABC):
         self.use_mock = use_mock
         self.metadata_tracker = metadata_tracker or MetadataTracker()
         
-        # Initialize enhanced rate limiter
-        self.rate_limiter = rate_limiter or EnhancedRateLimiter()
+        # Initialize enhanced rate limiter with config values
+        if rate_limiter is None:
+            # Extract rate limiting config
+            rate_limit_config = getattr(config, 'rate_limiting', None)
+            api_config = getattr(config, 'api', None)
+            
+            # Get rate limit parameters from config
+            requests_per_minute = 30  # Default to 30 (GeckoTerminal free tier)
+            min_request_interval = 2.0  # Default to 2 seconds between requests
+            
+            if rate_limit_config:
+                if hasattr(rate_limit_config, 'requests_per_minute'):
+                    requests_per_minute = rate_limit_config.requests_per_minute
+            
+            if api_config and hasattr(api_config, 'rate_limit_delay'):
+                min_request_interval = api_config.rate_limit_delay
+            
+            self.rate_limiter = EnhancedRateLimiter(
+                requests_per_minute=requests_per_minute,
+                min_request_interval=min_request_interval
+            )
+        else:
+            self.rate_limiter = rate_limiter
         
         # Initialize data normalizer
         self.data_normalizer = DataTypeNormalizer()

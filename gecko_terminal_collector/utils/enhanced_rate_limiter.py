@@ -93,7 +93,8 @@ class EnhancedRateLimiter:
         circuit_breaker_threshold: int = 5,
         circuit_breaker_timeout: int = 300,
         state_file: Optional[str] = None,
-        instance_id: str = "default"
+        instance_id: str = "default",
+        min_request_interval: float = 0.0
     ):
         """
         Initialize the enhanced rate limiter.
@@ -105,17 +106,20 @@ class EnhancedRateLimiter:
             circuit_breaker_timeout: Seconds to wait before half-open
             state_file: Path to persistent state file
             instance_id: Unique identifier for this instance
+            min_request_interval: Minimum seconds between requests (0 = no minimum)
         """
         self.requests_per_minute = requests_per_minute
         self.daily_limit = daily_limit
         self.circuit_breaker_threshold = circuit_breaker_threshold
         self.circuit_breaker_timeout = circuit_breaker_timeout
         self.instance_id = instance_id
+        self.min_request_interval = min_request_interval
         
         # Request tracking
         self.request_history: Deque[float] = deque()
         self.daily_count = 0
         self.last_reset = date.today()
+        self.last_request_time: Optional[float] = None
         
         # Backoff state
         self.backoff_state = BackoffState()
@@ -172,12 +176,13 @@ class EnhancedRateLimiter:
                 logger.info(f"Waiting {wait_time:.2f}s due to backoff")
                 await asyncio.sleep(wait_time)
             
-            # Check per-minute limit
+            # Check per-minute limit and minimum interval
             await self._wait_for_rate_limit()
             
             # Record the request
             now = time.time()
             self.request_history.append(now)
+            self.last_request_time = now  # Track for minimum interval enforcement
             self.daily_count += 1
             self.metrics.total_requests += 1
             self.metrics.daily_requests += 1
@@ -307,8 +312,17 @@ class EnhancedRateLimiter:
         return False
     
     async def _wait_for_rate_limit(self) -> None:
-        """Wait if necessary to respect per-minute rate limits."""
+        """Wait if necessary to respect per-minute rate limits and minimum request interval."""
         now = time.time()
+        
+        # Enforce minimum request interval if configured
+        if self.min_request_interval > 0 and self.last_request_time is not None:
+            time_since_last = now - self.last_request_time
+            if time_since_last < self.min_request_interval:
+                wait_time = self.min_request_interval - time_since_last
+                logger.debug(f"Enforcing minimum request interval, waiting {wait_time:.2f}s")
+                await asyncio.sleep(wait_time)
+                now = time.time()  # Update now after sleep
         
         # Remove old requests (older than 1 minute)
         cutoff = now - 60
