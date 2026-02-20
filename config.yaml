@@ -1,5 +1,9 @@
 # GeckoTerminal Data Collector Configuration
 # This file contains all configurable settings for the data collection system
+#
+# Interval Format: Intervals support seconds (s), minutes (m), hours (h), and days (d)
+# Examples: "15s" (15 seconds), "5m" (5 minutes), "1h" (1 hour), "1d" (1 day)
+# Note: API rate limit is 30 calls/minute, so use intervals accordingly
 
 # DEX Configuration
 dexes:
@@ -8,36 +12,42 @@ dexes:
     - pumpswap
   network: solana
 
-# Collection Intervals
+# Collection Intervals (supports: s=seconds, m=minutes, h=hours, d=days)
 intervals:
   #top_pools_monitoring: "1h"    # How often to check top pools
-  top_pools_monitoring: "5m"    # How often to check top pools
-  ohlcv_collection: "1h"        # OHLCV data collection frequency
-  trade_collection: "30m"       # Trade data collection frequency
-  watchlist_check: "1h"         # Watchlist file check frequency
+  #top_pools_monitoring: "5m"    # How often to check top pools
+  ohlcv_collection: "15m"        # OHLCV data collection frequency
+  # trade_collection: "1m"         # Trade data collection frequency
+  # watchlist_check: "1m"         # Watchlist file check frequency
+
+# Trade Collection Configuration
+trade_collection:
+  max_pools_per_batch: 39        # Maximum pools to collect per batch (round-robin rotation)
+  rotation_window_minutes: 30    # Time window for fair rotation tracking
 
 # Thresholds and Limits
 thresholds:
   min_trade_volume_usd: 100     # Minimum trade volume to collect (USD)
   max_retries: 3                # Maximum retry attempts for failed operations
-  rate_limit_delay: 1.0         # Delay between API requests (seconds)
+  rate_limit_delay: 10.0         # Delay between API requests (seconds)
   backoff_factor: 2.0           # Exponential backoff multiplier
+  high_volume_threshold_usd: 10000.0  # Threshold for high-volume pool prioritization
 
 # OHLCV Timeframe Configuration
 timeframes:
-  ohlcv_default: "1h"           # Default timeframe for OHLCV collection
+  ohlcv_default: "5m"           # Default timeframe for OHLCV collection
   supported:                    # All supported timeframes
-    - "1m"
+  #  - "1m"
     - "5m"
-    - "15m"
-    - "1h"
-    - "4h"
-    - "12h"
-    - "1d"
+  #  - "15m"
+  #  - "1h"
+  #  - "4h"
+  #  - "12h"
+  #  - "1d"
 
 # Database Configuration
 database:
-  url: "postgresql://postgres:pass123451!@localhost:5432/gecko_collector"  # Database connection URL
+  url: "postgresql://gecko_collector:12345678!@localhost:5432/gecko_terminal_collector"  # Database connection URL
   pool_size: 10                   # Connection pool size
   echo: false                     # Enable SQL query logging
   timeout: 30                     # Connection timeout (seconds)
@@ -46,8 +56,8 @@ database:
 api:
   base_url: "https://api.geckoterminal.com/api/v2"
   timeout: 30                     # Request timeout (seconds)
-  max_concurrent: 5               # Maximum concurrent API requests
-  rate_limit_delay: 1.0           # Rate limiting delay (seconds)
+  max_concurrent: 1               # Maximum concurrent API requests
+  rate_limit_delay: 10.0           # Rate limiting delay (seconds)
 
 # Error Handling Configuration
 error_handling:
@@ -62,7 +72,7 @@ rate_limiting:
   daily_limit: 10000              # Global daily request limit
   circuit_breaker_threshold: 5    # Failures before circuit breaker opens
   circuit_breaker_timeout: 300    # Circuit breaker timeout (seconds)
-  backoff_base_delay: 1.0         # Base delay for exponential backoff
+  backoff_base_delay: 5.0         # Base delay for exponential backoff
   backoff_max_delay: 300.0        # Maximum backoff delay
   backoff_jitter_factor: 0.3      # Jitter factor for backoff
   state_file_dir: ".rate_limiter_state"  # Directory for rate limiter state files
@@ -70,127 +80,154 @@ rate_limiting:
 # Watchlist Configuration
 watchlist:
   file_path: "watchlist.csv"      # Path to watchlist CSV file
-  check_interval: "1h"            # How often to check for file changes
-  auto_add_new_tokens: true       # Automatically add new tokens from watchlist
+  check_interval: "24h"            # How often to check for file changes
+  auto_add_new_tokens: false       # Automatically add new tokens from watchlist
   remove_inactive_tokens: false   # Remove tokens no longer in watchlist
 
-# NautilusTrader POC Configuration
-nautilus_poc:
-  # Environment settings - can be overridden via NAUTILUS_ENVIRONMENT
-  environment: "testnet"          # "testnet" or "mainnet"
+# Enhanced Watchlist Configuration
+enhanced_watchlist:
+  enabled: false                   # Enable enhanced watchlist collection
+  interval: "1h"                  # Collection interval (hourly updates)
+  sources:                        # Available data sources
+    # - "reference"                 # Reference segment (default)
+    # - "lowcap"                    # Low cap segment
+    - "micro"                     # Micro cap segment
+    # - "midcap"                    # Mid cap segment
+    # - "oldlowcap"                 # Old low cap segment
+    # - "oldmicro"                  # Old micro segment
   
-  # Multi-environment configurations
-  environments:
-    testnet:
-      solana:
-        network: "testnet"
-        rpc_endpoint: "https://api.testnet.solana.com"
-        commitment: "confirmed"
-        cluster: "testnet"
-      pumpswap:
-        max_slippage_percent: 10.0    # Higher slippage tolerance for testnet
-        base_position_size: 0.01      # Smaller positions for testing
-        max_position_size: 0.1        # Conservative max for testnet
-        min_liquidity_sol: 1.0        # Lower liquidity requirement for testnet
-        max_price_impact_percent: 15.0 # Higher impact tolerance for testing
-        realistic_transaction_cost: 0.001  # 10 bps for testnet
-      security:
-        validate_token_addresses: true
-        require_transaction_confirmation: true
-        enable_circuit_breaker: true
-        max_daily_trades: 100
-        wallet_balance_alert_threshold: 0.1  # Alert when below 0.1 SOL
+  # Rate limiting for API calls
+  rate_limiting:
+    delay_between_calls: 5.0      # Seconds between API calls
+    batch_size: 10                # Process entries in batches
+    delay_between_sources: 5.0    # Seconds between processing different sources
+  
+  # Historical data settings
+  history:
+    enabled: true                 # Enable historical data storage
+    retention_days: 90            # Days to retain historical data (0 = unlimited)
+    cleanup_interval: "24h"       # How often to run cleanup
+  
+  # File naming pattern
+  file_pattern: "watchlist_updated_{source}.csv"  # Pattern for source files
+
+# # NautilusTrader POC Configuration
+# nautilus_poc:
+#   # Environment settings - can be overridden via NAUTILUS_ENVIRONMENT
+#   environment: "testnet"          # "testnet" or "mainnet"
+  
+#   # Multi-environment configurations
+#   environments:
+#     testnet:
+#       solana:
+#         network: "testnet"
+#         rpc_endpoint: "https://api.testnet.solana.com"
+#         commitment: "confirmed"
+#         cluster: "testnet"
+#       pumpswap:
+#         max_slippage_percent: 10.0    # Higher slippage tolerance for testnet
+#         base_position_size: 0.01      # Smaller positions for testing
+#         max_position_size: 0.1        # Conservative max for testnet
+#         min_liquidity_sol: 1.0        # Lower liquidity requirement for testnet
+#         max_price_impact_percent: 15.0 # Higher impact tolerance for testing
+#         realistic_transaction_cost: 0.001  # 10 bps for testnet
+#       security:
+#         validate_token_addresses: true
+#         require_transaction_confirmation: true
+#         enable_circuit_breaker: true
+#         max_daily_trades: 100
+#         wallet_balance_alert_threshold: 0.1  # Alert when below 0.1 SOL
       
-    mainnet:
-      solana:
-        network: "mainnet"
-        rpc_endpoint: "https://api.mainnet-beta.solana.com"
-        commitment: "finalized"
-        cluster: "mainnet-beta"
-      pumpswap:
-        max_slippage_percent: 5.0     # Stricter slippage for mainnet
-        base_position_size: 0.1       # Standard position size
-        max_position_size: 0.5        # Higher max for mainnet
-        min_liquidity_sol: 10.0       # Higher liquidity requirement
-        max_price_impact_percent: 10.0 # Stricter impact tolerance
-        realistic_transaction_cost: 0.0005  # 5 bps for mainnet
-      security:
-        validate_token_addresses: true
-        require_transaction_confirmation: true
-        enable_circuit_breaker: true
-        max_daily_trades: 500
-        wallet_balance_alert_threshold: 1.0  # Alert when below 1.0 SOL
+#     mainnet:
+#       solana:
+#         network: "mainnet"
+#         rpc_endpoint: "https://api.mainnet-beta.solana.com"
+#         commitment: "finalized"
+#         cluster: "mainnet-beta"
+#       pumpswap:
+#         max_slippage_percent: 5.0     # Stricter slippage for mainnet
+#         base_position_size: 0.1       # Standard position size
+#         max_position_size: 0.5        # Higher max for mainnet
+#         min_liquidity_sol: 10.0       # Higher liquidity requirement
+#         max_price_impact_percent: 10.0 # Stricter impact tolerance
+#         realistic_transaction_cost: 0.0005  # 5 bps for mainnet
+#       security:
+#         validate_token_addresses: true
+#         require_transaction_confirmation: true
+#         enable_circuit_breaker: true
+#         max_daily_trades: 500
+#         wallet_balance_alert_threshold: 1.0  # Alert when below 1.0 SOL
   
-  # Q50 Signal Configuration
-  q50:
-    features_path: "data3/macro_features.pkl"  # Path to Q50 signals file
-    signal_tolerance_minutes: 5     # Tolerance for timestamp matching
-    required_columns:               # Required Q50 columns for validation
-      - "q10"
-      - "q50" 
-      - "q90"
-      - "vol_raw"
-      - "vol_risk"
-      - "prob_up"
-      - "economically_significant"
-      - "high_quality"
-      - "tradeable"
-    backup_features_path: ""        # Optional backup path for signals
-    signal_cache_ttl_minutes: 60    # Cache TTL for loaded signals
+#   # Q50 Signal Configuration
+#   q50:
+#     features_path: "data3/macro_features.pkl"  # Path to Q50 signals file
+#     signal_tolerance_minutes: 5     # Tolerance for timestamp matching
+#     required_columns:               # Required Q50 columns for validation
+#       - "q10"
+#       - "q50" 
+#       - "q90"
+#       - "vol_raw"
+#       - "vol_risk"
+#       - "prob_up"
+#       - "economically_significant"
+#       - "high_quality"
+#       - "tradeable"
+#     backup_features_path: ""        # Optional backup path for signals
+#     signal_cache_ttl_minutes: 60    # Cache TTL for loaded signals
   
-  # Wallet and Security Configuration (set via environment variables)
-  wallet:
-    # These should NEVER be set in config file - use environment variables only
-    payer_public_key: ""           # Set via NAUTILUS_PAYER_PUBLIC_KEY
-    private_key_path: ""           # Set via NAUTILUS_PRIVATE_KEY_PATH
-    private_key_env_var: ""        # Set via NAUTILUS_PRIVATE_KEY_ENV_VAR
-    wallet_password_env_var: ""    # Set via NAUTILUS_WALLET_PASSWORD_ENV_VAR
+#   # Wallet and Security Configuration (set via environment variables)
+#   wallet:
+#     # These should NEVER be set in config file - use environment variables only
+#     payer_public_key: ""           # Set via NAUTILUS_PAYER_PUBLIC_KEY
+#     private_key_path: ""           # Set via NAUTILUS_PRIVATE_KEY_PATH
+#     private_key_env_var: ""        # Set via NAUTILUS_PRIVATE_KEY_ENV_VAR
+#     wallet_password_env_var: ""    # Set via NAUTILUS_WALLET_PASSWORD_ENV_VAR
     
-    # Wallet validation settings
-    validate_balance_before_trade: true
-    min_balance_sol: 0.1           # Minimum balance to maintain
-    balance_check_interval_minutes: 5
+#     # Wallet validation settings
+#     validate_balance_before_trade: true
+#     min_balance_sol: 0.1           # Minimum balance to maintain
+#     balance_check_interval_minutes: 5
     
-  # Trading Parameters (environment-specific overrides applied)
-  trading:
-    # Position sizing
-    kelly_multiplier: 1.0          # Kelly criterion multiplier
-    max_portfolio_risk: 0.2        # Maximum portfolio risk (20%)
-    position_concentration_limit: 0.1  # Max 10% in single position
+#   # Trading Parameters (environment-specific overrides applied)
+#   trading:
+#     # Position sizing
+#     kelly_multiplier: 1.0          # Kelly criterion multiplier
+#     max_portfolio_risk: 0.2        # Maximum portfolio risk (20%)
+#     position_concentration_limit: 0.1  # Max 10% in single position
     
-    # Execution parameters
-    order_timeout_seconds: 30      # Order execution timeout
-    confirmation_timeout_seconds: 60  # Transaction confirmation timeout
-    max_gas_price_lamports: 5000   # Maximum gas price willing to pay
+#     # Execution parameters
+#     order_timeout_seconds: 30      # Order execution timeout
+#     confirmation_timeout_seconds: 60  # Transaction confirmation timeout
+#     max_gas_price_lamports: 5000   # Maximum gas price willing to pay
     
-    # Risk management
-    stop_loss_percent: 20.0        # Automatic stop loss threshold
-    take_profit_percent: 50.0      # Take profit threshold
-    position_timeout_hours: 24     # Maximum holding period
-    max_consecutive_losses: 5      # Circuit breaker trigger
+#     # Risk management
+#     stop_loss_percent: 20.0        # Automatic stop loss threshold
+#     take_profit_percent: 50.0      # Take profit threshold
+#     position_timeout_hours: 24     # Maximum holding period
+#     max_consecutive_losses: 5      # Circuit breaker trigger
     
-  # NautilusTrader Configuration
-  nautilus:
-    instance_id: "NAUTILUS-001"    # Unique instance identifier
-    log_level: "INFO"              # Logging level
-    cache_database_path: "cache.db" # Cache database path
+#   # NautilusTrader Configuration
+#   nautilus:
+#     instance_id: "NAUTILUS-001"    # Unique instance identifier
+#     log_level: "INFO"              # Logging level
+#     cache_database_path: "cache.db" # Cache database path
     
-    # Strategy configuration
-    strategy_config:
-      risk_engine_config:
-        bypass: false              # Enable risk engine
-        max_order_rate: "100/00:00:01"  # Max orders per second
-        max_notional_per_order: 1000000  # Max notional per order
+#     # Strategy configuration
+#     strategy_config:
+#       risk_engine_config:
+#         bypass: false              # Enable risk engine
+#         max_order_rate: "100/00:00:01"  # Max orders per second
+#         max_notional_per_order: 1000000  # Max notional per order
       
-      exec_engine_config:
-        reconciliation: true       # Enable position reconciliation
-        inflight_check_interval_ms: 5000  # Check interval for inflight orders
+#       exec_engine_config:
+#         reconciliation: true       # Enable position reconciliation
+#         inflight_check_interval_ms: 5000  # Check interval for inflight orders
         
-    # Data engine configuration
-    data_engine_config:
-      time_bars_build_with_no_updates: false
-      time_bars_timestamp_on_close: true
-      validate_data_sequence: true
+#     # Data engine configuration
+#     data_engine_config:
+#       time_bars_build_with_no_updates: false
+#       time_bars_timestamp_on_close: true
+#       validate_data_sequence: true
     
   # Performance Monitoring
   monitoring:
@@ -215,7 +252,7 @@ nautilus_poc:
   # Error Handling and Recovery
   error_handling:
     max_retries: 3
-    retry_delay_base: 1.0
+    retry_delay_base: 3.0
     retry_delay_max: 60.0
     circuit_breaker_threshold: 5
     circuit_breaker_timeout: 300
@@ -274,13 +311,19 @@ nautilus_poc:
 
 # New Pools Collection Configuration
 new_pools:
+  # Pagination settings (applies to all networks unless overridden)
+  max_pages: 3                    # Maximum pages to fetch per collection (1-10 for free tier)
+  page_delay: 5                 # Delay between page requests in seconds
+  
   networks:
     solana:
       enabled: true               # Enable new pools collection for Solana
-      interval: "10m"             # Collection interval for Solana (increased frequency)
+      auto_watchlist_integration: false  # Auto-add high-signal pools to watchlist
+      interval: "120s"             # Collection interval for Solana (45s allows ~10s collection time + buffer)
       rate_limit_key: "new_pools_solana"  # Rate limiter key for Solana
-      signal_analysis: true       # Enable signal analysis for collected pools
-      auto_watchlist_integration: true  # Auto-add high-signal pools to watchlist
+      signal_analysis: false       # Enable signal analysis for collected pools
+      max_pages: 3                # Network-specific: fetch 5 pages per collection (~100 pools, ~10s total)
+      page_delay: 5.0             # Network-specific: 1.5 second delay between pages      
     #ethereum:
     #  enabled: false              # Enable new pools collection for Ethereum
     #  interval: "15m"             # Collection interval for Ethereum
@@ -290,12 +333,20 @@ new_pools:
   
   # Signal Detection Configuration
   signal_detection:
-    enabled: true                 # Enable signal detection system
-    min_signal_score: 60.0        # Minimum signal score for alerts
+    enabled: false                 # Enable signal detection system
+    min_signal_score: 70.0        # Minimum signal score for alerts
     volume_spike_threshold: 2.0   # Volume spike detection (2x increase)
     liquidity_growth_threshold: 1.5  # Liquidity growth threshold (1.5x increase)
     momentum_lookback_hours: 6    # Hours to look back for momentum calculation
-    auto_watchlist_threshold: 75.0  # Signal score threshold for auto-watchlist addition
+    auto_watchlist_threshold: 70.0  # Signal score threshold for auto-watchlist addition      
+    # min_signal_score: 70.0  # Higher quality
+    use_colors: true
+    # use_emojis: true
+    # enable_file_alerts: true
+    enable_sound_alerts: false  # Beep on signal
+    # enable_desktop_notifications: true  # Popup
+    # enable_webhook: true  # Mobile alerts
+    # webhook_url: "YOUR_DISCORD_WEBHOOK"
 
 # Environment Variable Overrides:
 # You can override any configuration value using environment variables:
@@ -327,6 +378,10 @@ new_pools:
 #   GECKO_OHLCV_INTERVAL - OHLCV collection interval
 #   GECKO_TRADE_INTERVAL - Trade collection interval
 #   GECKO_WATCHLIST_INTERVAL - Watchlist check interval
+#
+# Trade Collection:
+#   GECKO_TRADE_MAX_POOLS_PER_BATCH - Maximum pools per collection batch
+#   GECKO_TRADE_ROTATION_WINDOW_MINUTES - Rotation window in minutes
 #
 # Timeframes:
 #   GECKO_OHLCV_DEFAULT_TIMEFRAME - Default OHLCV timeframe
