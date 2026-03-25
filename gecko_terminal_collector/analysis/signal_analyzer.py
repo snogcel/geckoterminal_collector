@@ -1,518 +1,917 @@
 """
 Signal analysis engine for new pools data.
 Detects trading signals and patterns from new pools history.
+
+Changes from original
+---------------------
+- signal_score is now the Random Forest model probability (0-100) when a
+  model is available; falls back to the improved heuristic when it is not.
+- Added _analyze_fdv(): FDV was the #1 RF feature (33% importance) but was
+  completely absent from the original heuristic scoring.
+- Added _analyze_velocity(): exploits the 2-3 row window that is typically
+  available; volume growth rate between first and latest observation is a
+  strong early signal (winners show ~38x vs losers ~17x in backtests).
+- All sub-scores converted to log-scale where appropriate: the original
+  linear scales caused volume/liquidity ceilings far below realistic values
+  (e.g. $50k volume and $1M volume both capped at 50).
+- Activity scoring now includes sell-authenticity checks: zero-sell pools
+  with meaningful buy activity are penalized as likely scams/bots. Extreme
+  buy-side imbalance (>97% buys) is also flagged.
+- Momentum scoring distinguishes new pools (<24h old) where price_change_24h
+  mirrors price_change_1h; avoids double-counting the same signal.
+- Overall heuristic weights re-aligned to match RF feature importances:
+  FDV 25%, liquidity 20%, volume 20%, activity 15%, momentum 10%,
+  velocity bonus up to +10.
+- should_add_to_watchlist() gates on RF tier when model is available,
+  then falls back to heuristic threshold.
+- generate_alert_message() includes RF tier and score in output.
+- _safe_float() helper added; Decimal arithmetic only kept where it
+  directly touches DB-bound values.
 """
 
 import logging
-from datetime import datetime, timedelta
+import math
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Optional RF model import — graceful degradation if files not present
+# ---------------------------------------------------------------------------
+try:
+    from pool_scorer import PoolScorer  # type: ignore
+    _POOL_SCORER_AVAILABLE = True
+except ImportError:
+    _POOL_SCORER_AVAILABLE = False
+    logger.info("pool_scorer not found — RF scoring disabled, using heuristic only")
+
+
+# ---------------------------------------------------------------------------
+# Tier definitions (kept in sync with pool_scorer.py)
+# ---------------------------------------------------------------------------
+RF_TIERS = {
+    1: {"label": "HIGH",   "min_score": 0.70},
+    2: {"label": "MEDIUM", "min_score": 0.60},
+    3: {"label": "LOW",    "min_score": 0.50},
+    0: {"label": "FILTER", "min_score": 0.00},
+}
+
+
+# ---------------------------------------------------------------------------
+# Data class
+# ---------------------------------------------------------------------------
+from dataclasses import dataclass, field
 
 
 @dataclass
 class SignalResult:
     """Result of signal analysis."""
-    signal_score: float
+    signal_score: float        # 0-100; RF probability * 100 when model available
     volume_trend: str
     liquidity_trend: str
-    momentum_indicator: float
-    activity_score: float
-    volatility_score: float
-    signals: Dict[str, Any]
+    momentum_indicator: float  # stored as NUMERIC(15,4) in DB
+    activity_score: float      # 0-100
+    volatility_score: float    # 0-100
+    signals: Dict[str, Any] = field(default_factory=dict)
 
+
+# ---------------------------------------------------------------------------
+# Main analyser
+# ---------------------------------------------------------------------------
 
 class NewPoolsSignalAnalyzer:
     """
     Analyze new pools data for trading signals and patterns.
-    
-    This analyzer processes new pools history data to identify:
-    - Volume spikes and trends
-    - Liquidity growth patterns
-    - Price momentum indicators
-    - Trading activity surges
-    - Overall signal strength
+
+    When a trained RandomForest model (pool_winner_model.pkl) is available in
+    model_path, the signal_score field of every SignalResult is the RF win-
+    probability scaled to 0-100.  All heuristic sub-scores are still computed
+    and stored in SignalResult.signals for transparency and debugging.
+
+    When the model is not available the analyzer falls back to the improved
+    heuristic signal_score described in the module docstring.
+
+    Parameters
+    ----------
+    config : dict, optional
+        Runtime thresholds.  All keys are optional; defaults listed below.
+    model_path : str or Path, optional
+        Directory or full path to pool_winner_model.pkl.
+        Defaults to the directory containing this file.
     """
-    
-    def __init__(self, config: Optional[Dict] = None):
-        """
-        Initialize the signal analyzer.
-        
-        Args:
-            config: Configuration dictionary with thresholds and parameters
-        """
+
+    # Heuristic sub-score log-scale anchors  (min_log, max_log)
+    # score = clip((log10(value) - min_log) / (max_log - min_log) * 100, 0, 100)
+    _FDV_LOG_RANGE  = (3.0, 6.0)   # $1k → $1M
+    _VOL_LOG_RANGE  = (2.0, 6.0)   # $100 → $1M
+    _LIQ_LOG_RANGE  = (3.0, 5.5)   # $1k → $316k
+    _ACT_LOG_RANGE  = (0.5, 3.0)   # 3 txns → 1000 txns
+
+    def __init__(
+        self,
+        config: Optional[Dict] = None,
+        model_path: Optional[str | Path] = None,
+    ):
         self.config = config or {}
-        
-        # Default thresholds
-        self.volume_spike_threshold = self.config.get('volume_spike_threshold', 2.0)
-        self.liquidity_growth_threshold = self.config.get('liquidity_growth_threshold', 1.5)
-        self.momentum_lookback_hours = self.config.get('momentum_lookback_hours', 6)
-        self.min_signal_score = self.config.get('min_signal_score', 60.0)
-        
-        logger.info(f"Signal analyzer initialized with thresholds: "
-                   f"volume_spike={self.volume_spike_threshold}, "
-                   f"liquidity_growth={self.liquidity_growth_threshold}")
-    
-    def analyze_pool_signals(self, current_data: Dict, historical_data: List[Dict] = None) -> SignalResult:
+
+        # --- heuristic thresholds (kept for backwards compat / fallback) ---
+        self.volume_spike_threshold    = self.config.get("volume_spike_threshold",    2.0)
+        self.liquidity_growth_threshold= self.config.get("liquidity_growth_threshold",1.5)
+        self.momentum_lookback_hours   = self.config.get("momentum_lookback_hours",   6)
+        self.min_signal_score          = self.config.get("min_signal_score",          60.0)
+
+        # --- RF model ---
+        self.scorer: Optional["PoolScorer"] = None
+        if _POOL_SCORER_AVAILABLE:
+            self._load_scorer(model_path)
+
+        logger.info(
+            "SignalAnalyzer ready | RF=%s | vol_spike=%.1f | liq_growth=%.1f",
+            "enabled" if self.scorer else "disabled",
+            self.volume_spike_threshold,
+            self.liquidity_growth_threshold,
+        )
+
+    # ------------------------------------------------------------------
+    # Model loading
+    # ------------------------------------------------------------------
+
+    def _load_scorer(self, model_path: Optional[str | Path]) -> None:
+        """Attempt to load the RF model; log but do not raise on failure."""
+        candidates: List[Path] = []
+
+        if model_path:
+            p = Path(model_path)
+            candidates.append(p if p.suffix == ".pkl" else p / "pool_winner_model.pkl")
+
+        # Look next to this file and in a sibling 'models/' dir
+        here = Path(__file__).parent
+        candidates += [
+            here / "pool_winner_model.pkl",
+            here / "models" / "pool_winner_model.pkl",
+        ]
+
+        for candidate in candidates:
+            if candidate.exists():
+                try:
+                    self.scorer = PoolScorer(candidate)
+                    logger.info("RF model loaded from %s", candidate)
+                    return
+                except Exception as exc:
+                    logger.warning("Failed to load model from %s: %s", candidate, exc)
+
+        logger.info("No RF model file found; using heuristic scoring only")
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def analyze_pool_signals(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]] = None,
+    ) -> SignalResult:
         """
-        Analyze a pool's current data against historical patterns to generate signals.
-        
-        Args:
-            current_data: Current pool data from API
-            historical_data: List of historical data points for the pool
-            
-        Returns:
-            SignalResult with comprehensive signal analysis
+        Analyze a pool's current data against historical patterns.
+
+        Parameters
+        ----------
+        current_data : dict
+            Most recent pool observation (from DexScreener API / DB row).
+        historical_data : list of dicts, optional
+            Prior observations for the same pool, oldest first.
+            Typically 1-2 rows given the API's short retention window.
+
+        Returns
+        -------
+        SignalResult
         """
         try:
-            # Initialize signal components
-            signals = {}
-            
-            # Extract current metrics
-            current_volume = self._safe_decimal(current_data.get('volume_usd_h24', 0))
-            current_liquidity = self._safe_decimal(current_data.get('reserve_in_usd', 0))
-            current_price_change_1h = self._safe_decimal(current_data.get('price_change_percentage_h1', 0))
-            current_price_change_24h = self._safe_decimal(current_data.get('price_change_percentage_h24', 0))
-            
-            # Calculate individual signal components
-            volume_analysis = self._analyze_volume_trend(current_data, historical_data)
-            liquidity_analysis = self._analyze_liquidity_trend(current_data, historical_data)
-            momentum_analysis = self._analyze_price_momentum(current_data, historical_data)
-            activity_analysis = self._analyze_trading_activity(current_data, historical_data)
+            signals: Dict[str, Any] = {}
+
+            # --- sub-analyses (always run — provide context & fallback) ------
+            fdv_analysis        = self._analyze_fdv(current_data)
+            volume_analysis     = self._analyze_volume_trend(current_data, historical_data)
+            liquidity_analysis  = self._analyze_liquidity_trend(current_data, historical_data)
+            momentum_analysis   = self._analyze_price_momentum(current_data, historical_data)
+            activity_analysis   = self._analyze_trading_activity(current_data, historical_data)
             volatility_analysis = self._analyze_volatility(current_data, historical_data)
-            
-            # Store individual signals
+            velocity_analysis   = self._analyze_velocity(current_data, historical_data)
+
+            # Collect detailed signals for logging / downstream use
             signals.update({
-                'volume_spike': volume_analysis.get('spike_detected', False),
-                'volume_growth_rate': volume_analysis.get('growth_rate', 0),
-                'liquidity_growth': liquidity_analysis.get('growth_detected', False),
-                'liquidity_growth_rate': liquidity_analysis.get('growth_rate', 0),
-                'price_momentum_strong': momentum_analysis.get('strong_momentum', False),
-                'momentum_direction': momentum_analysis.get('direction', 'neutral'),
-                'high_activity': activity_analysis.get('high_activity', False),
-                'activity_increase': activity_analysis.get('activity_increase', 0),
-                'high_volatility': volatility_analysis.get('high_volatility', False),
-                'volatility_trend': volatility_analysis.get('trend', 'stable')
+                # Volume
+                "volume_spike":         volume_analysis.get("spike_detected", False),
+                "volume_growth_rate":   volume_analysis.get("growth_rate", 0),
+                "volume_score":         volume_analysis.get("score", 0),
+                # Liquidity
+                "liquidity_growth":     liquidity_analysis.get("growth_detected", False),
+                "liquidity_growth_rate":liquidity_analysis.get("growth_rate", 0),
+                "liquidity_score":      liquidity_analysis.get("score", 0),
+                # FDV (new)
+                "fdv_usd":              fdv_analysis.get("fdv_usd", 0),
+                "fdv_score":            fdv_analysis.get("score", 0),
+                "fdv_liq_ratio":        fdv_analysis.get("fdv_liq_ratio", 0),
+                "fdv_liq_score":        fdv_analysis.get("fdv_liq_score", 0),
+                # Momentum
+                "price_momentum_strong":momentum_analysis.get("strong_momentum", False),
+                "momentum_direction":   momentum_analysis.get("direction", "neutral"),
+                "momentum_score":       momentum_analysis.get("score", 0),
+                # Activity
+                "high_activity":        activity_analysis.get("high_activity", False),
+                "activity_increase":    activity_analysis.get("activity_increase", 0),
+                "sell_authentic":       activity_analysis.get("sell_authentic", True),
+                "buy_ratio_1h":         activity_analysis.get("buy_ratio_1h", 0.5),
+                # Volatility
+                "high_volatility":      volatility_analysis.get("high_volatility", False),
+                "volatility_trend":     volatility_analysis.get("trend", "stable"),
+                "upside_volatility":    volatility_analysis.get("upside", False),
+                # Velocity (new)
+                "vol_velocity":         velocity_analysis.get("vol_velocity", 0),
+                "velocity_score":       velocity_analysis.get("score", 0),
+                "has_velocity_data":    velocity_analysis.get("has_data", False),
             })
-            
-            # Calculate overall signal score (0-100)
-            signal_score = self._calculate_overall_signal_score(
-                volume_analysis, liquidity_analysis, momentum_analysis, 
-                activity_analysis, volatility_analysis
-            )
-            
-            # Cap extreme values to prevent database overflow
-            # Scores should be 0-100, momentum can be larger but needs capping
+
+            # --- RF signal score (primary) ------------------------------------
+            rf_score: Optional[float] = None
+            rf_tier: int = 0
+            rf_tier_label: str = "UNKNOWN"
+
+            if self.scorer is not None:
+                try:
+                    # Build a merged dict the scorer expects
+                    pool_dict = {**current_data}
+                    # If collected_at is missing from current_data, don't crash
+                    rf_result   = self.scorer.score(pool_dict)
+                    rf_prob     = rf_result["ml_score"]          # 0-1
+                    rf_score    = rf_prob * 100                  # 0-100
+                    rf_tier     = rf_result["tier"]
+                    rf_tier_label = rf_result["tier_label"]
+
+                    signals["rf_score"]      = rf_score
+                    signals["rf_tier"]       = rf_tier
+                    signals["rf_tier_label"] = rf_tier_label
+                    signals["rf_flags"]      = rf_result.get("flags", [])
+                except Exception as exc:
+                    logger.warning("RF scoring failed for pool %s: %s",
+                                   current_data.get("address", "?"), exc)
+
+            # --- Overall signal score -----------------------------------------
+            if rf_score is not None:
+                # RF is the signal score; clamp to 0-100
+                overall_signal_score = self._cap(rf_score, 0.0, 100.0)
+            else:
+                overall_signal_score = self._heuristic_signal_score(
+                    fdv_analysis, volume_analysis, liquidity_analysis,
+                    momentum_analysis, activity_analysis, velocity_analysis,
+                )
+
+            # --- Build result -------------------------------------------------
             return SignalResult(
-                signal_score=self._cap_extreme_value(signal_score, 100.0, 0.0),
-                volume_trend=volume_analysis.get('trend', 'stable'),
-                liquidity_trend=liquidity_analysis.get('trend', 'stable'),
-                momentum_indicator=self._cap_extreme_value(
-                    momentum_analysis.get('indicator', 0.0), 
-                    max_value=99999.0,  # Cap at 99,999 for NUMERIC(15,4)
-                    min_value=-99999.0
+                signal_score=self._cap(overall_signal_score, 0.0, 100.0),
+                volume_trend=volume_analysis.get("trend", "stable"),
+                liquidity_trend=liquidity_analysis.get("trend", "stable"),
+                momentum_indicator=self._cap(
+                    momentum_analysis.get("indicator", 0.0),
+                    min_value=-99_999.0,
+                    max_value=99_999.0,
                 ),
-                activity_score=self._cap_extreme_value(activity_analysis.get('score', 0.0), 100.0, 0.0),
-                volatility_score=self._cap_extreme_value(volatility_analysis.get('score', 0.0), 100.0, 0.0),
-                signals=signals
+                activity_score=self._cap(activity_analysis.get("score", 0.0), 0.0, 100.0),
+                volatility_score=self._cap(volatility_analysis.get("score", 0.0), 0.0, 100.0),
+                signals=signals,
             )
-            
-        except Exception as e:
-            logger.error(f"Error analyzing pool signals: {e}")
-            return self._create_default_signal_result()
-    
-    def _analyze_volume_trend(self, current_data: Dict, historical_data: List[Dict] = None) -> Dict:
-        """Analyze volume trends and detect spikes."""
+
+        except Exception as exc:
+            logger.error("Error analyzing pool signals for %s: %s",
+                         current_data.get("address", "?"), exc, exc_info=True)
+            return self._default_result()
+
+    # ------------------------------------------------------------------
+    # Sub-analyses
+    # ------------------------------------------------------------------
+
+    def _analyze_fdv(self, current_data: Dict) -> Dict:
+        """
+        Score the pool's fully-diluted valuation.
+
+        FDV was the single most important RF feature (33% importance).
+        Uses log-scale: $1k→~0, $15k→~35, $50k→~57, $200k→~77, $1M→100.
+
+        Also computes FDV/liquidity ratio — sweet spot is 1–8x.
+        Very high ratios (>20x) suggest early over-valuation and dump risk.
+        """
         try:
-            current_volume = self._safe_decimal(current_data.get('volume_usd_h24', 0))
-            
-            if not historical_data or len(historical_data) < 2:
-                # No historical data - use basic heuristics
+            fdv = self._safe_float(current_data.get("fdv_usd", 0))
+            liq = self._safe_float(current_data.get("reserve_in_usd", 0))
+
+            fdv_score = self._log_score(fdv, *self._FDV_LOG_RANGE)
+
+            # FDV / liquidity ratio scoring
+            fdv_liq_ratio = fdv / liq if liq > 0 else 0
+            if liq == 0 or fdv == 0:
+                fdv_liq_score = 0.0
+            elif 1 <= fdv_liq_ratio <= 8:
+                fdv_liq_score = 100.0          # sweet spot
+            elif fdv_liq_ratio < 1:
+                fdv_liq_score = fdv_liq_ratio * 100  # under 1x is unusual/suspicious
+            else:
+                # Penalise over-valued pools: 8x→100, 20x→50, 50x→20, 100x→10
+                fdv_liq_score = max(0, 100 - (fdv_liq_ratio - 8) * 4)
+
+            return {
+                "fdv_usd":       fdv,
+                "score":         fdv_score,
+                "fdv_liq_ratio": fdv_liq_ratio,
+                "fdv_liq_score": min(100.0, fdv_liq_score),
+            }
+
+        except Exception as exc:
+            logger.error("Error in _analyze_fdv: %s", exc)
+            return {"fdv_usd": 0, "score": 0, "fdv_liq_ratio": 0, "fdv_liq_score": 0}
+
+    def _analyze_volume_trend(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Analyze volume trends and detect spikes.
+
+        Uses log-scale base scoring so that $5k and $500k are properly
+        differentiated.  Growth rate is computed against the earliest
+        historical observation (not the average) to avoid dilution when
+        only 1-2 prior rows exist.
+        """
+        try:
+            current_vol = self._safe_float(current_data.get("volume_usd_h24", 0))
+            base_score  = self._log_score(current_vol, *self._VOL_LOG_RANGE)
+
+            if not historical_data:
                 return {
-                    'trend': 'unknown',
-                    'spike_detected': current_volume > 10000,  # Basic threshold
-                    'growth_rate': 0,
-                    'score': min(float(current_volume) / 1000, 50)  # Basic scoring
+                    "trend":          "unknown",
+                    "spike_detected": current_vol > 10_000,
+                    "growth_rate":    0.0,
+                    "score":          base_score * 0.7,   # discount — no confirmation
+                    "current_volume": current_vol,
                 }
-            
-            # Calculate historical average
-            historical_volumes = [self._safe_decimal(d.get('volume_usd_h24', 0)) for d in historical_data]
-            avg_volume = sum(historical_volumes) / len(historical_volumes) if historical_volumes else Decimal('0')
-            
-            # Calculate growth rate
-            growth_rate = float((current_volume / avg_volume) - 1) if avg_volume > 0 else 0
-            
-            # Detect volume spike
+
+            # Use oldest observation as the baseline (works with 1 or 2 rows)
+            first_vol  = self._safe_float(historical_data[0].get("volume_usd_h24", 0))
+            growth_rate = (current_vol / first_vol - 1) if first_vol > 0 else 0.0
+
             spike_detected = growth_rate >= (self.volume_spike_threshold - 1)
-            
-            # Determine trend
-            if growth_rate > 0.5:
-                trend = 'spike' if spike_detected else 'increasing'
-            elif growth_rate > 0.1:
-                trend = 'increasing'
+
+            if growth_rate > 1.0:
+                trend = "spike"
+            elif growth_rate > 0.2:
+                trend = "increasing"
             elif growth_rate < -0.3:
-                trend = 'decreasing'
+                trend = "decreasing"
             else:
-                trend = 'stable'
-            
-            # Calculate volume score (0-100)
-            volume_score = min(100, max(0, (
-                (float(current_volume) / 1000) * 10 +  # Base volume component
-                (growth_rate * 50) +  # Growth component
-                (50 if spike_detected else 0)  # Spike bonus
-            )))
-            
+                trend = "stable"
+
+            # Growth multiplier: caps at 2x bonus for 5x+ growth
+            growth_bonus = min(30.0, growth_rate * 15.0)
+            spike_bonus  = 10.0 if spike_detected else 0.0
+            volume_score = min(100.0, base_score + growth_bonus + spike_bonus)
+
             return {
-                'trend': trend,
-                'spike_detected': spike_detected,
-                'growth_rate': growth_rate,
-                'score': volume_score,
-                'current_volume': float(current_volume),
-                'avg_historical_volume': float(avg_volume)
+                "trend":                   trend,
+                "spike_detected":          spike_detected,
+                "growth_rate":             growth_rate,
+                "score":                   volume_score,
+                "current_volume":          current_vol,
+                "baseline_volume":         first_vol,
             }
-            
-        except Exception as e:
-            logger.error(f"Error analyzing volume trend: {e}")
-            return {'trend': 'stable', 'spike_detected': False, 'growth_rate': 0, 'score': 0}
-    
-    def _analyze_liquidity_trend(self, current_data: Dict, historical_data: List[Dict] = None) -> Dict:
-        """Analyze liquidity trends and growth patterns."""
+
+        except Exception as exc:
+            logger.error("Error in _analyze_volume_trend: %s", exc)
+            return {"trend": "stable", "spike_detected": False, "growth_rate": 0, "score": 0}
+
+    def _analyze_liquidity_trend(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Analyze liquidity (reserve_in_usd) trends.
+
+        Log-scale base scoring: $1k→~0, $15k→~46, $50k→~68, $150k→~87.
+        Liquidity growth is a positive signal; shrinkage is a strong negative.
+        """
         try:
-            current_liquidity = self._safe_decimal(current_data.get('reserve_in_usd', 0))
-            
-            if not historical_data or len(historical_data) < 2:
+            current_liq = self._safe_float(current_data.get("reserve_in_usd", 0))
+            base_score  = self._log_score(current_liq, *self._LIQ_LOG_RANGE)
+
+            if not historical_data:
                 return {
-                    'trend': 'unknown',
-                    'growth_detected': current_liquidity > 50000,  # Basic threshold
-                    'growth_rate': 0,
-                    'score': min(float(current_liquidity) / 10000, 30)
+                    "trend":           "unknown",
+                    "growth_detected": current_liq > 20_000,
+                    "growth_rate":     0.0,
+                    "score":           base_score * 0.8,
+                    "current_liquidity": current_liq,
                 }
-            
-            # Calculate historical average
-            historical_liquidity = [self._safe_decimal(d.get('reserve_in_usd', 0)) for d in historical_data]
-            avg_liquidity = sum(historical_liquidity) / len(historical_liquidity) if historical_liquidity else Decimal('0')
-            
-            # Calculate growth rate
-            growth_rate = float((current_liquidity / avg_liquidity) - 1) if avg_liquidity > 0 else 0
-            
-            # Detect significant growth
+
+            first_liq   = self._safe_float(historical_data[0].get("reserve_in_usd", 0))
+            growth_rate = (current_liq / first_liq - 1) if first_liq > 0 else 0.0
+
             growth_detected = growth_rate >= (self.liquidity_growth_threshold - 1)
-            
-            # Determine trend
-            if growth_rate > 0.3:
-                trend = 'growing'
+
+            if growth_rate > 0.2:
+                trend = "growing"
             elif growth_rate < -0.2:
-                trend = 'shrinking'
+                trend = "shrinking"
             else:
-                trend = 'stable'
-            
-            # Calculate liquidity score
-            liquidity_score = min(100, max(0, (
-                (float(current_liquidity) / 10000) * 20 +  # Base liquidity component
-                (growth_rate * 30) +  # Growth component
-                (30 if growth_detected else 0)  # Growth bonus
-            )))
-            
+                trend = "stable"
+
+            # Shrinking liquidity is a strong negative signal (rug risk)
+            growth_bonus   =  min(20.0, growth_rate * 25.0)
+            shrink_penalty = max(-30.0, growth_rate * 40.0) if growth_rate < -0.15 else 0.0
+            liq_score      = min(100.0, max(0.0, base_score + growth_bonus + shrink_penalty))
+
             return {
-                'trend': trend,
-                'growth_detected': growth_detected,
-                'growth_rate': growth_rate,
-                'score': liquidity_score,
-                'current_liquidity': float(current_liquidity),
-                'avg_historical_liquidity': float(avg_liquidity)
+                "trend":              trend,
+                "growth_detected":    growth_detected,
+                "growth_rate":        growth_rate,
+                "score":              liq_score,
+                "current_liquidity":  current_liq,
+                "baseline_liquidity": first_liq,
             }
-            
-        except Exception as e:
-            logger.error(f"Error analyzing liquidity trend: {e}")
-            return {'trend': 'stable', 'growth_detected': False, 'growth_rate': 0, 'score': 0}
-    
-    def _analyze_price_momentum(self, current_data: Dict, historical_data: List[Dict] = None) -> Dict:
-        """Analyze price momentum and direction."""
+
+        except Exception as exc:
+            logger.error("Error in _analyze_liquidity_trend: %s", exc)
+            return {"trend": "stable", "growth_detected": False, "growth_rate": 0, "score": 0}
+
+    def _analyze_price_momentum(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Analyze price momentum.
+
+        For new pools (< 24h old) price_change_24h == price_change_1h, so
+        we avoid double-counting by using only price_change_1h in that case.
+        Scoring is bullish-biased since we are looking for long entries only.
+        """
         try:
-            price_change_1h = self._safe_decimal(current_data.get('price_change_percentage_h1', 0))
-            price_change_24h = self._safe_decimal(current_data.get('price_change_percentage_h24', 0))
-            
-            # Cap extreme price changes to prevent database overflow
-            # Max value for NUMERIC(10,4) is 999,999.9999
-            MAX_PRICE_CHANGE = Decimal('100000')  # Cap at 100,000% (1000x)
-            
-            if abs(price_change_1h) > MAX_PRICE_CHANGE:
-                price_change_1h = MAX_PRICE_CHANGE if price_change_1h > 0 else -MAX_PRICE_CHANGE
-            if abs(price_change_24h) > MAX_PRICE_CHANGE:
-                price_change_24h = MAX_PRICE_CHANGE if price_change_24h > 0 else -MAX_PRICE_CHANGE
-            
-            # Calculate momentum indicator
-            momentum_indicator = float((price_change_1h * 2 + price_change_24h) / 3)
-            
-            # Determine momentum strength and direction
-            strong_momentum = abs(momentum_indicator) > 10  # >10% momentum
-            
-            if momentum_indicator > 5:
-                direction = 'bullish'
-            elif momentum_indicator < -5:
-                direction = 'bearish'
+            pc1h  = self._safe_float(current_data.get("price_change_percentage_h1",  0))
+            pc24h = self._safe_float(current_data.get("price_change_percentage_h24", 0))
+
+            # Cap to avoid DB overflow and score distortion
+            MAX_PC = 100_000.0
+            pc1h  = max(-MAX_PC, min(MAX_PC, pc1h))
+            pc24h = max(-MAX_PC, min(MAX_PC, pc24h))
+
+            # Detect new pool: if 24h ~ 1h (within 5%), treat as same signal
+            pool_is_new = abs(pc1h - pc24h) < max(5.0, abs(pc1h) * 0.05)
+            if pool_is_new:
+                momentum_indicator = float(pc1h)
             else:
-                direction = 'neutral'
-            
-            # Calculate momentum score
-            momentum_score = min(100, max(0, (
-                abs(momentum_indicator) * 5 +  # Base momentum
-                (20 if strong_momentum else 0) +  # Strong momentum bonus
-                (10 if direction == 'bullish' else 0)  # Bullish bias
-            )))
-            
+                # Weight recent hour more heavily
+                momentum_indicator = float((pc1h * 2.0 + pc24h) / 3.0)
+
+            strong_momentum = abs(momentum_indicator) > 15.0
+
+            if momentum_indicator > 10:
+                direction = "bullish"
+            elif momentum_indicator < -10:
+                direction = "bearish"
+            else:
+                direction = "neutral"
+
+            # Log-scale momentum score (bullish bias)
+            if momentum_indicator > 0:
+                # log scale: 1%→10, 10%→35, 50%→60, 200%→80, 1000%→100
+                m_score = min(100.0, self._log_score(momentum_indicator + 1, 0, 3) * 1.2)
+            else:
+                # Bearish momentum subtracts from score
+                m_score = max(0.0, 30.0 + momentum_indicator * 0.5)
+
+            strong_bonus = 5.0 if strong_momentum and direction == "bullish" else 0.0
+            momentum_score = min(100.0, m_score + strong_bonus)
+
             return {
-                'indicator': momentum_indicator,
-                'strong_momentum': strong_momentum,
-                'direction': direction,
-                'score': momentum_score,
-                'price_change_1h': float(price_change_1h),
-                'price_change_24h': float(price_change_24h)
+                "indicator":       momentum_indicator,
+                "strong_momentum": strong_momentum,
+                "direction":       direction,
+                "score":           momentum_score,
+                "price_change_1h": pc1h,
+                "price_change_24h":pc24h,
+                "pool_is_new":     pool_is_new,
             }
-            
-        except Exception as e:
-            logger.error(f"Error analyzing price momentum: {e}")
-            return {'indicator': 0.0, 'strong_momentum': False, 'direction': 'neutral', 'score': 0}
-    
-    def _analyze_trading_activity(self, current_data: Dict, historical_data: List[Dict] = None) -> Dict:
-        """Analyze trading activity patterns."""
+
+        except Exception as exc:
+            logger.error("Error in _analyze_price_momentum: %s", exc)
+            return {"indicator": 0.0, "strong_momentum": False, "direction": "neutral", "score": 0}
+
+    def _analyze_trading_activity(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Analyze trading activity with sell-authenticity checks.
+
+        Key insight from RF analysis: sell transactions are a strong
+        authenticity signal.  Pools with 0 sells + meaningful buys are
+        almost certainly bots/wash trading and almost never become winners.
+        Extreme buy-side imbalance (>97% buys) is similarly penalized.
+        """
         try:
-            # Extract transaction data
-            buys_1h = self._safe_int(current_data.get('transactions_h1_buys', 0))
-            sells_1h = self._safe_int(current_data.get('transactions_h1_sells', 0))
-            buys_24h = self._safe_int(current_data.get('transactions_h24_buys', 0))
-            sells_24h = self._safe_int(current_data.get('transactions_h24_sells', 0))
-            
-            # Calculate activity metrics
-            total_1h = buys_1h + sells_1h
+            buys_1h  = self._safe_int(current_data.get("transactions_h1_buys",  0))
+            sells_1h = self._safe_int(current_data.get("transactions_h1_sells", 0))
+            buys_24h = self._safe_int(current_data.get("transactions_h24_buys",  0))
+            sells_24h= self._safe_int(current_data.get("transactions_h24_sells", 0))
+
+            total_1h  = buys_1h  + sells_1h
             total_24h = buys_24h + sells_24h
-            
-            # Calculate buy/sell ratio
-            buy_ratio_1h = buys_1h / total_1h if total_1h > 0 else 0.5
+            buy_ratio_1h  = buys_1h  / total_1h  if total_1h  > 0 else 0.5
             buy_ratio_24h = buys_24h / total_24h if total_24h > 0 else 0.5
-            
-            # Detect high activity
-            high_activity = total_1h > 50 or total_24h > 500
-            
-            # Calculate activity increase (if historical data available)
-            activity_increase = 0
-            if historical_data and len(historical_data) > 0:
-                avg_historical_24h = sum(
-                    self._safe_int(d.get('transactions_h24_buys', 0)) + 
-                    self._safe_int(d.get('transactions_h24_sells', 0))
+
+            # --- Authenticity checks ------------------------------------------
+            # Zero sells with any real buy activity → likely scam / bot
+            sell_authentic = True
+            authenticity_penalty = 0.0
+
+            if sells_1h == 0 and buys_1h > 10:
+                sell_authentic       = False
+                authenticity_penalty = -35.0
+                logger.debug("Zero-sell flag: buys=%d sells=0", buys_1h)
+            elif sells_1h < 2 and buys_1h > 20:
+                sell_authentic       = False
+                authenticity_penalty = -15.0
+
+            # Extreme buy imbalance: >97% buys with >20 total → bot pattern
+            if buy_ratio_1h > 0.97 and total_1h > 20:
+                sell_authentic       = False
+                authenticity_penalty = min(authenticity_penalty, -20.0)
+
+            # --- Activity score (log scale) -----------------------------------
+            high_activity = total_1h > 50 or total_24h > 200
+
+            # Log-scale on 1h total txns; minor 24h contribution
+            act_base  = self._log_score(max(total_1h, 1), *self._ACT_LOG_RANGE) * 0.75
+            act_24h   = self._log_score(max(total_24h, 1), *self._ACT_LOG_RANGE) * 0.25
+            act_score = min(100.0, max(0.0, act_base + act_24h + authenticity_penalty))
+
+            # Historical comparison (works with 1-2 rows)
+            activity_increase = 0.0
+            if historical_data:
+                avg_hist_24h = sum(
+                    self._safe_int(d.get("transactions_h24_buys",  0)) +
+                    self._safe_int(d.get("transactions_h24_sells", 0))
                     for d in historical_data
                 ) / len(historical_data)
-                
-                if avg_historical_24h > 0:
-                    activity_increase = (total_24h / avg_historical_24h) - 1
-            
-            # Calculate activity score
-            activity_score = min(100, max(0, (
-                (total_1h * 0.5) +  # 1h activity component
-                (total_24h * 0.1) +  # 24h activity component
-                (activity_increase * 30) +  # Activity increase bonus
-                (20 if high_activity else 0) +  # High activity bonus
-                (abs(buy_ratio_1h - 0.5) * 40)  # Imbalance component
-            )))
-            
+                if avg_hist_24h > 0:
+                    activity_increase = (total_24h / avg_hist_24h) - 1.0
+
             return {
-                'score': activity_score,
-                'high_activity': high_activity,
-                'activity_increase': activity_increase,
-                'total_transactions_1h': total_1h,
-                'total_transactions_24h': total_24h,
-                'buy_ratio_1h': buy_ratio_1h,
-                'buy_ratio_24h': buy_ratio_24h
+                "score":                act_score,
+                "high_activity":        high_activity,
+                "sell_authentic":       sell_authentic,
+                "authenticity_penalty": authenticity_penalty,
+                "activity_increase":    activity_increase,
+                "total_transactions_1h":  total_1h,
+                "total_transactions_24h": total_24h,
+                "buy_ratio_1h":           buy_ratio_1h,
+                "buy_ratio_24h":          buy_ratio_24h,
             }
-            
-        except Exception as e:
-            logger.error(f"Error analyzing trading activity: {e}")
-            return {'score': 0, 'high_activity': False, 'activity_increase': 0}
-    
-    def _analyze_volatility(self, current_data: Dict, historical_data: List[Dict] = None) -> Dict:
-        """Analyze price volatility patterns."""
+
+        except Exception as exc:
+            logger.error("Error in _analyze_trading_activity: %s", exc)
+            return {"score": 0, "high_activity": False, "activity_increase": 0,
+                    "sell_authentic": True, "buy_ratio_1h": 0.5}
+
+    def _analyze_volatility(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Analyze price volatility, distinguishing upside from downside.
+
+        For our long-only strategy, upside volatility is a feature not a bug.
+        High downside volatility is a warning sign.
+        """
         try:
-            price_change_1h = abs(self._safe_decimal(current_data.get('price_change_percentage_h1', 0)))
-            price_change_24h = abs(self._safe_decimal(current_data.get('price_change_percentage_h24', 0)))
-            
-            # Cap extreme values
-            MAX_PRICE_CHANGE = Decimal('100000')  # Cap at 100,000%
-            price_change_1h = min(price_change_1h, MAX_PRICE_CHANGE)
-            price_change_24h = min(price_change_24h, MAX_PRICE_CHANGE)
-            
-            # Calculate volatility score
-            volatility_score = float((price_change_1h * 2 + price_change_24h) / 3)
-            
-            # Determine volatility level
-            high_volatility = volatility_score > 15  # >15% volatility
-            
-            # Determine trend
-            if volatility_score > 20:
-                trend = 'extreme'
-            elif volatility_score > 10:
-                trend = 'high'
-            elif volatility_score > 5:
-                trend = 'moderate'
+            pc1h  = self._safe_float(current_data.get("price_change_percentage_h1",  0))
+            pc24h = self._safe_float(current_data.get("price_change_percentage_h24", 0))
+
+            MAX_PC = 100_000.0
+            pc1h  = max(-MAX_PC, min(MAX_PC, pc1h))
+            pc24h = max(-MAX_PC, min(MAX_PC, pc24h))
+
+            upside   = (pc1h  > 0 and pc24h >= 0)
+            downside = (pc1h  < -10 or pc24h < -20)
+
+            # Use absolute values for volatility magnitude
+            abs1h  = abs(pc1h)
+            abs24h = abs(pc24h)
+
+            # Weighted average — 1h is more relevant for fresh pools
+            volatility_level = (abs1h * 2.0 + abs24h) / 3.0
+            high_volatility  = volatility_level > 15.0
+
+            if volatility_level > 50:
+                trend = "extreme"
+            elif volatility_level > 20:
+                trend = "high"
+            elif volatility_level > 8:
+                trend = "moderate"
             else:
-                trend = 'low'
-            
+                trend = "low"
+
+            # Score: upside volatility is rewarded, downside penalised
+            raw_score = min(100.0, math.log1p(volatility_level) / math.log1p(100) * 100)
+            if downside:
+                raw_score *= 0.5  # halve score for negative price action
+            elif upside and high_volatility:
+                raw_score = min(100.0, raw_score * 1.2)
+
             return {
-                'score': min(100, volatility_score * 3),
-                'high_volatility': high_volatility,
-                'trend': trend,
-                'volatility_1h': float(price_change_1h),
-                'volatility_24h': float(price_change_24h)
+                "score":           raw_score,
+                "high_volatility": high_volatility,
+                "upside":          upside,
+                "downside":        downside,
+                "trend":           trend,
+                "volatility_1h":   abs1h,
+                "volatility_24h":  abs24h,
             }
-            
-        except Exception as e:
-            logger.error(f"Error analyzing volatility: {e}")
-            return {'score': 0, 'high_volatility': False, 'trend': 'low'}
-    
-    def _calculate_overall_signal_score(self, volume_analysis: Dict, liquidity_analysis: Dict, 
-                                      momentum_analysis: Dict, activity_analysis: Dict, 
-                                      volatility_analysis: Dict) -> float:
-        """Calculate overall signal score from individual components."""
+
+        except Exception as exc:
+            logger.error("Error in _analyze_volatility: %s", exc)
+            return {"score": 0, "high_volatility": False, "trend": "low", "upside": False}
+
+    def _analyze_velocity(
+        self,
+        current_data: Dict,
+        historical_data: Optional[List[Dict]],
+    ) -> Dict:
+        """
+        Compute change velocity between the first and most recent observation.
+
+        With the typical 2-3 row window available from the API this is the
+        most reliable multi-row signal.  From backtesting:
+          - Winners show ~38x volume growth between first and current obs
+          - Losers show ~17x volume growth over the same window
+
+        Liquidity velocity is also tracked: growing liquidity alongside
+        volume is confirmation; shrinking liquidity is a rug warning.
+        """
         try:
-            # Weight the different components
-            weights = {
-                'volume': 0.3,
-                'liquidity': 0.2,
-                'momentum': 0.2,
-                'activity': 0.2,
-                'volatility': 0.1
+            if not historical_data:
+                return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0, "score": 0}
+
+            first = historical_data[0]   # oldest available observation
+
+            curr_vol = self._safe_float(current_data.get("volume_usd_h24", 0))
+            first_vol= self._safe_float(first.get("volume_usd_h24", 0))
+
+            curr_liq = self._safe_float(current_data.get("reserve_in_usd", 0))
+            first_liq= self._safe_float(first.get("reserve_in_usd", 0))
+
+            curr_buys = self._safe_int(current_data.get("transactions_h1_buys", 0))
+            first_buys= self._safe_int(first.get("transactions_h1_buys", 0))
+
+            # Velocity = current / first (multiplicative growth)
+            vol_velocity = curr_vol  / first_vol  if first_vol  > 0 else 0.0
+            liq_velocity = curr_liq  / first_liq  if first_liq  > 0 else 0.0
+            buy_velocity = curr_buys / first_buys if first_buys > 0 else 0.0
+
+            # Score based on vol_velocity (primary signal)
+            # Calibrated to winner/loser distributions: 38x wins, 17x loses
+            if vol_velocity >= 50:
+                vel_score = 100.0
+            elif vol_velocity >= 30:
+                vel_score = 85.0
+            elif vol_velocity >= 15:
+                vel_score = 65.0
+            elif vol_velocity >= 5:
+                vel_score = 40.0
+            elif vol_velocity >= 2:
+                vel_score = 20.0
+            else:
+                vel_score = max(0.0, (vol_velocity - 1) * 20)
+
+            # Liquidity confirmation / rug warning
+            if liq_velocity < 0.7:                  # liquidity dropped >30%
+                vel_score = max(0.0, vel_score - 25.0)
+            elif liq_velocity > 1.2 and vol_velocity > 5:
+                vel_score = min(100.0, vel_score + 10.0)  # both growing = good
+
+            return {
+                "has_data":     True,
+                "vol_velocity": vol_velocity,
+                "liq_velocity": liq_velocity,
+                "buy_velocity": buy_velocity,
+                "score":        vel_score,
+                "n_obs":        len(historical_data) + 1,  # +1 for current
             }
-            
-            # Get scores from each analysis
-            volume_score = volume_analysis.get('score', 0)
-            liquidity_score = liquidity_analysis.get('score', 0)
-            momentum_score = momentum_analysis.get('score', 0)
-            activity_score = activity_analysis.get('score', 0)
-            volatility_score = volatility_analysis.get('score', 0)
-            
-            # Calculate weighted average
-            overall_score = (
-                volume_score * weights['volume'] +
-                liquidity_score * weights['liquidity'] +
-                momentum_score * weights['momentum'] +
-                activity_score * weights['activity'] +
-                volatility_score * weights['volatility']
+
+        except Exception as exc:
+            logger.error("Error in _analyze_velocity: %s", exc)
+            return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0, "score": 0}
+
+    # ------------------------------------------------------------------
+    # Heuristic overall score (fallback when RF unavailable)
+    # ------------------------------------------------------------------
+
+    def _heuristic_signal_score(
+        self,
+        fdv_analysis:        Dict,
+        volume_analysis:     Dict,
+        liquidity_analysis:  Dict,
+        momentum_analysis:   Dict,
+        activity_analysis:   Dict,
+        velocity_analysis:   Dict,
+    ) -> float:
+        """
+        Weighted heuristic score aligned to RF feature importances.
+
+        Weights (approx RF importance):
+          FDV          25%   (RF: 33%)
+          FDV/liq      10%   (RF: 15%)
+          Liquidity    20%   (RF: 16%)
+          Volume       20%   (RF: 10%)
+          Activity     15%   (RF: ~8% combined txn features)
+          Momentum     10%   (RF: 6%)
+          Velocity      +10  additive bonus (not in RF — cross-row signal)
+        """
+        try:
+            fdv_score  = fdv_analysis.get("score", 0)
+            fdl_score  = fdv_analysis.get("fdv_liq_score", 0)
+            liq_score  = liquidity_analysis.get("score", 0)
+            vol_score  = volume_analysis.get("score", 0)
+            act_score  = activity_analysis.get("score", 0)
+            mom_score  = momentum_analysis.get("score", 0)
+            vel_score  = velocity_analysis.get("score", 0)
+
+            base = (
+                fdv_score * 0.25 +
+                fdl_score * 0.10 +
+                liq_score * 0.20 +
+                vol_score * 0.20 +
+                act_score * 0.15 +
+                mom_score * 0.10
             )
-            
-            # Apply bonuses for strong signals
-            if volume_analysis.get('spike_detected', False):
-                overall_score += 10
-            if liquidity_analysis.get('growth_detected', False):
-                overall_score += 8
-            if momentum_analysis.get('strong_momentum', False):
-                overall_score += 5
-            if activity_analysis.get('high_activity', False):
-                overall_score += 5
-            
-            return min(100, max(0, overall_score))
-            
-        except Exception as e:
-            logger.error(f"Error calculating overall signal score: {e}")
+
+            # Velocity bonus (up to +10) — only when we actually have multi-row data
+            vel_bonus = (vel_score / 100.0 * 10.0) if velocity_analysis.get("has_data") else 0.0
+
+            # Rug / scam hard penalty — override bonuses
+            liq_shrink = liquidity_analysis.get("growth_rate", 0) < -0.3
+            not_authentic = not activity_analysis.get("sell_authentic", True)
+            if liq_shrink and not_authentic:
+                base *= 0.4   # both flags together = strong scam signal
+
+            return min(100.0, max(0.0, base + vel_bonus))
+
+        except Exception as exc:
+            logger.error("Error in _heuristic_signal_score: %s", exc)
             return 0.0
-    
-    def _create_default_signal_result(self) -> SignalResult:
-        """Create a default signal result for error cases."""
-        return SignalResult(
-            signal_score=0.0,
-            volume_trend='stable',
-            liquidity_trend='stable',
-            momentum_indicator=0.0,
-            activity_score=0.0,
-            volatility_score=0.0,
-            signals={}
-        )
-    
-    def _safe_decimal(self, value: Any) -> Decimal:
-        """Safely convert value to Decimal."""
-        if value is None or value == '':
-            return Decimal('0')
+
+    # ------------------------------------------------------------------
+    # Utility
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _log_score(value: float, min_log: float, max_log: float) -> float:
+        """
+        Map a value onto 0-100 using a log10 scale.
+
+        Values at or below 10^min_log → 0; at or above 10^max_log → 100.
+        """
+        if value <= 0:
+            return 0.0
+        log_val = math.log10(value)
+        return float(min(100.0, max(0.0, (log_val - min_log) / (max_log - min_log) * 100)))
+
+    @staticmethod
+    def _cap(value: float, min_value: float = 0.0, max_value: float = 100.0) -> float:
+        """Clamp value and handle NaN/Inf."""
+        if value is None:
+            return min_value
         try:
-            return Decimal(str(value))
+            v = float(value)
+        except (TypeError, ValueError):
+            return min_value
+        if math.isnan(v) or math.isinf(v):
+            return max_value if v == float("inf") else min_value
+        return max(min_value, min(max_value, v))
+
+    @staticmethod
+    def _safe_float(value: Any) -> float:
+        if value is None or value == "":
+            return 0.0
+        try:
+            return float(value)
         except (ValueError, TypeError):
-            return Decimal('0')
-    
-    def _safe_int(self, value: Any) -> int:
-        """Safely convert value to int."""
-        if value is None or value == '':
+            return 0.0
+
+    @staticmethod
+    def _safe_int(value: Any) -> int:
+        if value is None or value == "":
             return 0
         try:
             return int(float(value))
         except (ValueError, TypeError):
             return 0
-    
-    def _cap_extreme_value(self, value: float, max_value: float = 999999.0, 
-                          min_value: float = -999999.0) -> float:
+
+    # Keep for any callers that still use Decimal (e.g. direct DB writes)
+    @staticmethod
+    def _safe_decimal(value: Any) -> Decimal:
+        if value is None or value == "":
+            return Decimal("0")
+        try:
+            return Decimal(str(value))
+        except (ValueError, TypeError):
+            return Decimal("0")
+
+    # Backwards-compat alias
+    def _cap_extreme_value(
+        self,
+        value: float,
+        max_value: float = 999_999.0,
+        min_value: float = -999_999.0,
+    ) -> float:
+        return self._cap(value, min_value, max_value)
+
+    def _default_result(self) -> SignalResult:
+        return SignalResult(
+            signal_score=0.0,
+            volume_trend="stable",
+            liquidity_trend="stable",
+            momentum_indicator=0.0,
+            activity_score=0.0,
+            volatility_score=0.0,
+            signals={},
+        )
+
+    # ------------------------------------------------------------------
+    # Watchlist / alerting helpers
+    # ------------------------------------------------------------------
+
+    def should_add_to_watchlist(
+        self,
+        signal_result: SignalResult,
+        threshold: Optional[float] = None,
+    ) -> bool:
         """
-        Cap extreme values to prevent database numeric overflow.
-        
-        Args:
-            value: The value to cap
-            max_value: Maximum allowed value
-            min_value: Minimum allowed value
-            
-        Returns:
-            Capped value within the specified range
+        Determine if a pool should be added to watchlist.
+
+        When the RF model is available, gates on RF tier >= 2 (MEDIUM)
+        which corresponds to ~20-26% precision.  Falls back to heuristic
+        threshold when model is not loaded.
         """
-        if value is None:
-            return 0.0
-        
-        # Handle infinity and NaN
-        if not isinstance(value, (int, float, Decimal)):
-            return 0.0
-        
-        value = float(value)
-        
-        if value != value:  # NaN check
-            return 0.0
-        if value == float('inf'):
-            return max_value
-        if value == float('-inf'):
-            return min_value
-        
-        # Cap to range
-        return max(min_value, min(max_value, value))
-    
-    def should_add_to_watchlist(self, signal_result: SignalResult, threshold: float = None) -> bool:
-        """
-        Determine if a pool should be added to watchlist based on signal analysis.
-        
-        Args:
-            signal_result: Signal analysis result
-            threshold: Signal score threshold (uses config default if None)
-            
-        Returns:
-            True if pool should be added to watchlist
-        """
-        if threshold is None:
-            threshold = self.config.get('auto_watchlist_threshold', 75.0)
-        
-        return signal_result.signal_score >= threshold
-    
-    def generate_alert_message(self, pool_id: str, signal_result: SignalResult) -> str:
-        """Generate human-readable alert message for strong signals."""
         signals = signal_result.signals
+
+        # RF tier gate (preferred)
+        if "rf_tier" in signals:
+            rf_tier = signals["rf_tier"]
+            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+
+            return rf_tier >= min_tier
+
+        # Heuristic fallback
+        if threshold is None:
+            threshold = self.config.get("auto_watchlist_threshold", 65.0)
+        return signal_result.signal_score >= threshold
+
+    def generate_alert_message(self, pool_id: str, signal_result: SignalResult) -> str:
+        """Generate a human-readable alert for strong signals."""
+        signals  = signal_result.signals
         messages = []
-        
-        if signals.get('volume_spike', False):
-            messages.append(f"Volume spike detected ({signals.get('volume_growth_rate', 0):.1%} increase)")
-        
-        if signals.get('liquidity_growth', False):
-            messages.append(f"Liquidity growth ({signals.get('liquidity_growth_rate', 0):.1%} increase)")
-        
-        if signals.get('price_momentum_strong', False):
-            direction = signals.get('momentum_direction', 'neutral')
-            messages.append(f"Strong {direction} momentum")
-        
-        if signals.get('high_activity', False):
+
+        # RF tier (most prominent if available)
+        if "rf_tier" in signals and signals["rf_tier"] >= 1:
+            tier   = signals["rf_tier_label"]
+            rf_pct = signals.get("rf_score", signal_result.signal_score)
+            messages.append(f"RF tier {signals['rf_tier']} ({tier}) — score {rf_pct:.1f}/100")
+
+        if signals.get("volume_spike"):
+            messages.append(
+                f"Volume spike ({signals.get('volume_growth_rate', 0):.0%} growth)"
+            )
+        if signals.get("liquidity_growth"):
+            messages.append(
+                f"Liquidity growing ({signals.get('liquidity_growth_rate', 0):.0%})"
+            )
+        if signals.get("price_momentum_strong"):
+            messages.append(f"Strong {signals.get('momentum_direction','?')} momentum")
+        if signals.get("high_activity"):
             messages.append("High trading activity")
-        
+        if signals.get("has_velocity_data") and signals.get("vol_velocity", 0) > 15:
+            messages.append(f"Volume velocity {signals['vol_velocity']:.0f}x")
+        if not signals.get("sell_authentic", True):
+            messages.append("⚠ Low sell authenticity")
+
         if not messages:
-            messages.append("Multiple positive signals detected")
-        
-        return f"Pool {pool_id} - Signal Score: {signal_result.signal_score:.1f} - {', '.join(messages)}"
+            messages.append("Multiple positive signals")
+
+        return (
+            f"Pool {pool_id} | Score {signal_result.signal_score:.1f} "
+            f"| {' | '.join(messages)}"
+        )
