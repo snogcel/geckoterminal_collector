@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 # Optional RF model import — graceful degradation if files not present
 # ---------------------------------------------------------------------------
 try:
-    from pool_scorer import PoolScorer  # type: ignore
+    from .pool_scorer import PoolScorer  # type: ignore
     _POOL_SCORER_AVAILABLE = True
 except ImportError:
     _POOL_SCORER_AVAILABLE = False
