@@ -5,7 +5,7 @@ New pools collector for systematic collection and historical tracking with signa
 import asyncio
 import logging
 import decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
@@ -873,7 +873,11 @@ class NewPoolsCollector(BaseDataCollector):
             'name': attributes.get('name'),
             'address': attributes.get('address'),
             'reserve_in_usd': attributes.get('reserve_in_usd'),
-            
+            'fdv_usd': attributes.get('fdv_usd'),
+            'market_cap_usd': attributes.get('market_cap_usd'),
+            'pool_created_at': attributes.get('pool_created_at'),
+            'collected_at': datetime.now(timezone.utc).isoformat(),
+
             # Flatten price change percentages
             'price_change_percentage_h1': get_nested('price_change_percentage', 'h1'),
             'price_change_percentage_h24': get_nested('price_change_percentage', 'h24'),
