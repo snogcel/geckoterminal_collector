@@ -992,7 +992,7 @@ class NewPoolsCollector(BaseDataCollector):
                 return
             
             # Get the threshold for logging
-            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 75.0)
+            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 65.0)
             
             # Check if signal is strong enough for watchlist addition
             if not self.signal_analyzer.should_add_to_watchlist(signal_result):

@@ -872,8 +872,10 @@ class NewPoolsSignalAnalyzer:
         # RF tier gate (preferred)
         if "rf_tier" in signals:
             rf_tier = signals["rf_tier"]
-            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+
-            return rf_tier >= min_tier
+            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+ (tier 1 or 2)
+            # Tiers: 1=HIGH, 2=MEDIUM, 3=LOW, 0=FILTER
+            # Lower number = higher conviction, so we want rf_tier <= min_tier
+            return 1 <= rf_tier <= min_tier
 
         # Heuristic fallback
         if threshold is None:
