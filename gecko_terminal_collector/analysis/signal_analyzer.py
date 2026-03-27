@@ -27,6 +27,11 @@ Changes from original
 - generate_alert_message() includes RF tier and score in output.
 - _safe_float() helper added; Decimal arithmetic only kept where it
   directly touches DB-bound values.
+- Cold-start handling added to _analyze_velocity() and _analyze_volume_trend():
+  when the first observation has volume below $1 (a dust/test transaction),
+  ratio-based calculations are skipped entirely.  vol_velocity is stored as 0
+  rather than a garbage 19-million-x number; scoring falls back to absolute
+  current volume.  A cold_start flag is surfaced in signals_json for filtering.
 """
 
 import logging
@@ -233,6 +238,7 @@ class NewPoolsSignalAnalyzer:
                 "vol_velocity":         velocity_analysis.get("vol_velocity", 0),
                 "velocity_score":       velocity_analysis.get("score", 0),
                 "has_velocity_data":    velocity_analysis.get("has_data", False),
+                "cold_start":           velocity_analysis.get("cold_start", False),
             })
 
             # --- RF signal score (primary) ------------------------------------
@@ -332,6 +338,11 @@ class NewPoolsSignalAnalyzer:
             logger.error("Error in _analyze_fdv: %s", exc)
             return {"fdv_usd": 0, "score": 0, "fdv_liq_ratio": 0, "fdv_liq_score": 0}
 
+    # Minimum meaningful volume baseline for ratio calculations.
+    # Below this threshold the first observation is treated as a cold-start
+    # (e.g. a single dust/test transaction) and ratios are not computed.
+    _MIN_VOL_BASELINE = 1.0   # USD
+
     def _analyze_volume_trend(
         self,
         current_data: Dict,
@@ -344,6 +355,13 @@ class NewPoolsSignalAnalyzer:
         differentiated.  Growth rate is computed against the earliest
         historical observation (not the average) to avoid dilution when
         only 1-2 prior rows exist.
+
+        Cold-start handling: when the first observation has volume below
+        _MIN_VOL_BASELINE (e.g. $0.001 from a single test transaction),
+        computing a ratio would produce meaningless millions-of-x numbers.
+        In that case the trend is labelled "cold_start" and the score is
+        derived purely from the absolute current volume — which is still a
+        genuine signal (volume appeared from nothing in one cycle).
         """
         try:
             current_vol = self._safe_float(current_data.get("volume_usd_h24", 0))
@@ -354,14 +372,31 @@ class NewPoolsSignalAnalyzer:
                     "trend":          "unknown",
                     "spike_detected": current_vol > 10_000,
                     "growth_rate":    0.0,
+                    "cold_start":     False,
                     "score":          base_score * 0.7,   # discount — no confirmation
                     "current_volume": current_vol,
                 }
 
             # Use oldest observation as the baseline (works with 1 or 2 rows)
-            first_vol  = self._safe_float(historical_data[0].get("volume_usd_h24", 0))
-            growth_rate = (current_vol / first_vol - 1) if first_vol > 0 else 0.0
+            first_vol = self._safe_float(historical_data[0].get("volume_usd_h24", 0))
 
+            # --- Cold-start: baseline volume was effectively zero ---------------
+            if first_vol < self._MIN_VOL_BASELINE:
+                # Score on absolute current volume only; cap growth_rate at a
+                # sentinel (100) so downstream callers don't see garbage values.
+                cold_spike = current_vol > 5_000   # meaningful volume appeared
+                return {
+                    "trend":          "cold_start",
+                    "spike_detected": cold_spike,
+                    "growth_rate":    100.0 if current_vol > 0 else 0.0,  # sentinel
+                    "cold_start":     True,
+                    "score":          min(100.0, base_score + (15.0 if cold_spike else 0.0)),
+                    "current_volume": current_vol,
+                    "baseline_volume": first_vol,
+                }
+
+            # --- Normal case: ratio is meaningful --------------------------------
+            growth_rate    = current_vol / first_vol - 1
             spike_detected = growth_rate >= (self.volume_spike_threshold - 1)
 
             if growth_rate > 1.0:
@@ -379,17 +414,19 @@ class NewPoolsSignalAnalyzer:
             volume_score = min(100.0, base_score + growth_bonus + spike_bonus)
 
             return {
-                "trend":                   trend,
-                "spike_detected":          spike_detected,
-                "growth_rate":             growth_rate,
-                "score":                   volume_score,
-                "current_volume":          current_vol,
-                "baseline_volume":         first_vol,
+                "trend":           trend,
+                "spike_detected":  spike_detected,
+                "growth_rate":     growth_rate,
+                "cold_start":      False,
+                "score":           volume_score,
+                "current_volume":  current_vol,
+                "baseline_volume": first_vol,
             }
 
         except Exception as exc:
             logger.error("Error in _analyze_volume_trend: %s", exc)
-            return {"trend": "stable", "spike_detected": False, "growth_rate": 0, "score": 0}
+            return {"trend": "stable", "spike_detected": False, "growth_rate": 0,
+                    "cold_start": False, "score": 0}
 
     def _analyze_liquidity_trend(
         self,
@@ -661,26 +698,54 @@ class NewPoolsSignalAnalyzer:
 
         Liquidity velocity is also tracked: growing liquidity alongside
         volume is confirmation; shrinking liquidity is a rug warning.
+
+        Cold-start handling: when first_vol is below _MIN_VOL_BASELINE the
+        pool had essentially zero volume at first detection (a dust/test tx).
+        In this case vol_velocity is undefined as a ratio, so we score purely
+        on the absolute current volume and flag cold_start=True.  The DB
+        column receives a vol_velocity of 0 rather than a garbage large number.
         """
         try:
             if not historical_data:
-                return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0, "score": 0}
+                return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0,
+                        "cold_start": False, "score": 0}
 
             first = historical_data[0]   # oldest available observation
 
-            curr_vol = self._safe_float(current_data.get("volume_usd_h24", 0))
-            first_vol= self._safe_float(first.get("volume_usd_h24", 0))
-
-            curr_liq = self._safe_float(current_data.get("reserve_in_usd", 0))
-            first_liq= self._safe_float(first.get("reserve_in_usd", 0))
-
+            curr_vol  = self._safe_float(current_data.get("volume_usd_h24", 0))
+            first_vol = self._safe_float(first.get("volume_usd_h24", 0))
+            curr_liq  = self._safe_float(current_data.get("reserve_in_usd", 0))
+            first_liq = self._safe_float(first.get("reserve_in_usd", 0))
             curr_buys = self._safe_int(current_data.get("transactions_h1_buys", 0))
             first_buys= self._safe_int(first.get("transactions_h1_buys", 0))
 
-            # Velocity = current / first (multiplicative growth)
-            vol_velocity = curr_vol  / first_vol  if first_vol  > 0 else 0.0
-            liq_velocity = curr_liq  / first_liq  if first_liq  > 0 else 0.0
+            # Liquidity velocity — liquidity is rarely near-zero so ratio is safe
+            liq_velocity = curr_liq / first_liq if first_liq > 0 else 0.0
             buy_velocity = curr_buys / first_buys if first_buys > 0 else 0.0
+
+            # --- Cold-start: first volume was effectively zero -------------------
+            if first_vol < self._MIN_VOL_BASELINE:
+                # Score on absolute current volume using the same log-scale
+                # as the no-history path in _analyze_volume_trend.
+                abs_score = self._log_score(curr_vol, *self._VOL_LOG_RANGE)
+                vel_score = min(100.0, abs_score)
+
+                # Liquidity rug check still applies
+                if liq_velocity < 0.7:
+                    vel_score = max(0.0, vel_score - 25.0)
+
+                return {
+                    "has_data":     True,
+                    "cold_start":   True,
+                    "vol_velocity": 0.0,       # undefined — stored as 0 not garbage
+                    "liq_velocity": liq_velocity,
+                    "buy_velocity": buy_velocity,
+                    "score":        vel_score,
+                    "n_obs":        len(historical_data) + 1,
+                }
+
+            # --- Normal case: ratio is meaningful --------------------------------
+            vol_velocity = curr_vol / first_vol
 
             # Score based on vol_velocity (primary signal)
             # Calibrated to winner/loser distributions: 38x wins, 17x loses
@@ -698,23 +763,25 @@ class NewPoolsSignalAnalyzer:
                 vel_score = max(0.0, (vol_velocity - 1) * 20)
 
             # Liquidity confirmation / rug warning
-            if liq_velocity < 0.7:                  # liquidity dropped >30%
+            if liq_velocity < 0.7:
                 vel_score = max(0.0, vel_score - 25.0)
             elif liq_velocity > 1.2 and vol_velocity > 5:
-                vel_score = min(100.0, vel_score + 10.0)  # both growing = good
+                vel_score = min(100.0, vel_score + 10.0)
 
             return {
                 "has_data":     True,
+                "cold_start":   False,
                 "vol_velocity": vol_velocity,
                 "liq_velocity": liq_velocity,
                 "buy_velocity": buy_velocity,
                 "score":        vel_score,
-                "n_obs":        len(historical_data) + 1,  # +1 for current
+                "n_obs":        len(historical_data) + 1,
             }
 
         except Exception as exc:
             logger.error("Error in _analyze_velocity: %s", exc)
-            return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0, "score": 0}
+            return {"has_data": False, "vol_velocity": 0, "liq_velocity": 0,
+                    "cold_start": False, "score": 0}
 
     # ------------------------------------------------------------------
     # Heuristic overall score (fallback when RF unavailable)
@@ -872,7 +939,7 @@ class NewPoolsSignalAnalyzer:
         # RF tier gate (preferred)
         if "rf_tier" in signals:
             rf_tier = signals["rf_tier"]
-            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+ (tier 1 or 2)
+            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+
             # Tiers: 1=HIGH, 2=MEDIUM, 3=LOW, 0=FILTER
             # Lower number = higher conviction, so we want rf_tier <= min_tier
             return 1 <= rf_tier <= min_tier
