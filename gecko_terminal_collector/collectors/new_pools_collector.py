@@ -574,14 +574,26 @@ class NewPoolsCollector(BaseDataCollector):
             
             # Add signal analysis data if available
             if signal_result:
+                signals = signal_result.signals
                 record_data.update({
-                    'signal_score': cap_value(signal_result.signal_score, 100.0),  # Max 100
+                    'signal_score': cap_value(signal_result.signal_score, 100.0),
                     'volume_trend': signal_result.volume_trend,
                     'liquidity_trend': signal_result.liquidity_trend,
-                    # After migration, momentum_indicator will support NUMERIC(15,4), cap at 99,999
                     'momentum_indicator': cap_value(signal_result.momentum_indicator, 99999.0),
-                    'activity_score': cap_value(signal_result.activity_score, 100.0),  # Max 100
-                    'volatility_score': cap_value(signal_result.volatility_score, 100.0)  # Max 100
+                    'activity_score': cap_value(signal_result.activity_score, 100.0),
+                    'volatility_score': cap_value(signal_result.volatility_score, 100.0),
+                    # Extended signal fields
+                    'rf_score': cap_value(signals.get('rf_score'), 100.0) if signals.get('rf_score') is not None else None,
+                    'rf_tier': signals.get('rf_tier'),
+                    'fdv_liq_ratio': cap_value(signals.get('fdv_liq_ratio'), 99999.0) if signals.get('fdv_liq_ratio') is not None else None,
+                    'vol_velocity': cap_value(signals.get('vol_velocity'), 99999.0) if signals.get('vol_velocity') is not None else None,
+                    'sell_authentic': signals.get('sell_authentic'),
+                    'buy_ratio_1h': cap_value(signals.get('buy_ratio_1h'), 1.0) if signals.get('buy_ratio_1h') is not None else None,
+                    'signals_json': __import__('json').dumps({
+                        k: v for k, v in signals.items()
+                        if k not in ('rf_score', 'rf_tier', 'rf_tier_label', 'fdv_liq_ratio',
+                                     'vol_velocity', 'sell_authentic', 'buy_ratio_1h')
+                    }) if signals else None,
                 })
             
             # Filter out None values to let SQLAlchemy use column defaults (NULL)

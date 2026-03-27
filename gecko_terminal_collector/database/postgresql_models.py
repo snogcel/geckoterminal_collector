@@ -311,14 +311,23 @@ class NewPoolsHistory(Base):
     network_id = Column(String(50))
     collected_at = Column(TIMESTAMP(timezone=True), nullable=False, default=func.now())
     
-    # Signal Analysis Fields
+    # Signal Analysis Fields (original)
     signal_score = Column(Numeric(10, 4), index=True)  # Overall signal strength (0-100)
     volume_trend = Column(String(20))  # 'increasing', 'decreasing', 'stable', 'spike'
     liquidity_trend = Column(String(20))  # 'growing', 'shrinking', 'stable'
     momentum_indicator = Column(Numeric(15, 4))  # Price momentum indicator (increased for extreme values)
     activity_score = Column(Numeric(10, 4))  # Trading activity score
     volatility_score = Column(Numeric(10, 4))  # Price volatility score
-    
+
+    # Extended Signal Fields
+    rf_score = Column(Numeric(6, 2))       # RF win-probability * 100 (0-100)
+    rf_tier = Column(Integer)              # 0=FILTER, 1=HIGH, 2=MEDIUM, 3=LOW
+    fdv_liq_ratio = Column(Numeric(10, 4)) # FDV / liquidity ratio
+    vol_velocity = Column(Numeric(10, 4))  # Volume growth multiplier vs first obs
+    sell_authentic = Column(Boolean)       # False = zero-sell / bot pattern detected
+    buy_ratio_1h = Column(Numeric(6, 4))   # Fraction of 1h txns that are buys
+    signals_json = Column(JSONB)           # Full signals dict (debug/retraining)
+
     # Discovery metadata (optional fields for backward compatibility)
     discovery_source = Column(String(50))
     api_response_data = Column(JSONB)
@@ -330,12 +339,16 @@ class NewPoolsHistory(Base):
         Index('idx_new_pools_history_collected_at', 'collected_at'),
         Index('idx_new_pools_history_network_id', 'network_id'),
         Index('idx_new_pools_history_dex_id', 'dex_id'),
-        
+
         # Signal analysis indexes
         Index('idx_new_pools_history_signal_score', 'signal_score', postgresql_using='btree', postgresql_ops={'signal_score': 'DESC NULLS LAST'}),
         Index('idx_new_pools_history_volume_trend', 'volume_trend'),
         Index('idx_new_pools_history_activity_score', 'activity_score', postgresql_using='btree', postgresql_ops={'activity_score': 'DESC NULLS LAST'}),
         Index('idx_new_pools_history_pool_signal_time', 'pool_id', 'signal_score', 'collected_at'),
+
+        # RF / extended signal indexes
+        Index('idx_new_pools_history_rf_tier', 'rf_tier'),
+        Index('idx_new_pools_history_rf_score', 'rf_score', postgresql_using='btree', postgresql_ops={'rf_score': 'DESC NULLS LAST'}),
     )
 
 
