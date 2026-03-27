@@ -589,11 +589,11 @@ class NewPoolsCollector(BaseDataCollector):
                     'vol_velocity': cap_value(signals.get('vol_velocity'), 99999.0) if signals.get('vol_velocity') is not None else None,
                     'sell_authentic': signals.get('sell_authentic'),
                     'buy_ratio_1h': cap_value(signals.get('buy_ratio_1h'), 1.0) if signals.get('buy_ratio_1h') is not None else None,
-                    'signals_json': __import__('json').dumps({
+                    'signals_json': {
                         k: v for k, v in signals.items()
                         if k not in ('rf_score', 'rf_tier', 'rf_tier_label', 'fdv_liq_ratio',
                                      'vol_velocity', 'sell_authentic', 'buy_ratio_1h')
-                    }) if signals else None,
+                    } if signals else None,
                 })
             
             # Filter out None values to let SQLAlchemy use column defaults (NULL)
