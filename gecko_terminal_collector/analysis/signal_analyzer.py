@@ -1047,8 +1047,15 @@ class NewPoolsSignalAnalyzer:
         When the RF model is available, gates on RF tier >= 2 (MEDIUM)
         which corresponds to ~20-26% precision.  Falls back to heuristic
         threshold when model is not loaded.
+
+        Hard override flags (extreme_fdv_liq_ratio, rug_detected, price_crash)
+        always block watchlist addition regardless of score or tier.
         """
         signals = signal_result.signals
+
+        # Hard overrides always block — these are catastrophic conditions
+        if signals.get("hard_override_flags"):
+            return False
 
         # RF tier gate (preferred)
         if "rf_tier" in signals:
