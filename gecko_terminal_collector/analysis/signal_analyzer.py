@@ -32,6 +32,15 @@ Changes from original
   ratio-based calculations are skipped entirely.  vol_velocity is stored as 0
   rather than a garbage 19-million-x number; scoring falls back to absolute
   current volume.  A cold_start flag is surfaced in signals_json for filtering.
+- Post-RF hard overrides added via _detect_hard_overrides(): a small set of
+  extreme conditions that the RF model cannot reliably learn (due to rarity in
+  training data) are applied AFTER the RF score to cap it downward.  Conditions:
+    extreme_fdv_liq_ratio  fdv/liq > 100x with liq < $50k → cap score at 20
+                           (pre-minted insider dump setup; Evan / TRUTH pattern)
+    rug_detected           liquidity dropped >90% in one 120s cycle → cap at 5
+    price_crash            price_change_h1 < -90% → cap at 10
+  The override reason(s) are stored in signals["hard_override_flags"] so they
+  are visible in the DB for post-trade analysis and future model retraining.
 """
 
 import logging
@@ -114,6 +123,14 @@ class NewPoolsSignalAnalyzer:
     _VOL_LOG_RANGE  = (2.0, 6.0)   # $100 → $1M
     _LIQ_LOG_RANGE  = (3.0, 5.5)   # $1k → $316k
     _ACT_LOG_RANGE  = (0.5, 3.0)   # 3 txns → 1000 txns
+
+    # Hard override thresholds — post-RF caps the model can't learn reliably.
+    # These represent conditions that are catastrophically bad but rare enough
+    # in training data that the RF assigns them normal-looking scores.
+    _EXTREME_FDV_LIQ_RATIO  = 100.0    # fdv/liq above this = insider dump risk
+    _EXTREME_FDV_MAX_LIQ    = 50_000   # only flag when liquidity is also small
+    _RUG_LIQ_DROP_THRESHOLD = -0.90    # >90% liquidity gone in one cycle
+    _PRICE_CRASH_THRESHOLD  = -90.0    # >90% price drop in one hour
 
     def __init__(
         self,
@@ -274,6 +291,15 @@ class NewPoolsSignalAnalyzer:
                     fdv_analysis, volume_analysis, liquidity_analysis,
                     momentum_analysis, activity_analysis, velocity_analysis,
                 )
+
+            # --- Post-score hard overrides (apply regardless of RF vs heuristic)
+            overall_signal_score, hard_flags = self._detect_hard_overrides(
+                overall_signal_score,
+                fdv_analysis,
+                liquidity_analysis,
+                current_data,
+            )
+            signals["hard_override_flags"] = hard_flags
 
             # --- Build result -------------------------------------------------
             return SignalResult(
@@ -784,6 +810,94 @@ class NewPoolsSignalAnalyzer:
                     "cold_start": False, "score": 0}
 
     # ------------------------------------------------------------------
+    # Post-RF hard overrides
+    # ------------------------------------------------------------------
+
+    def _detect_hard_overrides(
+        self,
+        current_score: float,
+        fdv_analysis: Dict,
+        liquidity_analysis: Dict,
+        current_data: Dict,
+    ) -> Tuple[float, List[str]]:
+        """
+        Apply hard score caps AFTER the RF model has run.
+
+        The RF model is excellent at separating typical winners from typical
+        losers, but it was trained on a limited window of data and cannot
+        reliably learn patterns that are simultaneously rare AND catastrophic.
+        These overrides catch two such patterns:
+
+        1. extreme_fdv_liq_ratio  (pre-minted insider dump)
+           FDV > 100x the pool's liquidity while liquidity is still small
+           (<$50k) is a near-certain signal that insiders hold nearly all
+           supply and will dump as soon as retail buys in.  The RF sees
+           "high FDV → winner" from training data and ignores the ratio.
+           Cap: 20.  The pool is not zero — maybe someone legitimately
+           launches at a wild valuation — but it should never be watchlisted.
+
+        2. rug_detected  (liquidity pulled in one cycle)
+           >90% of liquidity removed between two consecutive 120s observations.
+           This is an in-progress or just-completed rug pull.  There is no
+           recovery from this.  Cap: 5.
+
+        3. price_crash  (>90% price drop in one hour)
+           Price has already collapsed.  Combined with rug this is definitive;
+           standalone it may be extreme sell pressure rather than a rug.
+           Cap: 10.
+
+        Returns
+        -------
+        (capped_score, override_flags)
+            capped_score   : current_score reduced by whichever caps applied
+            override_flags : list of flag name strings (empty = no override)
+        """
+        flags: List[str] = []
+        score = current_score
+
+        fdv             = fdv_analysis.get("fdv_usd", 0)
+        fdv_liq_ratio   = fdv_analysis.get("fdv_liq_ratio", 0)
+        liq             = self._safe_float(current_data.get("reserve_in_usd", 0))
+        liq_growth_rate = liquidity_analysis.get("growth_rate", 0)
+        pc1h            = self._safe_float(current_data.get("price_change_percentage_h1", 0))
+
+        # --- 1. Extreme FDV/liquidity ratio ------------------------------------
+        if (fdv_liq_ratio > self._EXTREME_FDV_LIQ_RATIO
+                and liq < self._EXTREME_FDV_MAX_LIQ
+                and fdv > 0):
+            flags.append("extreme_fdv_liq_ratio")
+            score = min(score, 20.0)
+            logger.warning(
+                "Hard override extreme_fdv_liq_ratio: pool=%s fdv=%.0f liq=%.0f "
+                "ratio=%.0fx score capped at 20 (was %.1f)",
+                current_data.get("address", "?"), fdv, liq, fdv_liq_ratio, current_score,
+            )
+
+        # --- 2. Liquidity collapse (rug) ----------------------------------------
+        if liq_growth_rate < self._RUG_LIQ_DROP_THRESHOLD:
+            flags.append("rug_detected")
+            score = min(score, 5.0)
+            logger.warning(
+                "Hard override rug_detected: pool=%s liq_drop=%.1f%% score capped "
+                "at 5 (was %.1f)",
+                current_data.get("address", "?"),
+                liq_growth_rate * 100,
+                current_score,
+            )
+
+        # --- 3. Price crash ------------------------------------------------------
+        if pc1h < self._PRICE_CRASH_THRESHOLD:
+            flags.append("price_crash")
+            score = min(score, 10.0)
+            logger.warning(
+                "Hard override price_crash: pool=%s pc1h=%.1f%% score capped "
+                "at 10 (was %.1f)",
+                current_data.get("address", "?"), pc1h, current_score,
+            )
+
+        return score, flags
+
+    # ------------------------------------------------------------------
     # Heuristic overall score (fallback when RF unavailable)
     # ------------------------------------------------------------------
 
@@ -954,8 +1068,19 @@ class NewPoolsSignalAnalyzer:
         signals  = signal_result.signals
         messages = []
 
-        # RF tier (most prominent if available)
-        if "rf_tier" in signals and signals["rf_tier"] >= 1:
+        # Hard overrides — surface these first, they are the most important
+        hard_flags = signals.get("hard_override_flags", [])
+        if hard_flags:
+            flag_labels = {
+                "extreme_fdv_liq_ratio": "⛔ Extreme FDV/liq ratio (insider dump risk)",
+                "rug_detected":          "🚨 RUG DETECTED — liquidity collapsed",
+                "price_crash":           "🚨 Price crashed >90%",
+            }
+            for flag in hard_flags:
+                messages.append(flag_labels.get(flag, f"⛔ {flag}"))
+
+        # RF tier (only show if no hard overrides — overrides mean RF was wrong)
+        if not hard_flags and "rf_tier" in signals and signals["rf_tier"] >= 1:
             tier   = signals["rf_tier_label"]
             rf_pct = signals.get("rf_score", signal_result.signal_score)
             messages.append(f"RF tier {signals['rf_tier']} ({tier}) — score {rf_pct:.1f}/100")
@@ -968,11 +1093,11 @@ class NewPoolsSignalAnalyzer:
             messages.append(
                 f"Liquidity growing ({signals.get('liquidity_growth_rate', 0):.0%})"
             )
-        if signals.get("price_momentum_strong"):
+        if signals.get("price_momentum_strong") and not hard_flags:
             messages.append(f"Strong {signals.get('momentum_direction','?')} momentum")
-        if signals.get("high_activity"):
+        if signals.get("high_activity") and not hard_flags:
             messages.append("High trading activity")
-        if signals.get("has_velocity_data") and signals.get("vol_velocity", 0) > 15:
+        if signals.get("has_velocity_data") and signals.get("vol_velocity", 0) > 15 and not hard_flags:
             messages.append(f"Volume velocity {signals['vol_velocity']:.0f}x")
         if not signals.get("sell_authentic", True):
             messages.append("⚠ Low sell authenticity")

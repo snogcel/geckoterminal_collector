@@ -66,6 +66,10 @@ SCAM_RULES = [
     ("zero_sells_low_fdv", lambda r: r.get("transactions_h1_sells", 0) == 0
                                      and r.get("fdv_usd", 0) < 5_000),
     ("near_zero_volume",   lambda r: r.get("volume_usd_h24", 0) < 200),
+    ("extreme_fdv_liq_ratio", lambda r:
+        (r.get("fdv_usd") or 0) / max(r.get("reserve_in_usd") or 1, 1) > 100
+        and (r.get("reserve_in_usd") or 0) < 50_000
+        and (r.get("fdv_usd") or 0) > 0),
 ]
 
 # Feature column order must match training exactly
