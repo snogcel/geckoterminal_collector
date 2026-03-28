@@ -282,15 +282,17 @@ class NewPoolsSignalAnalyzer:
                     logger.warning("RF scoring failed for pool %s: %s",
                                    current_data.get("address", "?"), exc)
 
+            heuristic_score = self._heuristic_signal_score(
+                fdv_analysis, volume_analysis, liquidity_analysis,
+                momentum_analysis, activity_analysis, velocity_analysis,
+            )
+
             # --- Overall signal score -----------------------------------------
             if rf_score is not None:
                 # RF is the signal score; clamp to 0-100
                 overall_signal_score = self._cap(rf_score, 0.0, 100.0)
             else:
-                overall_signal_score = self._heuristic_signal_score(
-                    fdv_analysis, volume_analysis, liquidity_analysis,
-                    momentum_analysis, activity_analysis, velocity_analysis,
-                )
+                overall_signal_score = heuristic_score
 
             # --- Post-score hard overrides (apply regardless of RF vs heuristic)
             overall_signal_score, hard_flags = self._detect_hard_overrides(
@@ -299,6 +301,7 @@ class NewPoolsSignalAnalyzer:
                 liquidity_analysis,
                 current_data,
             )
+            signals["heuristic_score"] = round(heuristic_score, 4)
             signals["hard_override_flags"] = hard_flags
 
             # --- Build result -------------------------------------------------
