@@ -591,7 +591,7 @@ class NewPoolsCollector(BaseDataCollector):
                     'buy_ratio_1h': cap_value(signals.get('buy_ratio_1h'), 1.0) if signals.get('buy_ratio_1h') is not None else None,
                     'signals_json': {
                         k: v for k, v in signals.items()
-                        if k not in ('rf_score', 'rf_tier', 'rf_tier_label', 'fdv_liq_ratio',
+                        if k not in ('rf_score', 'rf_tier', 'fdv_liq_ratio',
                                      'vol_velocity', 'sell_authentic', 'buy_ratio_1h')
                     } if signals else None,
                 })

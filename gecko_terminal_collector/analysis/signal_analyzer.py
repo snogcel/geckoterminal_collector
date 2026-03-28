@@ -1057,15 +1057,7 @@ class NewPoolsSignalAnalyzer:
         if signals.get("hard_override_flags"):
             return False
 
-        # RF tier gate (preferred)
-        if "rf_tier" in signals:
-            rf_tier = signals["rf_tier"]
-            min_tier = self.config.get("min_rf_tier", 2)   # default: MEDIUM+
-            # Tiers: 1=HIGH, 2=MEDIUM, 3=LOW, 0=FILTER
-            # Lower number = higher conviction, so we want rf_tier <= min_tier
-            return 1 <= rf_tier <= min_tier
-
-        # Heuristic fallback
+        # Heuristic fallback (only when RF model is not loaded at all)
         if threshold is None:
             threshold = self.config.get("auto_watchlist_threshold", 65.0)
         return signal_result.signal_score >= threshold
