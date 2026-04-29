@@ -1882,21 +1882,25 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             logger.error(f"Error counting records in table {table_name}: {e}")
             return 0
     
-    async def store_watchlist_entry(self, entry) -> None:
+    async def store_watchlist_entry(self, entry) -> bool:
         """
         Store a watchlist entry.
-        
+
         Args:
             entry: WatchlistEntry object to store
+
+        Returns:
+            True if this was a brand-new entry, False if an existing entry was updated.
         """
         with self.connection.get_session() as session:
             try:
                 session.add(entry)
                 session.commit()
                 logger.debug(f"Stored watchlist entry for pool {entry.pool_id}")
+                return True  # new entry
             except IntegrityError:
                 session.rollback()
-                # Entry already exists, update it
+                # Entry already exists, update metadata only
                 existing = session.query(self.WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
                 if existing:
                     existing.token_symbol = entry.token_symbol
@@ -1905,6 +1909,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     existing.is_active = entry.is_active
                     session.commit()
                     logger.debug(f"Updated existing watchlist entry for pool {entry.pool_id}")
+                return False  # existing entry updated
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error storing watchlist entry: {e}")

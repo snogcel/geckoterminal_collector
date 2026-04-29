@@ -21,6 +21,7 @@ from gecko_terminal_collector.models.core import CollectionResult
 from gecko_terminal_collector.utils.metadata import MetadataTracker
 from gecko_terminal_collector.utils.address_parser import EnhancedWatchlistParser
 from gecko_terminal_collector.utils.database_address_resolver import EnhancedWatchlistDatabaseParser
+from gecko_terminal_collector.utils.telegram_notifier import TelegramNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,9 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         # Use database parser instead of API parser for better efficiency
         self.parser = EnhancedWatchlistDatabaseParser(self.db_manager)
         self._parser_initialized = False
+
+        # Telegram notifier — credentials come from env vars
+        self.telegram = TelegramNotifier()
         
         # Rate limiting configuration
         self.rate_limit_delay = getattr(config, 'rate_limit_delay', 1.0)  # 1 second between API calls
@@ -356,9 +360,16 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 'processed_at': datetime.now(tz=timezone.utc).isoformat()
             })
         )
-        
-        await self.db_manager.store_watchlist_entry(watchlist_entry)
-    
+
+        is_new = await self.db_manager.store_watchlist_entry(watchlist_entry)
+
+        if is_new:
+            logger.info(
+                f"New watchlist entry: {entry['tokenSymbol']} "
+                f"(pool {entry['poolAddress']}) — sending Telegram notification"
+            )
+            self.telegram.notify_new_watchlist_entry(entry)
+
     async def _store_enhanced_watchlist_history_entry(self, entry: Dict[str, Any]) -> None:
         """Store enhanced watchlist history entry."""
         from gecko_terminal_collector.database.models import EnhancedWatchlistHistory

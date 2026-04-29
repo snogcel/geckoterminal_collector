@@ -184,8 +184,13 @@ class DatabaseManager(ABC):
     
     # Watchlist operations
     @abstractmethod
-    async def store_watchlist_entry(self, pool_id: str, metadata: Dict[str, Any]) -> None:
-        """Add or update a watchlist entry."""
+    async def store_watchlist_entry(self, pool_id: str, metadata: Dict[str, Any]) -> bool:
+        """
+        Add or update a watchlist entry.
+
+        Returns:
+            True if this was a new entry, False if an existing entry was updated.
+        """
         pass
     
     @abstractmethod
