@@ -312,23 +312,14 @@ class NewPoolsHistory(Base):
     network_id = Column(String(50))
     collected_at = Column(DateTime, default=func.current_timestamp())
     
-    # Signal Analysis Fields (original)
+    # Signal Analysis Fields
     signal_score = Column(Numeric(10, 4))  # Overall signal strength (0-100)
     volume_trend = Column(String(20))  # 'increasing', 'decreasing', 'stable', 'spike'
     liquidity_trend = Column(String(20))  # 'growing', 'shrinking', 'stable'
     momentum_indicator = Column(Numeric(10, 4))  # Price momentum indicator
     activity_score = Column(Numeric(10, 4))  # Trading activity score
     volatility_score = Column(Numeric(10, 4))  # Volatility score
-
-    # Extended Signal Fields
-    rf_score = Column(Numeric(6, 2))       # RF win-probability * 100 (0-100)
-    rf_tier = Column(Integer)              # 0=FILTER, 1=HIGH, 2=MEDIUM, 3=LOW
-    fdv_liq_ratio = Column(Numeric(10, 4)) # FDV / liquidity ratio
-    vol_velocity = Column(Numeric(10, 4))  # Volume growth multiplier vs first obs
-    sell_authentic = Column(Boolean)       # False = zero-sell / bot pattern detected
-    buy_ratio_1h = Column(Numeric(6, 4))   # Fraction of 1h txns that are buys
-    signals_json = Column(Text)            # Full signals dict as JSON (debug/retraining)
-
+    
     # Unique constraint to prevent duplicate records for same pool at same collection time
     __table_args__ = (
         UniqueConstraint('pool_id', 'collected_at', name='uq_new_pools_history_pool_collected'),

@@ -5,7 +5,7 @@ New pools collector for systematic collection and historical tracking with signa
 import asyncio
 import logging
 import decimal
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
@@ -574,26 +574,14 @@ class NewPoolsCollector(BaseDataCollector):
             
             # Add signal analysis data if available
             if signal_result:
-                signals = signal_result.signals
                 record_data.update({
-                    'signal_score': cap_value(signal_result.signal_score, 100.0),
+                    'signal_score': cap_value(signal_result.signal_score, 100.0),  # Max 100
                     'volume_trend': signal_result.volume_trend,
                     'liquidity_trend': signal_result.liquidity_trend,
+                    # After migration, momentum_indicator will support NUMERIC(15,4), cap at 99,999
                     'momentum_indicator': cap_value(signal_result.momentum_indicator, 99999.0),
-                    'activity_score': cap_value(signal_result.activity_score, 100.0),
-                    'volatility_score': cap_value(signal_result.volatility_score, 100.0),
-                    # Extended signal fields
-                    'rf_score': cap_value(signals.get('rf_score'), 100.0) if signals.get('rf_score') is not None else None,
-                    'rf_tier': signals.get('rf_tier'),
-                    'fdv_liq_ratio': cap_value(signals.get('fdv_liq_ratio'), 99999.0) if signals.get('fdv_liq_ratio') is not None else None,
-                    'vol_velocity': cap_value(signals.get('vol_velocity'), 99999.0) if signals.get('vol_velocity') is not None else None,
-                    'sell_authentic': signals.get('sell_authentic'),
-                    'buy_ratio_1h': cap_value(signals.get('buy_ratio_1h'), 1.0) if signals.get('buy_ratio_1h') is not None else None,
-                    'signals_json': {
-                        k: v for k, v in signals.items()
-                        if k not in ('rf_score', 'rf_tier', 'fdv_liq_ratio',
-                                     'vol_velocity', 'sell_authentic', 'buy_ratio_1h')
-                    } if signals else None,
+                    'activity_score': cap_value(signal_result.activity_score, 100.0),  # Max 100
+                    'volatility_score': cap_value(signal_result.volatility_score, 100.0)  # Max 100
                 })
             
             # Filter out None values to let SQLAlchemy use column defaults (NULL)
@@ -885,11 +873,7 @@ class NewPoolsCollector(BaseDataCollector):
             'name': attributes.get('name'),
             'address': attributes.get('address'),
             'reserve_in_usd': attributes.get('reserve_in_usd'),
-            'fdv_usd': attributes.get('fdv_usd'),
-            'market_cap_usd': attributes.get('market_cap_usd'),
-            'pool_created_at': attributes.get('pool_created_at'),
-            'collected_at': datetime.now(timezone.utc).isoformat(),
-
+            
             # Flatten price change percentages
             'price_change_percentage_h1': get_nested('price_change_percentage', 'h1'),
             'price_change_percentage_h24': get_nested('price_change_percentage', 'h24'),
@@ -1004,7 +988,7 @@ class NewPoolsCollector(BaseDataCollector):
                 return
             
             # Get the threshold for logging
-            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 65.0)
+            threshold = self.signal_analyzer.config.get('auto_watchlist_threshold', 75.0)
             
             # Check if signal is strong enough for watchlist addition
             if not self.signal_analyzer.should_add_to_watchlist(signal_result):
