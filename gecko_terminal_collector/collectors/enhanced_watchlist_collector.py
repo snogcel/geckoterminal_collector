@@ -368,7 +368,12 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 f"New watchlist entry: {entry['tokenSymbol']} "
                 f"(pool {entry['poolAddress']}) — sending Telegram notification"
             )
-            self.telegram.notify_new_watchlist_entry(entry)
+            sent = self.telegram.notify_new_watchlist_entry(entry)
+            if not sent:
+                logger.error(
+                    f"Telegram notification FAILED for {entry['tokenSymbol']} "
+                    f"(pool {entry['poolAddress']})"
+                )
 
     async def _store_enhanced_watchlist_history_entry(self, entry: Dict[str, Any]) -> None:
         """Store enhanced watchlist history entry."""

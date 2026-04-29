@@ -37,10 +37,20 @@ class TelegramNotifier:
         self.timeout = timeout
         self.enabled = bool(self.bot_token and self.chat_id)
 
-        if not self.enabled:
-            logger.debug(
-                "TelegramNotifier: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — "
-                "notifications disabled"
+        if self.enabled:
+            logger.info(
+                f"TelegramNotifier: enabled — chat_id={self.chat_id}, "
+                f"token={self.bot_token[:10]}..."
+            )
+        else:
+            missing = []
+            if not self.bot_token:
+                missing.append("TELEGRAM_BOT_TOKEN")
+            if not self.chat_id:
+                missing.append("TELEGRAM_CHAT_ID")
+            logger.error(
+                f"TelegramNotifier: disabled — missing env vars: {', '.join(missing)}. "
+                "Notifications will NOT be sent."
             )
 
     def notify_new_watchlist_entry(self, entry: Dict[str, Any]) -> bool:
@@ -56,6 +66,10 @@ class TelegramNotifier:
             True if the message was sent successfully, False otherwise.
         """
         if not self.enabled:
+            logger.error(
+                "TelegramNotifier.notify_new_watchlist_entry called but notifier is disabled "
+                "(missing credentials) — skipping notification"
+            )
             return False
 
         message = self._build_message(entry)
@@ -118,13 +132,26 @@ class TelegramNotifier:
         try:
             response = requests.post(url, json=payload, timeout=self.timeout)
             if response.status_code == 200:
-                logger.debug(f"Telegram notification sent: {message[:60]}...")
+                logger.info(
+                    f"Telegram notification sent successfully "
+                    f"(chat_id={self.chat_id}): {message[:80]}..."
+                )
                 return True
             else:
-                logger.warning(
-                    f"Telegram API error {response.status_code}: {response.text}"
+                logger.error(
+                    f"Telegram API returned HTTP {response.status_code} "
+                    f"(chat_id={self.chat_id}): {response.text}"
                 )
                 return False
+        except requests.exceptions.Timeout:
+            logger.error(
+                f"Telegram notification timed out after {self.timeout}s "
+                f"(chat_id={self.chat_id})"
+            )
+            return False
+        except requests.exceptions.ConnectionError as exc:
+            logger.error(f"Telegram notification connection error: {exc}")
+            return False
         except Exception as exc:
-            logger.warning(f"Failed to send Telegram notification: {exc}")
+            logger.error(f"Telegram notification unexpected error: {exc}", exc_info=True)
             return False
