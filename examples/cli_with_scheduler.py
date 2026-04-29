@@ -15,6 +15,13 @@ from pathlib import Path
 import click
 import yaml
 
+# Load .env file before anything else so env vars are available to all modules
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed — rely on env vars being set externally
+
 from gecko_terminal_collector.config.models import CollectionConfig
 from gecko_terminal_collector.config.manager import ConfigManager
 from gecko_terminal_collector.scheduling.scheduler import CollectionScheduler, SchedulerConfig
