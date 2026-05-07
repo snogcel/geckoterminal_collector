@@ -212,7 +212,8 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                         if entry:
                             # Add source information
                             entry['source'] = source
-                            entry['ranking'] = row_num  # Position in the file (1-100)
+                            # Keep the original ranking from CSV, don't overwrite with row number
+                            # entry['ranking'] is already set by the parser from the CSV data
                             entries.append(entry)
                             self._addresses_resolved += 1
                             logger.debug(f"Processed {source} entry {row_num}: {entry['tokenSymbol']} (resolved from {entry.get('resolvedFrom', 'unknown')})")
