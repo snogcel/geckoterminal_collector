@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from token_researcher import TokenResearcher, TokenReport
+from gecko_terminal_collector.utils.token_researcher import TokenResearcher, TokenReport
 
 logger = logging.getLogger(__name__)
 
