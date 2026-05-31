@@ -30,8 +30,8 @@ except ImportError:
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.dirname(__file__))
 
-from gecko_terminal_collector.utils.telegram_notifier import TelegramNotifier
-
+#from gecko_terminal_collector.utils.telegram_notifier import TelegramNotifier
+from gecko_terminal_collector.utils.telegram_notifier_enriched import TelegramNotifier
 
 def check_config(notifier: TelegramNotifier) -> bool:
     """Print current config and return True if credentials are present."""

@@ -21,7 +21,8 @@ from gecko_terminal_collector.models.core import CollectionResult
 from gecko_terminal_collector.utils.metadata import MetadataTracker
 from gecko_terminal_collector.utils.address_parser import EnhancedWatchlistParser
 from gecko_terminal_collector.utils.database_address_resolver import EnhancedWatchlistDatabaseParser
-from gecko_terminal_collector.utils.telegram_notifier import TelegramNotifier
+#from gecko_terminal_collector.utils.telegram_notifier import TelegramNotifier
+from gecko_terminal_collector.utils.telegram_notifier_enriched import TelegramNotifier
 
 logger = logging.getLogger(__name__)
 
