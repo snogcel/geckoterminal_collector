@@ -28,15 +28,31 @@ logger = logging.getLogger(__name__)
 # Rate-limit helper (GeckoTerminal: 30 req/min free tier)
 # ---------------------------------------------------------------------------
 _last_gecko_call = 0.0
-GECKO_MIN_INTERVAL = 2.5  # seconds between GeckoTerminal calls
+GECKO_MIN_INTERVAL = 3.5  # seconds between GeckoTerminal calls (30 req/min = 2s min, leave headroom)
+GECKO_WINDOW = 60.0  # rate limit window in seconds
+_gecko_call_timestamps: list = []  # track recent calls for window-aware limiting
 
 
 def _rate_limit_gecko():
-    global _last_gecko_call
-    elapsed = time.time() - _last_gecko_call
+    global _last_gecko_call, _gecko_call_timestamps
+    now = time.time()
+    # Prune timestamps outside the current window
+    _gecko_call_timestamps = [t for t in _gecko_call_timestamps if now - t < GECKO_WINDOW]
+    # If we've hit 28 calls in the last 60s (leave 2 buffer), wait until oldest expires
+    if len(_gecko_call_timestamps) >= 28:
+        wait_until = _gecko_call_timestamps[0] + GECKO_WINDOW
+        sleep_time = wait_until - now
+        if sleep_time > 0:
+            logger.debug(f"GeckoTerminal near rate limit ({len(_gecko_call_timestamps)} calls in window), sleeping {sleep_time:.1f}s")
+            time.sleep(sleep_time)
+            now = time.time()
+            _gecko_call_timestamps = [t for t in _gecko_call_timestamps if now - t < GECKO_WINDOW]
+    # Also enforce minimum interval between consecutive calls
+    elapsed = now - _last_gecko_call
     if elapsed < GECKO_MIN_INTERVAL:
         time.sleep(GECKO_MIN_INTERVAL - elapsed)
     _last_gecko_call = time.time()
+    _gecko_call_timestamps.append(_last_gecko_call)
 
 
 def _gecko_get(url: str, params: dict = None, timeout: int = 10, retries: int = 2) -> Optional[dict]:
@@ -46,10 +62,10 @@ def _gecko_get(url: str, params: dict = None, timeout: int = 10, retries: int = 
         data = _get(url, params=params, timeout=timeout)
         if data is not None:
             return data
-        # If we got a 429, wait longer and retry
+        # Exponential backoff on failure
         if attempt < retries:
-            wait = (attempt + 1) * 3
-            logger.debug(f"GeckoTerminal rate limited, waiting {wait}s...")
+            wait = (attempt + 1) * 5  # 5s, 10s
+            logger.debug(f"GeckoTerminal request failed, retrying in {wait}s...")
             time.sleep(wait)
     return None
 
