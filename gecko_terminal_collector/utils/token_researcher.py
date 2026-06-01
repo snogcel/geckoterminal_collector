@@ -536,7 +536,7 @@ class TokenResearcher:
             holders = attrs.get("holders", {})
             if holders:
                 report.holders.count = holders.get("count")
-                dist = holders.get("distribution_percentage", {})
+                dist = holders.get("distribution_percentage") or {}
                 report.holders.top_10_pct = _safe_float(dist.get("top_10"))
                 report.holders.top_20_pct = _safe_float(dist.get("11_20"))
                 report.holders.distribution = dist
