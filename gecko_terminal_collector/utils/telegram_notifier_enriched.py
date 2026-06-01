@@ -206,6 +206,8 @@ class TelegramNotifier:
         if volume is not None:
             lines.append(f"<b>Volume 24h:</b> ${float(volume):,.0f}")
 
+        lines.append("")
+
         # DexScreener link
         if pool:
             lines.append(
