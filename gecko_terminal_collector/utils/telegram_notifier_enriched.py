@@ -180,9 +180,16 @@ class TelegramNotifier:
             "🆕 <b>New Watchlist Token</b>",
             "",
             f"<b>Token:</b> {symbol}" + (f" ({name})" if name else ""),
-            f"<b>CA:</b> <code>{token_addr or pool}</code>",
-            f"<b>DEX:</b> {dex} | <b>Source:</b> {source}",
         ]
+
+        if token_addr is not None:
+            lines.append(f"<b>CA:</b> <code>{token_addr}</code>")
+
+        if pool is not None:
+            lines.append(f"<b>Pool:</b> <code>{pool}</code>")
+
+        if dex is not None and source is not None:
+            lines.append(f"<b>DEX:</b> {dex} | <b>Source:</b> {source}")
 
         if ranking is not None:
             lines.append(f"<b>Ranking:</b> #{ranking}")
@@ -199,9 +206,11 @@ class TelegramNotifier:
         if volume is not None:
             lines.append(f"<b>Volume 24h:</b> ${float(volume):,.0f}")
 
-        detail_url = entry.get("detailUrl")
-        if detail_url:
-            lines.append(f'\n<a href="{detail_url}">View on GeckoTerminal</a>')
+        # DexScreener link
+        if pool:
+            lines.append(
+                f'<a href="https://dexscreener.com/solana/{pool}">View on DexScreener</a>'
+            )
 
         return "\n".join(lines)
 
