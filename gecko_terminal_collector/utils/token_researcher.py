@@ -55,7 +55,7 @@ def _rate_limit_gecko():
     _gecko_call_timestamps.append(_last_gecko_call)
 
 
-def _gecko_get(url: str, params: dict = None, timeout: int = 10, retries: int = 2) -> Optional[dict]:
+def _gecko_get(url: str, params: dict = None, timeout: int = 10, retries: int = 5) -> Optional[dict]:
     """GET with rate limiting and 429 retry."""
     for attempt in range(retries + 1):
         _rate_limit_gecko()
