@@ -490,7 +490,19 @@ class EnhancedWatchlistDatabaseParser:
                 'priceChange24h': float(row.get('priceChange24h', 0)) if row.get('priceChange24h') else 0.0,
                 'liquidity': float(row.get('liquidity', 0)) if row.get('liquidity') else 0.0,
                 'marketCap': float(row.get('marketCap', 0)) if row.get('marketCap') else 0.0,
-                
+
+                # GMGN-specific quality fields
+                'score': float(row.get('score', 0)) if row.get('score') else 0.0,
+                'smart_degen_count': int(row.get('smart_degen_count', 0)) if row.get('smart_degen_count') else 0,
+                'renowned_count': int(row.get('renowned_count', 0)) if row.get('renowned_count') else 0,
+                'rug_ratio': float(row.get('rug_ratio', 0)) if row.get('rug_ratio') else 0.0,
+                'bundler_rate': float(row.get('bundler_rate', 0)) if row.get('bundler_rate') else 0.0,
+                'insider_rate': float(row.get('insider_rate', 0)) if row.get('insider_rate') else 0.0,                
+                'top_10_holder_rate': float(row.get('top_10_holder_rate', 0)) if row.get('top_10_holder_rate') else 0.0,
+                'dev_team_hold_rate': float(row.get('dev_team_hold_rate', 0)) if row.get('dev_team_hold_rate') else 0.0,
+                'sniper_count': int(row.get('sniper_count', 0)) if row.get('sniper_count') else 0,
+                'bot_degen_count': int(row.get('bot_degen_count', 0)) if row.get('bot_degen_count') else 0,
+
                 # Resolved addresses from database
                 'poolAddress': pool_data['pool_address'],
                 'baseTokenAddress': pool_data['base_token_address'],
