@@ -388,7 +388,7 @@ class TokenResearcher:
 
             # GeckoTerminal calls are sequential due to rate limiting
             # We'll do them after the concurrent batch
-            gecko_data = self._fetch_geckoterminal(token_address)
+            # gecko_data = self._fetch_geckoterminal(token_address)
 
         # Process results
         for future in as_completed(futures):
@@ -410,8 +410,8 @@ class TokenResearcher:
                 logger.error(f"Error processing {key}: {e}")
 
         # Process GeckoTerminal data
-        if gecko_data:
-            self._process_geckoterminal(gecko_data, report)
+        #if gecko_data:
+        #    self._process_geckoterminal(gecko_data, report)
 
         # Compute derived metrics
         self._compute_derived(report, now)
