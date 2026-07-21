@@ -510,7 +510,8 @@ class EnhancedWatchlistDatabaseParser:
                 'networkAddress': pool_data['base_token_address'],
                 
                 # Metadata
-                'source': 'enhanced_watchlist_db',
+                'source': row.get('source', 'unknown'),
+                'endpoint': row.get('endpoint', 'unknown'),
                 'detailUrl': detail_url,
                 'resolvedFrom': pool_data['source']  # Which table provided the data
             }
