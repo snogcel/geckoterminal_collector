@@ -9,6 +9,7 @@ corrupted lowercase addresses.
 import asyncio
 import logging
 import os
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 import aiohttp
@@ -332,11 +333,16 @@ class DatabaseAddressResolver:
                     ) as response:
                         if response.status == 429:
                             headers = {k: v for k, v in response.headers.items()}
-                            await self._rate_limiter.handle_rate_limit_response(headers, response.status)
+                            if self._rate_limiter is not None:
+                                await self._rate_limiter.handle_rate_limit_response(headers, response.status)
+                            
                             if attempt < max_attempts:
-                                logger.warning(
-                                    f"Rate limit hit for pool lookup {pool_address}; retrying in backoff window (attempt {attempt}/{max_attempts})"
-                                )
+                                # Wait for backoff period before retrying
+                                if self._rate_limiter and self._rate_limiter.backoff_state.backoff_until:
+                                    wait_time = (self._rate_limiter.backoff_state.backoff_until - datetime.now()).total_seconds()
+                                    if wait_time > 0:
+                                        logger.info(f"Waiting {wait_time:.2f}s for backoff before retry {attempt + 1}/{max_attempts}")
+                                        await asyncio.sleep(wait_time)
                                 continue
 
                             logger.warning(
@@ -351,10 +357,14 @@ class DatabaseAddressResolver:
                         return payload
             except RateLimitExceededError as exc:
                 last_error = exc
+                # Don't retry immediately on rate limit exceeded - the limiter is blocking for a reason
+                if "Circuit breaker is open" in str(exc):
+                    logger.info(f"Circuit breaker is open for {pool_address}, skipping retries")
+                    return None
+                
                 if attempt < max_attempts:
-                    logger.warning(
-                        f"Rate limiter blocked pool lookup for {pool_address}; retrying after backoff (attempt {attempt}/{max_attempts})"
-                    )
+                    # Brief pause before retry
+                    await asyncio.sleep(2)
                     continue
                 logger.warning(f"Rate limiter blocked pool lookup for {pool_address}: {exc}")
                 return None
@@ -586,7 +596,7 @@ class EnhancedWatchlistDatabaseParser:
             # Resolve address using database lookup with API fallback
             pool_data = await self.address_resolver.get_pool_data_by_address(address)
             if not pool_data:
-                logger.warning(f"Could not resolve pool data for {address}")
+                logger.info(f"Skipping unresolved pool data for {address}; continuing with next row")
                 return None
             
             # Build enhanced watchlist entry

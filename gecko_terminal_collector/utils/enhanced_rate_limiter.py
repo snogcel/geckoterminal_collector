@@ -90,7 +90,7 @@ class EnhancedRateLimiter:
         self,
         requests_per_minute: int = 60,
         daily_limit: int = 10000,
-        circuit_breaker_threshold: int = 5,
+        circuit_breaker_threshold: int = 10,
         circuit_breaker_timeout: int = 300,
         state_file: Optional[str] = None,
         instance_id: str = "default",
@@ -208,11 +208,13 @@ class EnhancedRateLimiter:
             # Extract retry-after header
             retry_after = self._extract_retry_after(response_headers)
             
-            # Implement exponential backoff with jitter
+            # Implement exponential backoff with jitter, but cap it more reasonably for 429s
             self.backoff_state.consecutive_failures += 1
+            
+            # For 429s, use the retry-after value primarily, with modest exponential growth
             base_delay = min(
-                retry_after * (2 ** self.backoff_state.consecutive_failures),
-                self.backoff_state.max_delay
+                retry_after + (self.backoff_state.consecutive_failures * 2),  # Linear + small growth
+                60.0  # Cap at 60s for 429s
             )
             
             # Add jitter
@@ -228,11 +230,12 @@ class EnhancedRateLimiter:
             logger.warning(
                 f"Rate limit hit (status: {status_code}). "
                 f"Backing off for {total_delay:.2f}s. "
-                f"Consecutive failures: {self.backoff_state.consecutive_failures}"
+                f"Consecutive backoff failures: {self.backoff_state.consecutive_failures}"
             )
             
-            # Update circuit breaker
-            await self._record_failure()
+            # Only record circuit breaker failure if we've had multiple 429s in quick succession
+            if self.backoff_state.consecutive_failures >= 3:
+                await self._record_failure()
             
             # Save state
             self._save_state()
@@ -291,13 +294,20 @@ class EnhancedRateLimiter:
     
     async def _record_failure(self) -> None:
         """Record a failure for circuit breaker tracking."""
+        now = datetime.now()
+        
+        # Reset failure count if last failure was more than 5 minutes ago
+        if self.circuit_last_failure and (now - self.circuit_last_failure).total_seconds() > 300:
+            logger.info("Resetting circuit failure count (last failure was > 5 minutes ago)")
+            self.circuit_failure_count = 0
+        
         self.circuit_failure_count += 1
-        self.circuit_last_failure = datetime.now()
+        self.circuit_last_failure = now
         
         if (self.circuit_failure_count >= self.circuit_breaker_threshold and 
             self.circuit_state == CircuitBreakerState.CLOSED):
             logger.error(
-                f"Circuit breaker opening after {self.circuit_failure_count} failures"
+                f"Circuit breaker opening after {self.circuit_failure_count} consecutive failures"
             )
             self.circuit_state = CircuitBreakerState.OPEN
             self.circuit_next_attempt = datetime.now() + timedelta(seconds=self.circuit_breaker_timeout)
