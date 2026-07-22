@@ -6,6 +6,7 @@ This module provides address resolution using existing database tables
 corrupted lowercase addresses.
 """
 
+import asyncio
 import logging
 import os
 from typing import Dict, List, Optional, Any
@@ -314,36 +315,64 @@ class DatabaseAddressResolver:
             "include_composition": "false",
         }
 
-        try:
-            if self._rate_limiter is not None:
-                await self._rate_limiter.acquire(endpoint="pools")
+        max_attempts = int(os.getenv("GECKOTERMINAL_API_MAX_RETRIES", "3"))
+        last_error: Optional[Exception] = None
 
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(
-                    f"{self.api_base_url}{endpoint}",
-                    params=params,
-                    headers={"Accept": "application/json"},
-                ) as response:
-                    if response.status == 429:
-                        headers = {k: v for k, v in response.headers.items()}
-                        await self._rate_limiter.handle_rate_limit_response(headers, response.status)
-                        logger.warning(
-                            f"Rate limit hit for pool lookup {pool_address}; backing off before retrying"
-                        )
-                        return None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                if self._rate_limiter is not None:
+                    await self._rate_limiter.acquire(endpoint="pools")
 
-                    response.raise_for_status()
-                    payload = await response.json()
-                    if self._rate_limiter is not None:
-                        await self._rate_limiter.handle_success()
-                    return payload
-        except RateLimitExceededError as exc:
-            logger.warning(f"Rate limiter blocked pool lookup for {pool_address}: {exc}")
-            return None
-        except Exception as exc:
-            logger.warning(f"Failed to fetch pool data from API for {pool_address}: {exc}")
-            return None
+                timeout = aiohttp.ClientTimeout(total=10)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(
+                        f"{self.api_base_url}{endpoint}",
+                        params=params,
+                        headers={"Accept": "application/json"},
+                    ) as response:
+                        if response.status == 429:
+                            headers = {k: v for k, v in response.headers.items()}
+                            await self._rate_limiter.handle_rate_limit_response(headers, response.status)
+                            if attempt < max_attempts:
+                                logger.warning(
+                                    f"Rate limit hit for pool lookup {pool_address}; retrying in backoff window (attempt {attempt}/{max_attempts})"
+                                )
+                                continue
+
+                            logger.warning(
+                                f"Rate limit hit for pool lookup {pool_address}; giving up after {max_attempts} attempts"
+                            )
+                            return None
+
+                        response.raise_for_status()
+                        payload = await response.json()
+                        if self._rate_limiter is not None:
+                            await self._rate_limiter.handle_success()
+                        return payload
+            except RateLimitExceededError as exc:
+                last_error = exc
+                if attempt < max_attempts:
+                    logger.warning(
+                        f"Rate limiter blocked pool lookup for {pool_address}; retrying after backoff (attempt {attempt}/{max_attempts})"
+                    )
+                    continue
+                logger.warning(f"Rate limiter blocked pool lookup for {pool_address}: {exc}")
+                return None
+            except Exception as exc:
+                last_error = exc
+                if attempt < max_attempts:
+                    logger.warning(
+                        f"Transient API error for pool lookup {pool_address}; retrying (attempt {attempt}/{max_attempts}): {exc}"
+                    )
+                    await asyncio.sleep(1)
+                    continue
+                logger.warning(f"Failed to fetch pool data from API for {pool_address}: {exc}")
+                return None
+
+        if last_error:
+            logger.warning(f"Exhausted pool lookup retries for {pool_address}: {last_error}")
+
+        return None
 
     async def _resolve_token_id_from_address(self, token_address: str) -> Optional[int]:
         """Resolve a token database id from a token address when possible."""

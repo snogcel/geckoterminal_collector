@@ -343,10 +343,16 @@ class EnhancedRateLimiter:
         """Extract retry-after value from response headers."""
         retry_after = headers.get('Retry-After', headers.get('retry-after', '60'))
         try:
-            return float(retry_after)
+            value = float(retry_after)
         except (ValueError, TypeError):
             logger.warning(f"Invalid Retry-After header: {retry_after}, using default 60s")
             return 60.0
+
+        if value <= 0:
+            logger.warning(f"Retry-After header was {value}; using a minimum backoff of 1s")
+            return 1.0
+
+        return value
     
     def _load_state(self) -> None:
         """Load persistent state from file."""
