@@ -31,6 +31,8 @@ FILTERS = {
     'require_no_wash_trading': True,
     'require_renounced_mint': True,       # SOL only
     'require_renounced_freeze': True,     # SOL only
+    'dex': 'pump_amm',                   # Only pump_amm pools
+    'require_dex': True,                  # Enforce dex filter
 
     # Smart money thresholds
     'min_smart_degen_count': 0,           # At least 2 smart money wallets
@@ -540,6 +542,12 @@ def quality_check(token):
     f = FILTERS
 
     # --- Hard disqualifiers ---
+    # Dex/pool type filter (before any API calls needed)
+    if f.get('require_dex'):
+        token_dex = token.get('exchange', '')
+        if token_dex and token_dex != f['dex']:
+            return False, f"dex={token_dex}!={f['dex']}"
+
     age_hours = get_age_hours(token)
     if age_hours is None:
         return False, "age_unknown"
@@ -760,7 +768,7 @@ def enrich_missing_pool_addresses(passed):
             pool_addr = get_pool_address(detail)
             if pool_addr:
                 token['pool_address'] = pool_addr
-        time.sleep(0.5)  # rate-limit courtesy, same as the signal-detail fetch
+        time.sleep(1.5)  # rate-limit: stay under GMGN API 429 threshold
 
 
 def apply_signal_metadata(token, detail=None):
@@ -980,7 +988,7 @@ def generate_watchlist():
                     signal_token = dict(s)
                     all_tokens[addr] = apply_signal_metadata(signal_token)
                 # print(detail if detail else s)
-                time.sleep(0.5)
+                time.sleep(1.5)
             else:
                 all_tokens[addr] = apply_signal_metadata(existing)
 
