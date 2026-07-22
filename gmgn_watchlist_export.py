@@ -99,7 +99,7 @@ STRATEGY_A = {
 # Output paths
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 WATCHLIST_DIR = '/home/jon/sites/geckoterminal_collector/'  # Use same dir for now; switch to Linux path for production
-BACKTEST_DIR = OUTPUT_DIR
+BACKTEST_DIR = '/home/jon/sites/geckoterminal_collector/backtesting/'
 STATE_FILE = os.path.join(WATCHLIST_DIR, 'watchlist_state.json')
 
 # ==============================================================================
@@ -1110,10 +1110,9 @@ def generate_watchlist():
         rows.append(row)
 
     timestamp_str = datetime.now().strftime('%Y_%m_%d_%H%M')
-    watchlist_file = os.path.join(OUTPUT_DIR, f"watchlist_gmgn_{timestamp_str}.csv")
-
-    # on production we save only the live watchlist, not the timestamped one
-    """ if rows:
+    watchlist_file = os.path.join(BACKTEST_DIR, f"watchlist_gmgn_{timestamp_str}.csv")
+    
+    if rows:
         fieldnames = list(rows[0].keys())
         try:
             with open(watchlist_file, 'w', newline='', encoding='utf-8') as f:
@@ -1122,7 +1121,7 @@ def generate_watchlist():
                 writer.writerows(rows)
             print(f"\nWatchlist saved: {watchlist_file} ({len(rows)} tokens)")
         except Exception as e:
-            print(f"  [ERROR] Could not write watchlist: {e}") """
+            print(f"  [ERROR] Could not write watchlist: {e}")
 
     # 8. Always write the live watchlist — even with 0 rows — so downstream
     # systems (geckoterminal_collector) can clear stale tokens from the previous cycle.
@@ -1148,9 +1147,9 @@ def generate_watchlist():
     except Exception as e:
         print(f"  [WARN] Could not write live watchlist: {e}")
 
-    """ # 8b. Write rejected tokens sample for baseline comparison
+    # 8b. Write rejected tokens sample for baseline comparison
     if rejected_sample:
-        rejected_file = os.path.join(OUTPUT_DIR, f"watchlist_rejected_{timestamp_str}.csv")
+        rejected_file = os.path.join(BACKTEST_DIR, f"watchlist_rejected_{timestamp_str}.csv")
         rejected_rows = []
         for token, reason in rejected_sample:
             age_hours = get_age_hours(token)
@@ -1190,7 +1189,7 @@ def generate_watchlist():
                 writer.writerows(rejected_rows)
             print(f"Rejected sample saved: {rejected_file} ({len(rejected_rows)} tokens)")
         except Exception as e:
-            print(f"  [WARN] Could not write rejected sample: {e}") """
+            print(f"  [WARN] Could not write rejected sample: {e}")
 
     # 9. Save state
     state.save()
