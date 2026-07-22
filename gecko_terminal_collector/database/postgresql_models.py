@@ -378,6 +378,63 @@ def create_ohlcv_partitions():
     ]
 
 
+class EnhancedWatchlistHistory(Base):
+    """Enhanced watchlist history table for comprehensive historical tracking (PostgreSQL)."""
+    
+    __tablename__ = "enhanced_watchlist_history"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Source and identification
+    source = Column(String(50), nullable=False)  # lowcap, micro, midcap, oldlowcap, oldmicro, reference, gmgn
+    ranking = Column(Integer, nullable=False)  # Position in top 100
+    
+    # Token and pool identification
+    token_symbol = Column(String(50), nullable=False)
+    token_name = Column(String(200))
+    pool_address = Column(String(255), nullable=False)
+    base_token_address = Column(String(255), index=True)  # Indexed for 24h lookups
+    quote_token_address = Column(String(255))
+    quote_token_symbol = Column(String(50))
+    
+    # Network and DEX information
+    network = Column(String(50), nullable=False)
+    dex = Column(String(100), nullable=False)
+    
+    # Price and market data
+    price = Column(Numeric(30, 18))  # High precision for token prices
+    market_cap = Column(Numeric(20, 4))
+    liquidity = Column(Numeric(20, 4))
+    volume = Column(Numeric(20, 4))
+    
+    # Price changes
+    price_change_5m = Column(Numeric(10, 4))
+    price_change_1h = Column(Numeric(10, 4))
+    price_change_6h = Column(Numeric(10, 4))
+    price_change_24h = Column(Numeric(10, 4))
+    
+    # Activity metrics
+    transactions = Column(Integer)
+    makers = Column(Integer)
+    age = Column(String(50))  # Age description like "2d 3h"
+    
+    # URLs and metadata
+    detail_url = Column(String(500))
+    
+    # Timestamps
+    collected_at = Column(DateTime(timezone=True), default=func.current_timestamp(), nullable=False, index=True)
+    data_timestamp = Column(DateTime(timezone=True), nullable=False)
+    
+    # Additional metadata
+    metadata_json = Column(Text, default="{}")
+    
+    # Unique constraint to prevent duplicate records for same source/ranking at same time
+    __table_args__ = (
+        UniqueConstraint('source', 'ranking', 'collected_at', name='uq_enhanced_watchlist_history_source_ranking_time'),
+        Index('idx_enhanced_watchlist_token_time', 'base_token_address', 'collected_at'),  # For 24h queries
+    )
+
+
 # PostgreSQL-specific optimizations
 
 def create_postgresql_extensions():

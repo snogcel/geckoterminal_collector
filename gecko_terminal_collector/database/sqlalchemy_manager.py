@@ -57,6 +57,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 CollectionMetadata as CollectionMetadataModel,
                 DEX as DEXModel,
                 DiscoveryMetadata as DiscoveryMetadataModel,
+                EnhancedWatchlistHistory as EnhancedWatchlistHistoryModel,
                 NewPoolsHistory as NewPoolsHistoryModel,
                 OHLCVData as OHLCVDataModel,
                 Pool as PoolModel,
@@ -69,6 +70,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 CollectionMetadata as CollectionMetadataModel,
                 DEX as DEXModel,
                 DiscoveryMetadata as DiscoveryMetadataModel,
+                EnhancedWatchlistHistory as EnhancedWatchlistHistoryModel,
                 NewPoolsHistory as NewPoolsHistoryModel,
                 OHLCVData as OHLCVDataModel,
                 Pool as PoolModel,
@@ -81,6 +83,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         self.CollectionMetadataModel = CollectionMetadataModel
         self.DEXModel = DEXModel
         self.DiscoveryMetadataModel = DiscoveryMetadataModel
+        self.EnhancedWatchlistHistoryModel = EnhancedWatchlistHistoryModel
         self.NewPoolsHistoryModel = NewPoolsHistoryModel
         self.OHLCVDataModel = OHLCVDataModel
         self.PoolModel = PoolModel
@@ -1890,26 +1893,58 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
             entry: WatchlistEntry object to store
 
         Returns:
-            True if this was a brand-new entry, False if an existing entry was updated.
+            True if this is the 3rd occurrence in enhanced_watchlist_history within 24 hours
+            (triggers notification), False otherwise.
         """
         with self.connection.get_session() as session:
             try:
-                session.add(entry)
-                session.commit()
-                logger.debug(f"Stored watchlist entry for pool {entry.pool_id}")
-                return True  # new entry
-            except IntegrityError:
-                session.rollback()
-                # Entry already exists, update metadata only
-                existing = session.query(self.WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
-                if existing:
-                    existing.token_symbol = entry.token_symbol
-                    existing.token_name = entry.token_name
-                    existing.network_address = entry.network_address
-                    existing.is_active = entry.is_active
+                # First, store or update the watchlist entry
+                try:
+                    session.add(entry)
                     session.commit()
-                    logger.debug(f"Updated existing watchlist entry for pool {entry.pool_id}")
-                return False  # existing entry updated
+                    logger.debug(f"Stored watchlist entry for pool {entry.pool_id}")
+                except IntegrityError:
+                    session.rollback()
+                    # Entry already exists, update metadata only
+                    existing = session.query(self.WatchlistEntryModel).filter_by(pool_id=entry.pool_id).first()
+                    if existing:
+                        existing.token_symbol = entry.token_symbol
+                        existing.token_name = entry.token_name
+                        existing.network_address = entry.network_address
+                        existing.is_active = entry.is_active
+                        session.commit()
+                        logger.debug(f"Updated existing watchlist entry for pool {entry.pool_id}")
+                
+                # Now check enhanced_watchlist_history for 3rd occurrence
+                if not entry.network_address:
+                    logger.debug(f"No network_address for pool {entry.pool_id}, skipping notification check")
+                    return False
+                
+                # Calculate 24 hours ago timestamp
+                twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+                
+                # Query count of this token in enhanced_watchlist_history within last 24 hours
+                try:
+                    history_count = session.query(func.count(self.EnhancedWatchlistHistoryModel.id)).filter(
+                        and_(
+                            self.EnhancedWatchlistHistoryModel.base_token_address == entry.network_address,
+                            self.EnhancedWatchlistHistoryModel.collected_at >= twenty_four_hours_ago
+                        )
+                    ).scalar()
+                    
+                    logger.debug(
+                        f"Token {entry.token_symbol} ({entry.network_address[:8]}...) "
+                        f"has appeared {history_count} times in last 24h"
+                    )
+                    
+                    # Return True only if this is exactly the 3rd occurrence
+                    return history_count == 3
+                    
+                except AttributeError:
+                    # EnhancedWatchlistHistoryModel might not be available
+                    logger.warning("EnhancedWatchlistHistoryModel not available, skipping notification check")
+                    return False
+                    
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error storing watchlist entry: {e}")
