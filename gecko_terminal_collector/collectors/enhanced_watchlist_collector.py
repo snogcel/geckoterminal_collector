@@ -372,7 +372,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         
         if is_new:
             # Log that we hit the 3rd occurrence threshold
-            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 3rd occurrence threshold - checking quality criteria...")
+            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 2nd occurrence threshold - checking quality criteria...")
             
             # Check if we already sent a notification for this token recently
             token_address = entry.get('networkAddress') or entry.get('baseTokenAddress')
@@ -429,12 +429,12 @@ class EnhancedWatchlistCollector(BaseDataCollector):
             else:
                 failed_criteria = [k for k, v in criteria_met.items() if not v]
                 logger.info(
-                    f"⏭️  Token {entry['tokenSymbol']} hit 3rd occurrence but failed quality criteria: "
+                    f"⏭️  Token {entry['tokenSymbol']} hit 2nd occurrence but failed quality criteria: "
                     f"{', '.join(failed_criteria)}"
                 )
         else:
-            # Not the 3rd occurrence yet
-            logger.debug(f"Token {entry['tokenSymbol']} not yet at 3rd occurrence threshold")
+            # Not the 2nd occurrence yet
+            logger.debug(f"Token {entry['tokenSymbol']} not yet at 2nd occurrence threshold")
 
     async def _store_enhanced_watchlist_history_entry(self, entry: Dict[str, Any]) -> None:
         """Store enhanced watchlist history entry."""
