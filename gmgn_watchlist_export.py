@@ -1124,15 +1124,27 @@ def generate_watchlist():
         except Exception as e:
             print(f"  [ERROR] Could not write watchlist: {e}") """
 
-    # 8. Also write to the live watchlist location
+    # 8. Always write the live watchlist — even with 0 rows — so downstream
+    # systems (geckoterminal_collector) can clear stale tokens from the previous cycle.
+    fieldnames = list(rows[0].keys()) if rows else [
+        'timestamp', 'endpoint', 'timeframe', 'ranking', 'tokenSymbol', 'tokenName',
+        'chain', 'dex', 'price', 'age', 'transactions', 'volume', 'makers',
+        'priceChange5m', 'priceChange1h', 'priceChange6h', 'priceChange24h',
+        'liquidity', 'marketCap', 'detailUrl', 'age_hours',
+        'prev_makers', 'prev_volume', 'prev_ranking', 'prev_price', 'prev_liquidity',
+        'makers_increase', 'volume_spike', 'passes_strategy_a', 'strategy_a_fail_reasons',
+        'score', 'smart_degen_count', 'renowned_count', 'rug_ratio',
+        'bundler_rate', 'insider_rate', 'top10_holder_rate', 'dev_team_hold_rate',
+        'is_wash_trading', 'renounced_mint', 'renounced_freeze', 'creator_status',
+        'sniper_count', 'bot_degen_count', 'burn_status', 'launchpad',
+        'is_active', 'deactivation_reason', 'cycles_tracked', 'peak_score',
+    ]
     try:
-        if rows:
-            fieldnames = list(rows[0].keys())
-            with open(live_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
-            print(f"Live watchlist updated: {live_file}")
+        with open(live_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"Live watchlist updated: {live_file}")
     except Exception as e:
         print(f"  [WARN] Could not write live watchlist: {e}")
 
