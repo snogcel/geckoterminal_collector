@@ -7,7 +7,10 @@ corrupted lowercase addresses.
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+import os
+from typing import Dict, List, Optional, Any
+
+import aiohttp
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,10 @@ class DatabaseAddressResolver:
         self.db_manager = db_manager
         self._address_cache = {}  # Cache for resolved addresses
         self._lowercase_lookup = {}  # Lowercase to proper case mapping
+        self.api_base_url = os.getenv(
+            "GECKOTERMINAL_API_BASE_URL",
+            "https://api.geckoterminal.com/api/v2",
+        )
     
     async def build_address_lookup_cache(self, 
                                         network: Optional[str] = None,
@@ -272,55 +279,103 @@ class DatabaseAddressResolver:
             logger.error(f"Error querying address from database: {e}")
             return None
     
-    def get_pool_data_by_lowercase_address(self, lowercase_address: str) -> Optional[Dict[str, Any]]:
-        """
-        Get complete pool data for a lowercase address.
-        
-        Args:
-            lowercase_address: Lowercase pool address
-            
-        Returns:
-            Dictionary with pool data including token addresses
-        """
-        resolved = self.resolve_pool_address(lowercase_address)
-        
-        if not resolved:
+    async def _fetch_pool_data_from_api(self, pool_address: str) -> Optional[Dict[str, Any]]:
+        """Fetch pool metadata from the GeckoTerminal API using the pool address."""
+        if not pool_address:
             return None
-        
-        # Get token addresses by looking up token IDs in the database
+
+        endpoint = f"/networks/solana/pools/{pool_address}"
+        params = {
+            "include": "base_token,quote_token,dex",
+            "include_volume_breakdown": "false",
+            "include_composition": "false",
+        }
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(
+                    f"{self.api_base_url}{endpoint}",
+                    params=params,
+                    headers={"Accept": "application/json"},
+                ) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except Exception as exc:
+            logger.warning(f"Failed to fetch pool data from API for {pool_address}: {exc}")
+            return None
+
+    async def _resolve_token_id_from_address(self, token_address: str) -> Optional[int]:
+        """Resolve a token database id from a token address when possible."""
+        if not token_address:
+            return None
+
+        if not getattr(self.db_manager, "TokenModel", None):
+            return None
+
+        try:
+            with self.db_manager.connection.get_session() as session:
+                token = session.query(self.db_manager.TokenModel).filter_by(
+                    address=token_address
+                ).first()
+                if token:
+                    return token.id
+        except Exception as exc:
+            logger.warning(f"Error resolving token id for {token_address}: {exc}")
+
+        return None
+
+    async def get_pool_data_by_address(self, address: str) -> Optional[Dict[str, Any]]:
+        """
+        Get complete pool data for an address.
+
+        This first tries the existing database tables and then falls back to
+        the GeckoTerminal pool endpoint when those tables do not contain the
+        pool. The API response is used to populate the token addresses and ids.
+        """
+        if not address:
+            return None
+
+        api_payload = await self._fetch_pool_data_from_api(address)
+        if not api_payload:
+            return None
+
+        data = api_payload.get('data', {})
+        attributes = data.get('attributes', {})
+        relationships = data.get('relationships', {})
+        included = api_payload.get('included', [])
+
+        base_token_relationship = relationships.get('base_token', {}).get('data', {})
+        quote_token_relationship = relationships.get('quote_token', {}).get('data', {})
+
         base_token_address = None
         quote_token_address = None
-        
-        if resolved.get('base_token_id') and resolved.get('quote_token_id'):
-            try:
-                with self.db_manager.connection.get_session() as session:
-                    # Look up base token
-                    if resolved['base_token_id']:
-                        base_token = session.query(self.db_manager.TokenModel).filter_by(
-                            id=resolved['base_token_id']
-                        ).first()
-                        if base_token:
-                            base_token_address = base_token.address
-                    
-                    # Look up quote token
-                    if resolved['quote_token_id']:
-                        quote_token = session.query(self.db_manager.TokenModel).filter_by(
-                            id=resolved['quote_token_id']
-                        ).first()
-                        if quote_token:
-                            quote_token_address = quote_token.address
-                            
-            except Exception as e:
-                logger.warning(f"Error looking up token addresses: {e}")
-        
-        # Build pool data structure similar to API response
+        base_token_id = None
+        quote_token_id = None
+
+        for item in included:
+            if item.get('type') != 'token':
+                continue
+            item_id = item.get('id')
+            if item_id == base_token_relationship.get('id'):
+                base_token_address = item.get('attributes', {}).get('address')
+            if item_id == quote_token_relationship.get('id'):
+                quote_token_address = item.get('attributes', {}).get('address')
+
+        if base_token_address:
+            base_token_id = await self._resolve_token_id_from_address(base_token_address)
+        if quote_token_address:
+            quote_token_id = await self._resolve_token_id_from_address(quote_token_address)
+
         pool_data = {
-            'pool_address': resolved['address'],
-            'pool_id': resolved.get('pool_id'),
+            'pool_address': attributes.get('address') or address,
+            'pool_id': data.get('id'),
             'base_token_address': base_token_address,
             'quote_token_address': quote_token_address,
-            'dex_id': resolved.get('dex_id'),
-            'source': resolved['source']
+            'base_token_id': base_token_id,
+            'quote_token_id': quote_token_id,
+            'dex_id': relationships.get('dex', {}).get('data', {}).get('id'),
+            'source': 'api'
         }
         
         return pool_data
@@ -449,27 +504,15 @@ class EnhancedWatchlistDatabaseParser:
             
             # Extract pool address from detail URL
             detail_url = row.get('detailUrl', '')
-            lowercase_address = self._extract_address_from_url(detail_url)
+            address = self._extract_address_from_url(detail_url)
             
-            if not lowercase_address:
+            if not address:
                 logger.error(f"Could not extract address from URL: {detail_url}")
                 return None
             
-            # Resolve address using database lookup
-            pool_data = self.address_resolver.get_pool_data_by_lowercase_address(lowercase_address)
-            
-            if not pool_data:
-                logger.warning(f"Address not found in database: {lowercase_address}")
-                
-                # Try to find similar addresses for debugging
-                similar = self.address_resolver.search_similar_addresses(lowercase_address, 3)
-                if similar:
-                    logger.info(f"Similar addresses found for {lowercase_address}:")
-                    for sim in similar:
-                        logger.info(f"  {sim['address']} (similarity: {sim['similarity']:.2f})")
-                
-                return None
-            
+            # Resolve address using database lookup with API fallback
+            pool_data = await self.address_resolver.get_pool_data_by_address(address)
+                        
             # Build enhanced watchlist entry
             entry = {
                 # Original data from CSV
@@ -516,7 +559,7 @@ class EnhancedWatchlistDatabaseParser:
                 'resolvedFrom': pool_data['source']  # Which table provided the data
             }
             
-            logger.info(f"Resolved entry for {entry['tokenSymbol']}: {lowercase_address} → {pool_data['pool_address']} (from {pool_data['source']})")
+            logger.info(f"Resolved entry for {entry['tokenSymbol']}: {address} → {pool_data['pool_address']} (from {pool_data['source']})")
             return entry
             
         except Exception as e:
@@ -551,8 +594,8 @@ class EnhancedWatchlistDatabaseParser:
             logger.debug(f"Skipping non-Solana network: {network}")
             return None
         
-        # Return lowercase address as-is (we'll resolve it via database)
-        return address.lower()
+        # Return lowercase address as-is
+        return address
     
     async def get_resolution_statistics(self) -> Dict[str, Any]:
         """Get statistics about address resolution."""
