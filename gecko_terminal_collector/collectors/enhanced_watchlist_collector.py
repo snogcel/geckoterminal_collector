@@ -377,7 +377,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
             criteria_met = {
                 'priceChange5m >= 0': entry.get('priceChange5m', -999) >= 0,
                 'priceChange1h >= 0': entry.get('priceChange1h', -999) >= 0,
-                'score >= 50': entry.get('score', 0) >= 50,
+                'score >= 30': entry.get('score', 0) >= 30,
                 'smart_degen_count >= 0': entry.get('smart_degen_count', 0) >= 0,
                 'liquidity >= 5000': entry.get('liquidity', 0) >= 5000,
                 'dex in [pump_amm, pump]': entry.get('dex', '') in ['pump_amm', 'pump']
