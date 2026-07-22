@@ -363,9 +363,16 @@ class EnhancedWatchlistCollector(BaseDataCollector):
             })
         )
 
-        is_new = await self.db_manager.store_watchlist_entry(watchlist_entry)
+        is_new = await self.db_manager.store_watchlist_entry(watchlist_entry)        
 
-        if is_new:
+        # placeholder filtering criteria until finalized
+
+        if is_new && (entry['priceChange5m'] >= 0 and 
+            entry['priceChange1h'] >= 0 and 
+            entry['score'] >= 50 and 
+            entry['smart_degen_count'] >= 0 and 
+            entry['liquidity'] >= 5000 and 
+            entry['dex'] in ['pump_amm','pump']):
             logger.info(
                 f"New watchlist entry: {entry['tokenSymbol']} "
                 f"(pool {entry['poolAddress']}) — sending Telegram notification"
