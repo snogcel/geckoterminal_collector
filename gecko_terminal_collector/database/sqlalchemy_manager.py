@@ -1935,7 +1935,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                     logger.info(
                         f"🔍 Token {entry.token_symbol} ({entry.network_address[:8]}...) "
                         f"has appeared {history_count} times in last 24h - "
-                        f"{'🔔 TRIGGERING NOTIFICATION (3rd+ occurrence)' if history_count == 3 else '⏳ waiting for 3rd occurrence'}"
+                        f"{'🔔 TRIGGERING NOTIFICATION (3rd+ occurrence)' if history_count >= 3 else '⏳ waiting for 3rd occurrence'}"
                     )
                     
                     # Return True only if this is the 3rd or later occurrence

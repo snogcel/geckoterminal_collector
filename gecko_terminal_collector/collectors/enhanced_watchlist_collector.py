@@ -365,24 +365,55 @@ class EnhancedWatchlistCollector(BaseDataCollector):
 
         is_new = await self.db_manager.store_watchlist_entry(watchlist_entry)        
 
-        # placeholder filtering criteria until finalized
-
-        if is_new and (entry['priceChange5m'] >= 0 and 
-            entry['priceChange1h'] >= 0 and 
-            entry['score'] >= 50 and 
-            entry['smart_degen_count'] >= 0 and 
-            entry['liquidity'] >= 5000 and 
-            entry['dex'] in ['pump_amm','pump']):
-            logger.info(
-                f"New watchlist entry: {entry['tokenSymbol']} "
-                f"(pool {entry['poolAddress']}) — sending Telegram notification"
-            )
-            sent = self.telegram.notify_new_watchlist_entry(entry)
-            if not sent:
-                logger.error(
-                    f"Telegram notification FAILED for {entry['tokenSymbol']} "
-                    f"(pool {entry['poolAddress']})"
+        # Two-part filtering: 
+        # 1. is_new = True (3rd occurrence in 24h)
+        # 2. Quality criteria must be met
+        
+        if is_new:
+            # Log that we hit the 3rd occurrence threshold
+            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 3rd occurrence threshold - checking quality criteria...")
+            
+            # Check each criterion individually for debugging
+            criteria_met = {
+                'priceChange5m >= 0': entry.get('priceChange5m', -999) >= 0,
+                'priceChange1h >= 0': entry.get('priceChange1h', -999) >= 0,
+                'score >= 50': entry.get('score', 0) >= 50,
+                'smart_degen_count >= 0': entry.get('smart_degen_count', 0) >= 0,
+                'liquidity >= 5000': entry.get('liquidity', 0) >= 5000,
+                'dex in [pump_amm, pump]': entry.get('dex', '') in ['pump_amm', 'pump']
+            }
+            
+            # Log each criterion status
+            for criterion, met in criteria_met.items():
+                status = "✅" if met else "❌"
+                actual_value = entry.get(criterion.split()[0], 'N/A')
+                logger.info(f"  {status} {criterion}: {actual_value}")
+            
+            # Check if all criteria are met
+            all_criteria_met = all(criteria_met.values())
+            
+            if all_criteria_met:
+                logger.info(
+                    f"🔔 New watchlist entry: {entry['tokenSymbol']} "
+                    f"(pool {entry['poolAddress']}) — sending Telegram notification"
                 )
+                sent = self.telegram.notify_new_watchlist_entry(entry)
+                if not sent:
+                    logger.error(
+                        f"❌ Telegram notification FAILED for {entry['tokenSymbol']} "
+                        f"(pool {entry['poolAddress']})"
+                    )
+                else:
+                    logger.info(f"✅ Telegram notification sent for {entry['tokenSymbol']}")
+            else:
+                failed_criteria = [k for k, v in criteria_met.items() if not v]
+                logger.info(
+                    f"⏭️  Token {entry['tokenSymbol']} hit 3rd occurrence but failed quality criteria: "
+                    f"{', '.join(failed_criteria)}"
+                )
+        else:
+            # Not the 3rd occurrence yet
+            logger.debug(f"Token {entry['tokenSymbol']} not yet at 3rd occurrence threshold")
 
     async def _store_enhanced_watchlist_history_entry(self, entry: Dict[str, Any]) -> None:
         """Store enhanced watchlist history entry."""
