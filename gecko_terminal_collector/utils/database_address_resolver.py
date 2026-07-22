@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any
 import aiohttp
 from sqlalchemy.orm import Session
 
+from .enhanced_rate_limiter import EnhancedRateLimiter, GlobalRateLimitCoordinator, RateLimitExceededError
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,6 +40,8 @@ class DatabaseAddressResolver:
             "GECKOTERMINAL_API_BASE_URL",
             "https://api.geckoterminal.com/api/v2",
         )
+        self._rate_limiter: Optional[EnhancedRateLimiter] = None
+        self._rate_limiter_ready = False
     
     async def build_address_lookup_cache(self, 
                                         network: Optional[str] = None,
@@ -279,10 +283,29 @@ class DatabaseAddressResolver:
             logger.error(f"Error querying address from database: {e}")
             return None
     
+    async def _ensure_rate_limiter(self) -> None:
+        """Initialize the shared rate limiter lazily for API-backed lookups."""
+        if self._rate_limiter_ready:
+            return
+
+        try:
+            coordinator = await GlobalRateLimitCoordinator.get_instance(
+                requests_per_minute=30,
+                daily_limit=10000,
+                state_dir=os.getenv("GECKOTERMINAL_RATE_LIMIT_STATE_DIR", None),
+            )
+            self._rate_limiter = await coordinator.get_limiter("database_address_resolver")
+            self._rate_limiter_ready = True
+        except Exception as exc:
+            logger.warning(f"Unable to initialize shared rate limiter: {exc}")
+            self._rate_limiter_ready = True
+
     async def _fetch_pool_data_from_api(self, pool_address: str) -> Optional[Dict[str, Any]]:
         """Fetch pool metadata from the GeckoTerminal API using the pool address."""
         if not pool_address:
             return None
+
+        await self._ensure_rate_limiter()
 
         endpoint = f"/networks/solana/pools/{pool_address}"
         params = {
@@ -292,6 +315,9 @@ class DatabaseAddressResolver:
         }
 
         try:
+            if self._rate_limiter is not None:
+                await self._rate_limiter.acquire(endpoint="pools")
+
             timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(
@@ -299,8 +325,22 @@ class DatabaseAddressResolver:
                     params=params,
                     headers={"Accept": "application/json"},
                 ) as response:
+                    if response.status == 429:
+                        headers = {k: v for k, v in response.headers.items()}
+                        await self._rate_limiter.handle_rate_limit_response(headers, response.status)
+                        logger.warning(
+                            f"Rate limit hit for pool lookup {pool_address}; backing off before retrying"
+                        )
+                        return None
+
                     response.raise_for_status()
-                    return await response.json()
+                    payload = await response.json()
+                    if self._rate_limiter is not None:
+                        await self._rate_limiter.handle_success()
+                    return payload
+        except RateLimitExceededError as exc:
+            logger.warning(f"Rate limiter blocked pool lookup for {pool_address}: {exc}")
+            return None
         except Exception as exc:
             logger.warning(f"Failed to fetch pool data from API for {pool_address}: {exc}")
             return None
@@ -379,6 +419,10 @@ class DatabaseAddressResolver:
         }
         
         return pool_data
+
+    async def get_pool_data_by_lowercase_address(self, lowercase_address: str) -> Optional[Dict[str, Any]]:
+        """Backward-compatible wrapper for lowercase-address lookups."""
+        return await self.get_pool_data_by_address(lowercase_address)
     
     async def get_cache_statistics(self) -> Dict[str, Any]:
         """Get statistics about the address cache."""
@@ -512,7 +556,10 @@ class EnhancedWatchlistDatabaseParser:
             
             # Resolve address using database lookup with API fallback
             pool_data = await self.address_resolver.get_pool_data_by_address(address)
-                        
+            if not pool_data:
+                logger.warning(f"Could not resolve pool data for {address}")
+                return None
+            
             # Build enhanced watchlist entry
             entry = {
                 # Original data from CSV
