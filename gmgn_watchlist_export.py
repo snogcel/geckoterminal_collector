@@ -1111,7 +1111,9 @@ def generate_watchlist():
 
     timestamp_str = datetime.now().strftime('%Y_%m_%d_%H%M')
     watchlist_file = os.path.join(BACKTEST_DIR, f"watchlist_gmgn_{timestamp_str}.csv")
-    
+
+    # Always write files — even with 0 rows — so downstream systems
+    # (geckoterminal_collector) can clear stale tokens from the previous cycle.
     fieldnames = list(rows[0].keys()) if rows else [
         'timestamp', 'endpoint', 'timeframe', 'ranking', 'tokenSymbol', 'tokenName',
         'chain', 'dex', 'price', 'age', 'transactions', 'volume', 'makers',
@@ -1126,16 +1128,14 @@ def generate_watchlist():
         'is_active', 'deactivation_reason', 'cycles_tracked', 'peak_score',
     ]
 
-    if rows:
-        # fieldnames = list(rows[0].keys())
-        try:
-            with open(watchlist_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
-            print(f"\nWatchlist saved: {watchlist_file} ({len(rows)} tokens)")
-        except Exception as e:
-            print(f"  [ERROR] Could not write watchlist: {e}")
+    try:
+        with open(watchlist_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"\nWatchlist saved: {watchlist_file} ({len(rows)} tokens)")
+    except Exception as e:
+        print(f"  [ERROR] Could not write watchlist: {e}")
 
     # 8. Always write the live watchlist — even with 0 rows — so downstream
     # systems (geckoterminal_collector) can clear stale tokens from the previous cycle.
