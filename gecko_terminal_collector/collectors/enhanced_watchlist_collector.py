@@ -367,7 +367,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
 
         # placeholder filtering criteria until finalized
 
-        if is_new && (entry['priceChange5m'] >= 0 and 
+        if is_new and (entry['priceChange5m'] >= 0 and 
             entry['priceChange1h'] >= 0 and 
             entry['score'] >= 50 and 
             entry['smart_degen_count'] >= 0 and 
