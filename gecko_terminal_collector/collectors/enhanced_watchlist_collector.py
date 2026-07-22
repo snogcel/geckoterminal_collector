@@ -257,11 +257,11 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 # Store token information
                 await self._store_token_data(entry)
                 
-                # Store enhanced watchlist entry (current state)
-                await self._store_enhanced_watchlist_entry(entry)
-                
-                # Store historical entry
+                # Store historical entry FIRST (before watchlist check)
                 await self._store_enhanced_watchlist_history_entry(entry)
+                
+                # Store enhanced watchlist entry (checks for 3rd occurrence and notifies)
+                await self._store_enhanced_watchlist_entry(entry)
                 
                 stored_count += 1
                 

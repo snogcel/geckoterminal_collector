@@ -1917,7 +1917,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 
                 # Now check enhanced_watchlist_history for 3rd occurrence
                 if not entry.network_address:
-                    logger.debug(f"No network_address for pool {entry.pool_id}, skipping notification check")
+                    logger.info(f"No network_address for pool {entry.pool_id}, skipping notification check")
                     return False
                 
                 # Calculate 24 hours ago timestamp
@@ -1932,9 +1932,10 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                         )
                     ).scalar()
                     
-                    logger.debug(
-                        f"Token {entry.token_symbol} ({entry.network_address[:8]}...) "
-                        f"has appeared {history_count} times in last 24h"
+                    logger.info(
+                        f"🔍 Token {entry.token_symbol} ({entry.network_address[:8]}...) "
+                        f"has appeared {history_count} times in last 24h - "
+                        f"{'🔔 TRIGGERING NOTIFICATION (3rd occurrence)' if history_count == 3 else '⏳ waiting for 3rd occurrence'}"
                     )
                     
                     # Return True only if this is exactly the 3rd occurrence
