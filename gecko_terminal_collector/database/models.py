@@ -224,6 +224,33 @@ class EnhancedWatchlistHistory(Base):
     )
 
 
+class NotificationLog(Base):
+    """Track sent notifications to prevent duplicates within 24 hours."""
+    
+    __tablename__ = "notification_log"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Token identification
+    token_address = Column(String(255), nullable=False, index=True)
+    token_symbol = Column(String(50), nullable=False)
+    pool_address = Column(String(255), nullable=False)
+    
+    # Notification details
+    notification_type = Column(String(50), default='watchlist_entry')  # For future: 'price_alert', 'signal', etc.
+    sent_at = Column(DateTime, default=func.current_timestamp(), nullable=False, index=True)
+    
+    # Metadata
+    entry_data = Column(Text, default="{}")  # JSON of the entry that triggered notification
+    success = Column(Boolean, default=True)  # Whether notification was sent successfully
+    error_message = Column(Text)
+    
+    # Indexes for fast 24h lookups
+    __table_args__ = (
+        Index('idx_notification_token_time', 'token_address', 'sent_at'),
+    )
+
+
 class CollectionMetadata(Base):
     """Collection metadata for tracking collector runs."""
     

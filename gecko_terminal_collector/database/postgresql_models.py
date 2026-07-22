@@ -435,6 +435,33 @@ class EnhancedWatchlistHistory(Base):
     )
 
 
+class NotificationLog(Base):
+    """Track sent notifications to prevent duplicates within 24 hours (PostgreSQL)."""
+    
+    __tablename__ = "notification_log"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Token identification
+    token_address = Column(String(255), nullable=False, index=True)
+    token_symbol = Column(String(50), nullable=False)
+    pool_address = Column(String(255), nullable=False)
+    
+    # Notification details
+    notification_type = Column(String(50), default='watchlist_entry')
+    sent_at = Column(DateTime(timezone=True), default=func.current_timestamp(), nullable=False, index=True)
+    
+    # Metadata
+    entry_data = Column(Text, default="{}")
+    success = Column(Boolean, default=True)
+    error_message = Column(Text)
+    
+    # Composite index for fast 24h lookups
+    __table_args__ = (
+        Index('idx_notification_token_time', 'token_address', 'sent_at'),
+    )
+
+
 # PostgreSQL-specific optimizations
 
 def create_postgresql_extensions():

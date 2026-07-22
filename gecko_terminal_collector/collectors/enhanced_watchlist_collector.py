@@ -365,13 +365,22 @@ class EnhancedWatchlistCollector(BaseDataCollector):
 
         is_new = await self.db_manager.store_watchlist_entry(watchlist_entry)        
 
-        # Two-part filtering: 
+        # Three-part filtering: 
         # 1. is_new = True (3rd occurrence in 24h)
         # 2. Quality criteria must be met
+        # 3. Not already notified in last 24h
         
         if is_new:
             # Log that we hit the 3rd occurrence threshold
             logger.info(f"🎯 Token {entry['tokenSymbol']} hit 3rd occurrence threshold - checking quality criteria...")
+            
+            # Check if we already sent a notification for this token recently
+            token_address = entry.get('networkAddress') or entry.get('baseTokenAddress')
+            if token_address:
+                already_notified = await self.db_manager.check_notification_sent_recently(token_address, hours=24)
+                if already_notified:
+                    logger.info(f"⏭️  Token {entry['tokenSymbol']} already notified within last 24h - skipping")
+                    return
             
             # Check each criterion individually for debugging
             criteria_met = {
@@ -398,6 +407,18 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                     f"(pool {entry['poolAddress']}) — sending Telegram notification"
                 )
                 sent = self.telegram.notify_new_watchlist_entry(entry)
+                
+                # Log the notification attempt
+                if token_address:
+                    await self.db_manager.log_notification(
+                        token_address=token_address,
+                        token_symbol=entry['tokenSymbol'],
+                        pool_address=entry['poolAddress'],
+                        entry_data=entry,
+                        success=sent,
+                        error_message=None if sent else "Telegram send failed"
+                    )
+                
                 if not sent:
                     logger.error(
                         f"❌ Telegram notification FAILED for {entry['tokenSymbol']} "

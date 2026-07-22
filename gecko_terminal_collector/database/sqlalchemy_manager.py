@@ -59,6 +59,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 DiscoveryMetadata as DiscoveryMetadataModel,
                 EnhancedWatchlistHistory as EnhancedWatchlistHistoryModel,
                 NewPoolsHistory as NewPoolsHistoryModel,
+                NotificationLog as NotificationLogModel,
                 OHLCVData as OHLCVDataModel,
                 Pool as PoolModel,
                 Token as TokenModel,
@@ -72,6 +73,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 DiscoveryMetadata as DiscoveryMetadataModel,
                 EnhancedWatchlistHistory as EnhancedWatchlistHistoryModel,
                 NewPoolsHistory as NewPoolsHistoryModel,
+                NotificationLog as NotificationLogModel,
                 OHLCVData as OHLCVDataModel,
                 Pool as PoolModel,
                 Token as TokenModel,
@@ -85,6 +87,7 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
         self.DiscoveryMetadataModel = DiscoveryMetadataModel
         self.EnhancedWatchlistHistoryModel = EnhancedWatchlistHistoryModel
         self.NewPoolsHistoryModel = NewPoolsHistoryModel
+        self.NotificationLogModel = NotificationLogModel
         self.OHLCVDataModel = OHLCVDataModel
         self.PoolModel = PoolModel
         self.TokenModel = TokenModel
@@ -1970,6 +1973,79 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 session.rollback()
                 logger.error(f"Error storing enhanced watchlist history entry: {e}")
                 raise
+    
+    async def check_notification_sent_recently(self, token_address: str, hours: int = 24) -> bool:
+        """
+        Check if a notification was sent for this token within the last N hours.
+        
+        Args:
+            token_address: Token address to check
+            hours: Look-back period in hours (default: 24)
+            
+        Returns:
+            True if notification was sent recently, False otherwise
+        """
+        with self.connection.get_session() as session:
+            try:
+                cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+                
+                recent_notification = session.query(self.NotificationLogModel).filter(
+                    and_(
+                        self.NotificationLogModel.token_address == token_address,
+                        self.NotificationLogModel.sent_at >= cutoff_time,
+                        self.NotificationLogModel.success == True
+                    )
+                ).first()
+                
+                return recent_notification is not None
+                
+            except Exception as e:
+                logger.error(f"Error checking recent notifications for {token_address}: {e}")
+                return False  # Fail open - allow notification on error
+    
+    async def log_notification(
+        self, 
+        token_address: str, 
+        token_symbol: str,
+        pool_address: str,
+        entry_data: Dict[str, Any],
+        success: bool = True,
+        error_message: Optional[str] = None
+    ) -> None:
+        """
+        Log a sent notification to prevent duplicates.
+        
+        Args:
+            token_address: Token address
+            token_symbol: Token symbol
+            pool_address: Pool address
+            entry_data: Full entry data (will be JSON serialized)
+            success: Whether notification was sent successfully
+            error_message: Error message if notification failed
+        """
+        with self.connection.get_session() as session:
+            try:
+                import json
+                
+                notification_log = self.NotificationLogModel(
+                    token_address=token_address,
+                    token_symbol=token_symbol,
+                    pool_address=pool_address,
+                    notification_type='watchlist_entry',
+                    sent_at=datetime.now(timezone.utc),
+                    entry_data=json.dumps(entry_data),
+                    success=success,
+                    error_message=error_message
+                )
+                
+                session.add(notification_log)
+                session.commit()
+                logger.debug(f"Logged notification for {token_symbol} ({token_address[:8]}...)")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error logging notification for {token_symbol}: {e}")
+                # Don't raise - logging failure shouldn't break the flow
     
     async def update_watchlist_entry(self, entry) -> None:
         """
