@@ -115,9 +115,11 @@ class TelegramNotifier:
         if volume is not None:
             lines.append(f"<b>Volume 24h:</b> ${float(volume):,.0f}")
 
-        detail_url = entry.get("detailUrl")
-        if detail_url:
-            lines.append(f'\n<a href="{detail_url}">View on GeckoTerminal</a>')
+        # DexScreener link
+        if pool:
+            lines.append(
+                f'<a href="https://dexscreener.com/solana/{pool}">View on DexScreener</a>'
+            )
 
         return "\n".join(lines)
 
