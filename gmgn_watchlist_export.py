@@ -1128,7 +1128,7 @@ def generate_watchlist():
     except Exception as e:
         print(f"  [WARN] Could not write live watchlist: {e}")
 
-    # 8b. Write rejected tokens sample for baseline comparison
+    """ # 8b. Write rejected tokens sample for baseline comparison
     if rejected_sample:
         rejected_file = os.path.join(OUTPUT_DIR, f"watchlist_rejected_{timestamp_str}.csv")
         rejected_rows = []
@@ -1170,7 +1170,7 @@ def generate_watchlist():
                 writer.writerows(rejected_rows)
             print(f"Rejected sample saved: {rejected_file} ({len(rejected_rows)} tokens)")
         except Exception as e:
-            print(f"  [WARN] Could not write rejected sample: {e}")
+            print(f"  [WARN] Could not write rejected sample: {e}") """
 
     # 9. Save state
     state.save()
