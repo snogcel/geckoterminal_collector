@@ -5,10 +5,10 @@ Replaces the DexScreener scraper with GMGN's rich API data.
 Fetches trending tokens, applies quality filters, outputs watchlist.
 
 Usage:
-    python gmgn_watchlist.py                  # Generate watchlist
-    python gmgn_watchlist.py --live           # Live mode (for cron)
-    python gmgn_watchlist.py --backtest       # Output for backtesting
-    python gmgn_watchlist.py --signal         # Include smart money signals
+    python gmgn_watchlist_export.py                  # Generate watchlist
+    python gmgn_watchlist_export.py --live           # Live mode (for cron)
+    python gmgn_watchlist_export.py --backtest       # Output for backtesting
+    python gmgn_watchlist_export.py --signal         # Include smart money signals
 """
 
 import subprocess
@@ -1218,7 +1218,7 @@ def generate_watchlist():
         print(f"  Signal tokens: {signal_count}")
 
     # 12. Append eval log line (script writes this, not the cron agent — avoids UTF-16 encoding issue)
-    eval_log_path = os.path.join(os.path.dirname(OUTPUT_DIR), 'memory', 'watchlist-eval-log.md')
+    """ eval_log_path = os.path.join(os.path.dirname(OUTPUT_DIR), 'memory', 'watchlist-eval-log.md')
     try:
         now_local = datetime.now().strftime('%Y-%m-%d %H:%M')
         retired_count = len(retired)
@@ -1227,7 +1227,7 @@ def generate_watchlist():
         with open(eval_log_path, 'a', encoding='utf-8') as f:
             f.write(log_line)
     except Exception as e:
-        print(f"  [WARN] Could not write eval log: {e}")
+        print(f"  [WARN] Could not write eval log: {e}") """
 
     return rows
 
