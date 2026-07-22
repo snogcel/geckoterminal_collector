@@ -477,7 +477,8 @@ class GlobalRateLimitCoordinator:
                 requests_per_minute=self.requests_per_minute,
                 daily_limit=self.daily_limit,
                 state_file=str(state_file),
-                instance_id=collector_id
+                instance_id=collector_id,
+                min_request_interval=4.0  # Minimum 4 seconds between requests (15/min)
             )
         return self.limiters[collector_id]
     

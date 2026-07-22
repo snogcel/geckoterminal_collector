@@ -291,8 +291,9 @@ class DatabaseAddressResolver:
             return
 
         try:
+            # More conservative rate limiting to avoid 429s
             coordinator = await GlobalRateLimitCoordinator.get_instance(
-                requests_per_minute=30,
+                requests_per_minute=15,  # Reduced from 30 to be safer
                 daily_limit=10000,
                 state_dir=os.getenv("GECKOTERMINAL_RATE_LIMIT_STATE_DIR", None),
             )
@@ -316,7 +317,7 @@ class DatabaseAddressResolver:
             "include_composition": "false",
         }
 
-        max_attempts = int(os.getenv("GECKOTERMINAL_API_MAX_RETRIES", "3"))
+        max_attempts = int(os.getenv("GECKOTERMINAL_API_MAX_RETRIES", "10"))  # Increased from 3 to 10
         last_error: Optional[Exception] = None
 
         for attempt in range(1, max_attempts + 1):
@@ -324,7 +325,7 @@ class DatabaseAddressResolver:
                 if self._rate_limiter is not None:
                     await self._rate_limiter.acquire(endpoint="pools")
 
-                timeout = aiohttp.ClientTimeout(total=10)
+                timeout = aiohttp.ClientTimeout(total=15)  # Increased from 10 to 15
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(
                         f"{self.api_base_url}{endpoint}",
@@ -336,19 +337,19 @@ class DatabaseAddressResolver:
                             if self._rate_limiter is not None:
                                 await self._rate_limiter.handle_rate_limit_response(headers, response.status)
                             
-                            if attempt < max_attempts:
-                                # Wait for backoff period before retrying
-                                if self._rate_limiter and self._rate_limiter.backoff_state.backoff_until:
-                                    wait_time = (self._rate_limiter.backoff_state.backoff_until - datetime.now()).total_seconds()
-                                    if wait_time > 0:
-                                        logger.info(f"Waiting {wait_time:.2f}s for backoff before retry {attempt + 1}/{max_attempts}")
-                                        await asyncio.sleep(wait_time)
-                                continue
-
-                            logger.warning(
-                                f"Rate limit hit for pool lookup {pool_address}; giving up after {max_attempts} attempts"
-                            )
-                            return None
+                            # Wait for backoff period before retrying
+                            if self._rate_limiter and self._rate_limiter.backoff_state.backoff_until:
+                                wait_time = (self._rate_limiter.backoff_state.backoff_until - datetime.now()).total_seconds()
+                                if wait_time > 0:
+                                    logger.info(f"429 rate limit - waiting {wait_time:.1f}s before retry {attempt + 1}/{max_attempts}")
+                                    await asyncio.sleep(wait_time)
+                            else:
+                                # Fallback exponential backoff if rate limiter doesn't provide wait time
+                                wait_time = min(2 ** attempt, 30)  # Cap at 30 seconds
+                                logger.info(f"429 rate limit - waiting {wait_time}s before retry {attempt + 1}/{max_attempts}")
+                                await asyncio.sleep(wait_time)
+                            
+                            continue
 
                         response.raise_for_status()
                         payload = await response.json()
@@ -359,24 +360,28 @@ class DatabaseAddressResolver:
                 last_error = exc
                 # Don't retry immediately on rate limit exceeded - the limiter is blocking for a reason
                 if "Circuit breaker is open" in str(exc):
-                    logger.info(f"Circuit breaker is open for {pool_address}, skipping retries")
+                    logger.warning(f"Circuit breaker is open for {pool_address}, waiting 10s before continuing...")
+                    await asyncio.sleep(10)  # Wait longer when circuit breaker opens
+                    if attempt < max_attempts:
+                        continue
                     return None
                 
                 if attempt < max_attempts:
                     # Brief pause before retry
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(3)
                     continue
                 logger.warning(f"Rate limiter blocked pool lookup for {pool_address}: {exc}")
                 return None
             except Exception as exc:
                 last_error = exc
                 if attempt < max_attempts:
+                    wait_time = min(2 ** (attempt - 1), 10)  # Exponential backoff, cap at 10s
                     logger.warning(
-                        f"Transient API error for pool lookup {pool_address}; retrying (attempt {attempt}/{max_attempts}): {exc}"
+                        f"Transient API error for pool lookup {pool_address}; retrying in {wait_time}s (attempt {attempt}/{max_attempts}): {exc}"
                     )
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(wait_time)
                     continue
-                logger.warning(f"Failed to fetch pool data from API for {pool_address}: {exc}")
+                logger.warning(f"Failed to fetch pool data from API for {pool_address} after {max_attempts} attempts: {exc}")
                 return None
 
         if last_error:
