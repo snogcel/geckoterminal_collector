@@ -537,6 +537,97 @@ def strategy_momentum(snap, history, idx):
     return False, ''
 
 
+# --- Contrarian Strategies (based on signal analysis) --------------------------
+
+def strategy_contrarianModerate(snap, history, idx):
+    """Signal tokens with MODERATE scores (50-65) but strong smart money.
+    Thesis: High-score tokens are past their prime. Moderate scores with
+    conviction (SM >= 8) catch tokens before the algorithm fully recognizes them."""
+    if snap['score'] is None:
+        return False, ''
+    if not snap.get('endpoint', '').startswith('signal'):
+        return False, ''
+    if snap['score'] < 50 or snap['score'] > 65:
+        return False, ''  # Moderate score band
+    if snap['smart_degen'] < 8:
+        return False, ''  # Strong smart money conviction
+    if snap['liquidity'] < 10000:
+        return False, ''  # Minimum liquidity
+    if snap['rug_ratio'] > 0.10:
+        return False, ''
+    if snap['price_change_1h'] is not None and snap['price_change_1h'] < 50:
+        return False, ''
+    return True, f'contrarian:score={snap["score"]},sm={snap["smart_degen"]},liq={snap["liquidity"]:.0f}'
+
+
+def strategy_contrarianLowCap(snap, history, idx):
+    """Signal tokens with LOW market cap but high smart money.
+    Thesis: Small MC tokens with smart money attention have the most room to grow."""
+    if snap['score'] is None:
+        return False, ''
+    if not snap.get('endpoint', '').startswith('signal'):
+        return False, ''
+    if snap['score'] < 50:
+        return False, ''
+    if snap['smart_degen'] < 10:
+        return False, ''  # High SM conviction
+    if snap['liquidity'] < 10000:
+        return False, ''
+    if snap['liquidity'] > 30000:
+        return False, ''  # Low liquidity cap = small MC
+    if snap['rug_ratio'] > 0.08:
+        return False, ''
+    if snap['price_change_1h'] is not None and snap['price_change_1h'] < 50:
+        return False, ''
+    return True, f'lowcap:sm={snap["smart_degen"]},liq={snap["liquidity"]:.0f},score={snap["score"]}'
+
+
+def strategy_contrarianVolume(snap, history, idx):
+    """Signal tokens with LOW bundler rate (organic activity).
+    Thesis: High bundler rate = bot manipulation. Low bundler = organic growth."""
+    if snap['score'] is None:
+        return False, ''
+    if not snap.get('endpoint', '').startswith('signal'):
+        return False, ''
+    if snap['score'] < 55:
+        return False, ''
+    if snap['smart_degen'] < 7:
+        return False, ''
+    if snap['liquidity'] < 10000:
+        return False, ''
+    if snap['rug_ratio'] > 0.10:
+        return False, ''
+    if snap.get('bundler_rate', 0) > 0.15:
+        return False, ''  # Low bundler = organic
+    if snap['price_change_1h'] is not None and snap['price_change_1h'] < 50:
+        return False, ''
+    return True, f'organic:score={snap["score"]},sm={snap["smart_degen"]},bundler={snap.get("bundler_rate",0):.3f}'
+
+
+def strategy_contrarianBalanced(snap, history, idx):
+    """Balanced contrarian: moderate score + high SM + low MC + organic volume.
+    Combines the best insights from winning patterns."""
+    if snap['score'] is None:
+        return False, ''
+    if not snap.get('endpoint', '').startswith('signal'):
+        return False, ''
+    if snap['score'] < 55 or snap['score'] > 75:
+        return False, ''  # Sweet spot: 55-75
+    if snap['smart_degen'] < 10:
+        return False, ''  # Strong SM
+    if snap['liquidity'] < 15000:
+        return False, ''
+    if snap['liquidity'] > 35000:
+        return False, ''  # Keep MC moderate
+    if snap['rug_ratio'] > 0.08:
+        return False, ''
+    if snap.get('bundler_rate', 0) > 0.20:
+        return False, ''  # Not too bot-heavy
+    if snap['price_change_1h'] is not None and snap['price_change_1h'] < 50:
+        return False, ''
+    return True, f'balanced:score={snap["score"]},sm={snap["smart_degen"]},liq={snap["liquidity"]:.0f}'
+
+
 # --- Analysis ----------------------------------------------------
 
 def compute_drawdown(trades):
@@ -814,10 +905,14 @@ def main():
     # Define strategies
     strategies = [
         ("score_threshold", strategy_score_threshold, "Score >= 65"),
-        ("smart_money_full", strategy_smart_money_full, "Smart Money >= 5"),
+        ("smart_money_full", strategy_smart_money_full, "Signal SM Full"),
         ("smart_money_cluster_clean", strategy_smart_money_cluster_clean, "SM Jump +3"),
         ("combined", strategy_combined, "Combined Filter"),
         ("momentum", strategy_momentum, "Momentum + SM"),
+        ("contrarianModerate", strategy_contrarianModerate, "Contrarian Moderate"),
+        ("contrarianLowCap", strategy_contrarianLowCap, "Contrarian Low Cap"),
+        ("contrarianVolume", strategy_contrarianVolume, "Contrarian Organic"),
+        ("contrarianBalanced", strategy_contrarianBalanced, "Contrarian Balanced"),
     ]
     
     all_results = []
