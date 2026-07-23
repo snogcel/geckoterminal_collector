@@ -202,6 +202,15 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
         for i, snap in enumerate(timeline['snapshots']):
             all_snaps.append((snap['ts'], symbol, timeline, i, snap))
     all_snaps.sort(key=lambda x: x[0])
+
+    # A data_end exit near the very edge of the whole dataset almost always
+    # means "this token is still being tracked, we just haven't collected a
+    # newer cycle yet" (unresolved) rather than "this token genuinely stopped
+    # trending and fell out of the watchlist" (resolved, in the past). Use a
+    # tolerance window rather than exact equality, since different tokens'
+    # last observations won't land on the exact same cron tick.
+    global_last_ts = all_snaps[-1][0] if all_snaps else None
+    UNRESOLVED_TOLERANCE_MINUTES = 15
     
     # Global state
     open_positions = []  # List of active positions across all tokens
@@ -269,6 +278,10 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 exit_reason = 'data_end'
             
             if exit_reason:
+                is_unresolved = (
+                    exit_reason == 'data_end' and global_last_ts is not None
+                    and (global_last_ts - ts).total_seconds() / 60 <= UNRESOLVED_TOLERANCE_MINUTES
+                )
                 completed.append({
                     'symbol': pos['symbol'],
                     'name': pos['name'],
@@ -282,6 +295,7 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                     'pnl_pct': pnl_pct,
                     'hold_minutes': hold_minutes,
                     'exit_reason': exit_reason,
+                    'unresolved': is_unresolved,
                     'entry_score': pos.get('entry_score', 0),
                     'entry_smart_degen': pos.get('entry_smart_degen', 0),
                     'peak_score': pos.get('peak_score', 0),
@@ -339,48 +353,62 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 concurrent_samples.append((ts, len(open_positions)))
                 max_concurrent_seen = max(max_concurrent_seen, len(open_positions))
     
-    # Safety net only: after the inline data_end fix above, positions should
-    # essentially never still be open here. If any are, it's because their
-    # token's very last observation had a null price (couldn't compute a
-    # pnl_pct to close on) - worth knowing about explicitly rather than
-    # silently falling through, since it's no longer the expected path.
+    # Safety net only: after the inline data_end fix, a position should only
+    # reach here if it was entered on its own token's literal last-ever
+    # observation (no further snapshot existed to trigger the inline check
+    # above). This is normal, not a bug - it most often means the token is
+    # among your most recently tracked ones, and its outcome genuinely isn't
+    # known yet (no newer data has been collected). It is NOT typically a
+    # null-price issue.
     if open_positions:
-        print(f"  [WARN] {len(open_positions)} position(s) still open after main loop "
-              f"(likely null price on final observation) - force-closing via fallback.")
+        print(f"  [WARN] {len(open_positions)} position(s) entered on their token's "
+              f"final available observation - closing at last known price. Likely "
+              f"still-open/unresolved positions (your most recently tracked tokens), "
+              f"not a data problem.")
     for pos in open_positions:
         token_timeline = timelines.get(pos['symbol'])
-        if token_timeline and token_timeline['snapshots']:
-            last = token_timeline['snapshots'][-1]
-            if last['price'] is not None:
-                # Apply exit slippage
-                liquidity = last.get('liquidity', 50000)
-                exit_slip_bps = calc_slippage(liquidity, POSITION_SIZE_USD)
-                actual_exit_price = apply_slippage(last['price'], exit_slip_bps, is_buy=False)
-                pnl_pct = (actual_exit_price - pos['entry_price']) / pos['entry_price'] * 100
-                hold_minutes = (last['ts'] - pos['entry_ts']).total_seconds() / 60
-                completed.append({
-                    'symbol': pos['symbol'],
-                    'name': pos['name'],
-                    'address': pos['address'],
-                    'entry_ts': pos['entry_ts'],
-                    'exit_ts': last['ts'],
-                    'entry_price': pos['entry_price'],
-                    'signal_price': pos.get('signal_price', pos['entry_price']),
-                    'exit_price': actual_exit_price,
-                    'signal_exit_price': last['price'],
-                    'pnl_pct': pnl_pct,
-                    'hold_minutes': hold_minutes,
-                    'exit_reason': 'data_end',
-                    'entry_score': pos.get('entry_score', 0),
-                    'entry_smart_degen': pos.get('entry_smart_degen', 0),
-                    'peak_score': pos.get('peak_score', 0),
-                    'strategy': strategy_name,
-                    'concurrent_positions_at_entry': pos.get('concurrent_at_entry', 0),
-                    'entry_slippage_bps': pos.get('entry_slippage_bps', 0),
-                    'exit_slippage_bps': exit_slip_bps,
-                    'liquidity_at_entry': pos.get('liquidity_at_entry', 0),
-                    'liquidity_at_exit': liquidity,
-                })
+        if not token_timeline or not token_timeline['snapshots']:
+            print(f"  [WARN] {pos['symbol']}: no timeline found at force-close - position dropped uncounted.")
+            continue
+        last = token_timeline['snapshots'][-1]
+        if last['price'] is None:
+            print(f"  [WARN] {pos['symbol']}: final observation has a null price - "
+                  f"position dropped uncounted (this is the genuine null-price edge case).")
+            continue
+        # Apply exit slippage
+        liquidity = last.get('liquidity', 50000)
+        exit_slip_bps = calc_slippage(liquidity, POSITION_SIZE_USD)
+        actual_exit_price = apply_slippage(last['price'], exit_slip_bps, is_buy=False)
+        pnl_pct = (actual_exit_price - pos['entry_price']) / pos['entry_price'] * 100
+        hold_minutes = (last['ts'] - pos['entry_ts']).total_seconds() / 60
+        is_unresolved = (
+            global_last_ts is not None
+            and (global_last_ts - last['ts']).total_seconds() / 60 <= UNRESOLVED_TOLERANCE_MINUTES
+        )
+        completed.append({
+            'symbol': pos['symbol'],
+            'name': pos['name'],
+            'address': pos['address'],
+            'entry_ts': pos['entry_ts'],
+            'exit_ts': last['ts'],
+            'entry_price': pos['entry_price'],
+            'signal_price': pos.get('signal_price', pos['entry_price']),
+            'exit_price': actual_exit_price,
+            'signal_exit_price': last['price'],
+            'pnl_pct': pnl_pct,
+            'hold_minutes': hold_minutes,
+            'exit_reason': 'data_end',
+            'unresolved': is_unresolved,
+            'entry_score': pos.get('entry_score', 0),
+            'entry_smart_degen': pos.get('entry_smart_degen', 0),
+            'peak_score': pos.get('peak_score', 0),
+            'strategy': strategy_name,
+            'concurrent_positions_at_entry': pos.get('concurrent_at_entry', 0),
+            'entry_slippage_bps': pos.get('entry_slippage_bps', 0),
+            'exit_slippage_bps': exit_slip_bps,
+            'liquidity_at_entry': pos.get('liquidity_at_entry', 0),
+            'liquidity_at_exit': liquidity,
+        })
     
     # Compute concurrent position stats
     if concurrent_samples:
