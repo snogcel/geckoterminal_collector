@@ -771,17 +771,24 @@ def enrich_missing_pool_addresses(passed):
         time.sleep(1.5)  # rate-limit: stay under GMGN API 429 threshold
 
 
-def apply_signal_metadata(token, detail=None):
-    """Mark a token as coming from the signal endpoint and merge detail data."""
+def apply_signal_metadata(token, detail=None, signal_type=None):
+    """Mark a token as coming from the signal endpoint and merge detail data.
+    
+    Args:
+        signal_type: GMGN signal type number (12=SmartMoney, 13=PlatformCall, etc.)
+                     Stored as 'SIGNAL_<type>' for backwards compatibility
+                     (anything starting with 'signal' still matches).
+    """
+    endpoint = f'signal_{signal_type}' if signal_type else 'signal'
     if detail is not None:
         merged = dict(token)
         merged.update(detail)
-        merged['_endpoint'] = 'signal'
-        merged['_timeframe'] = 'signal'
+        merged['_endpoint'] = endpoint
+        merged['_timeframe'] = endpoint
         return merged
 
-    token['_endpoint'] = 'signal'
-    token['_timeframe'] = 'signal'
+    token['_endpoint'] = endpoint
+    token['_timeframe'] = endpoint
     return token
 
 
@@ -977,20 +984,21 @@ def generate_watchlist():
     signal_addresses = set()
     for s in signals:
         addr = s.get('token_address', '')
+        sig_type = s.get('signal_type')
         if addr:
             signal_addresses.add(addr)
             existing = all_tokens.get(addr)
             if existing is None:
                 detail = fetch_token_detail(addr)
                 if detail:
-                    all_tokens[addr] = apply_signal_metadata({}, detail)
+                    all_tokens[addr] = apply_signal_metadata({}, detail, signal_type=sig_type)
                 else:
                     signal_token = dict(s)
-                    all_tokens[addr] = apply_signal_metadata(signal_token)
+                    all_tokens[addr] = apply_signal_metadata(signal_token, signal_type=sig_type)
                 # print(detail if detail else s)
                 time.sleep(1.5)
             else:
-                all_tokens[addr] = apply_signal_metadata(existing)
+                all_tokens[addr] = apply_signal_metadata(existing, signal_type=sig_type)
 
     # 3. Fetch trenches (new launches)
     trenches = fetch_trenches(token_types=["new_creation", "near_completion"])
@@ -1010,7 +1018,9 @@ def generate_watchlist():
     for addr, token in all_tokens.items():
         ok, reason = quality_check(token)
         if ok:
-            source = "signal" if (addr in signal_addresses or token.get('_endpoint') == 'signal') else "trending"
+            source = token.get('_endpoint', '')
+            if not source.startswith('signal'):
+                source = 'trending'
             passed.append((token, source))
         else:
             failed_reasons[reason] = failed_reasons.get(reason, 0) + 1
