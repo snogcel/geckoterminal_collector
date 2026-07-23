@@ -483,16 +483,22 @@ def strategy_smart_money_cluster(snap, history, idx):
 
 
 def strategy_smart_money_full(snap, history, idx):
-    """Enter when smart_degen_count >= threshold (simpler version)."""
+    """Ultra-tight signal token strategy: high-quality entries with strong conviction."""
     if snap['smart_degen'] is None:
         return False, ''
-    if snap['smart_degen'] >= ENTRY_SMART_MONEY and snap['score'] and snap['score'] >= 55:
-        if snap['liquidity'] < 5000:
-            return False, ''
-        if snap['rug_ratio'] > 0.2:
-            return False, ''
-        return True, f'smart_degen={snap["smart_degen"]},score={snap["score"]}'
-    return False, ''
+    if not snap.get('endpoint', '').startswith('signal'):
+        return False, ''
+    if snap['score'] < 65:
+        return False, ''
+    if snap['smart_degen'] < 10:
+        return False, ''
+    if snap['liquidity'] < 20000:
+        return False, ''
+    if snap['rug_ratio'] > 0.08:
+        return False, ''
+    if snap['price_change_1h'] is not None and snap['price_change_1h'] < 50:
+        return False, ''
+    return True, f'sm={snap["smart_degen"]},score={snap["score"]},liq={snap["liquidity"]:.0f}'
 
 
 def strategy_combined(snap, history, idx):
@@ -808,7 +814,7 @@ def main():
     # Define strategies
     strategies = [
         ("score_threshold", strategy_score_threshold, "Score >= 65"),
-        #("smart_money_full", strategy_smart_money_full, "Smart Money >= 5"),
+        ("smart_money_full", strategy_smart_money_full, "Smart Money >= 5"),
         ("smart_money_cluster_clean", strategy_smart_money_cluster_clean, "SM Jump +3"),
         ("combined", strategy_combined, "Combined Filter"),
         ("momentum", strategy_momentum, "Momentum + SM"),
