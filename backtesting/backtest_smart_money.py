@@ -99,11 +99,16 @@ def load_snapshots(data_dir):
     
     dfs = []
     for f in files:
+        fname = os.path.basename(f)  # assign BEFORE the read, so failures can report it
         try:
             df = pd.read_csv(f, low_memory=False)
+            if df.empty and len(df.columns) == 0:
+                # Truly empty file (no header at all) - not the same as a
+                # header-only "no candidates this cycle" file, which reads
+                # fine as a 0-row DataFrame and needs no special handling.
+                print(f"  Skip {fname}: file has no columns (likely 0 bytes / truncated write)")
+                continue
             # Extract timestamp from filename for reliability
-            fname = os.path.basename(f)
-            # watchlist_gmgn_2026_07_21_1018.csv -> 2026-07-21 10:18
             parts = fname.replace('.csv', '').split('_')
             # parts: [watchlist, gmgn, YYYY, MM, DD, HHMM]
             ts_str = f"{parts[2]}-{parts[3]}-{parts[4]} {parts[5][:2]}:{parts[5][2:]}"
@@ -255,6 +260,13 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
             # Token went inactive
             elif current_snap.get('is_active') is False:
                 exit_reason = 'inactive'
+            # This is the last observation we have for THIS token specifically
+            # (not the last observation in the whole dataset) - close here so
+            # the position frees its concurrency slot at the correct point in
+            # wall-clock time, instead of squatting on a slot for the rest of
+            # the backtest until the global post-loop force-close runs.
+            elif idx == len(timeline['snapshots']) - 1:
+                exit_reason = 'data_end'
             
             if exit_reason:
                 completed.append({
@@ -327,7 +339,14 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 concurrent_samples.append((ts, len(open_positions)))
                 max_concurrent_seen = max(max_concurrent_seen, len(open_positions))
     
-    # Force-close any remaining positions at last snapshot of their token
+    # Safety net only: after the inline data_end fix above, positions should
+    # essentially never still be open here. If any are, it's because their
+    # token's very last observation had a null price (couldn't compute a
+    # pnl_pct to close on) - worth knowing about explicitly rather than
+    # silently falling through, since it's no longer the expected path.
+    if open_positions:
+        print(f"  [WARN] {len(open_positions)} position(s) still open after main loop "
+              f"(likely null price on final observation) - force-closing via fallback.")
     for pos in open_positions:
         token_timeline = timelines.get(pos['symbol'])
         if token_timeline and token_timeline['snapshots']:
