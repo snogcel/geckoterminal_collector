@@ -181,6 +181,7 @@ def build_token_timelines(df):
                 'flags': str(row.get('flags', '')),
                 'cycles_tracked': int(row['cycles_tracked']) if pd.notna(row.get('cycles_tracked')) else 1,
                 'peak_score': float(row.get('peak_score', row.get('score', 0))) if pd.notna(row.get('peak_score', row.get('score'))) else 0,
+                'endpoint': str(row.get('endpoint', 'unknown')),
             }
             timeline['snapshots'].append(snap)
         
@@ -220,7 +221,8 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
     
     # Track per-token state to prevent re-entry on same token while holding
     held_tokens = set()
-    ever_entered_tokens = set()  # One entry per token max
+    position_cooldown = {}  # symbol -> exit_ts (when position closed)
+    COOLDOWN_MINUTES = 24 * 60  # 24-hour cooldown before re-entry (matches Telegram notification cooldown)
     
     for ts, symbol, timeline, idx, snap in all_snaps:
         if snap['price'] is None:
@@ -307,6 +309,7 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                     'liquidity_at_exit': liquidity,
                 })
                 held_tokens.discard(pos['symbol'])
+                position_cooldown[pos['symbol']] = ts  # Record exit time for 24h cooldown
             else:
                 still_open.append(pos)
         
@@ -318,7 +321,10 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
         
         # Check entry for this token (if we don't already hold it)
         # Require at least MIN_OBSERVATIONS snapshots before entry
-        if (symbol not in held_tokens and symbol not in ever_entered_tokens
+        # 24-hour cooldown: can re-enter after position closed + 24h
+        cooldown_ok = (symbol not in position_cooldown or
+                       (ts - position_cooldown[symbol]).total_seconds() / 60 > COOLDOWN_MINUTES)
+        if (symbol not in held_tokens and cooldown_ok
                 and len(open_positions) < MAX_CONCURRENT_POSITIONS
                 and idx + 1 >= MIN_OBSERVATIONS):
             token_snaps = timeline['snapshots']
@@ -347,7 +353,6 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 }
                 open_positions.append(pos)
                 held_tokens.add(symbol)
-                ever_entered_tokens.add(symbol)
                 
                 # Track concurrent after entry
                 concurrent_samples.append((ts, len(open_positions)))
@@ -512,11 +517,12 @@ def strategy_combined(snap, history, idx):
 
 
 def strategy_momentum(snap, history, idx):
-    """Enter on price momentum: price up 20%+ in 5m with score >= 50 and smart money."""
+    """Enter on price momentum: trending-only, score >= 50, smart money, relaxed filters."""
     if snap['score'] is None or snap['price_change_5m'] is None:
         return False, ''
-    if (snap['price_change_5m'] >= 0 and
-        snap['price_change_1h'] >= 50 and
+    if (snap.get('endpoint') == 'trending' and
+        snap['price_change_5m'] >= -10 and
+        snap['price_change_1h'] >= 25 and
         snap['score'] >= 50 and
         snap['smart_degen'] >= 3 and
         snap['liquidity'] >= 5000 and
