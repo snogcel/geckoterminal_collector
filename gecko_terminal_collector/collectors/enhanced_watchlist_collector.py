@@ -372,7 +372,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         
         if is_new:
             # Log that we hit the 3rd occurrence threshold
-            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 3rd occurrence threshold - checking quality criteria...")
+            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 2nd occurrence threshold - checking quality criteria...")
             
             # Check if we already sent a notification for this token recently
             token_address = entry.get('networkAddress') or entry.get('baseTokenAddress')
@@ -390,7 +390,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
                 'smart_degen_count >= 3': entry.get('smart_degen_count', 0) >= 3,
                 'liquidity >= 5000': entry.get('liquidity', 0) >= 5000,
                 'dex in [pump_amm]': entry.get('dex', '') in ['pump_amm'],
-                'endpoint == trending': entry.get('endpoint', '') == 'trending'
+                'endpoint in [trending, signal_12, signal_13]': entry.get('endpoint', '') in ['trending', 'signal_12', 'signal_13']
             }
             
             # Log each criterion status
