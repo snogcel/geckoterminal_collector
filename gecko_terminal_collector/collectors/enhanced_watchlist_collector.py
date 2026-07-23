@@ -372,7 +372,7 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         
         if is_new:
             # Log that we hit the 3rd occurrence threshold
-            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 2nd occurrence threshold - checking quality criteria...")
+            logger.info(f"🎯 Token {entry['tokenSymbol']} hit 3rd occurrence threshold - checking quality criteria...")
             
             # Check if we already sent a notification for this token recently
             token_address = entry.get('networkAddress') or entry.get('baseTokenAddress')
@@ -384,18 +384,20 @@ class EnhancedWatchlistCollector(BaseDataCollector):
             
             # Check each criterion individually for debugging
             criteria_met = {
-                'priceChange5m >= 0': entry.get('priceChange5m', -999) >= 0,
-                'priceChange1h >= 50': entry.get('priceChange1h', -999) >= 50,
+                'priceChange5m >= -10': entry.get('priceChange5m', -999) >= -10,
+                'priceChange1h >= 25': entry.get('priceChange1h', -999) >= 25,
                 'score >= 50': entry.get('score', 0) >= 50,
                 'smart_degen_count >= 3': entry.get('smart_degen_count', 0) >= 3,
                 'liquidity >= 5000': entry.get('liquidity', 0) >= 5000,
-                'dex in [pump_amm]': entry.get('dex', '') in ['pump_amm']
+                'dex in [pump_amm]': entry.get('dex', '') in ['pump_amm'],
+                'endpoint == trending': entry.get('endpoint', '') == 'trending'
             }
             
             # Log each criterion status
             for criterion, met in criteria_met.items():
                 status = "✅" if met else "❌"
-                actual_value = entry.get(criterion.split()[0], 'N/A')
+                field_name = criterion.split()[0]
+                actual_value = entry.get(field_name, 'N/A')
                 logger.info(f"  {status} {criterion}: {actual_value}")
             
             # Check if all criteria are met
