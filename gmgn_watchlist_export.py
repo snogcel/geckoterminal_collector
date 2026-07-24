@@ -108,19 +108,19 @@ STATE_FILE = os.path.join(WATCHLIST_DIR, 'watchlist_state.json')
 # Tokens are deactivated when they hit these exit signals.
 # Tokens that simply fall off trending (absent for N cycles) are retired naturally.
 DEACTIVATION_THRESHOLDS = {
-    # Immediate deactivation (single-cycle triggers)
-    'rug_ratio_spike': 0.50,          # rug_ratio exceeds this → deactivate
-    'liquidity_drop_pct': 0.50,       # liquidity drops >50% from last seen → deactivate
-    'smart_money_exit': 0,            # smart_degen_count drops to 0 (was >= 2) → deactivate
-    'wash_trading_detected': True,    # is_wash_trading becomes true → deactivate
+    # Immediate deactivation
+    'rug_ratio_spike': 0.50,          # Keep — 50% rug is real
+    'liquidity_drop_pct': 0.75,       # Raise from 0.50 — 50% is too common
+    'smart_money_exit': 0,            # Keep — but maybe require 2 consecutive cycles at 0
+    'wash_trading_detected': True,    # Keep
 
-    # Gradual deactivation (multi-cycle)
-    'absent_cycles_retire': 3,        # absent from N consecutive watchlists → retired
-    'score_decline_threshold': 0.40,  # score drops >40% from peak → flag (not auto-deactivate)
+    # Gradual deactivation
+    'absent_cycles_retire': 8,        # Raise from 3 — 40 min instead of 15 min
+    'score_decline_threshold': 0.40,  # Keep
 
     # Monitoring windows
-    'max_tracked_tokens': 500,        # max tokens to keep in state (LRU eviction)
-    'state_ttl_hours': 48,            # purge tokens not seen for this long
+    'max_tracked_tokens': 500,        # Keep
+    'state_ttl_hours': 48,            # Keep
 }
 
 
