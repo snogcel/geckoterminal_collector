@@ -251,11 +251,11 @@ class EnhancedWatchlistCollector(BaseDataCollector):
         
         for entry in entries:
             try:
-                # Store pool information
-                await self._store_pool_data(entry)
-                
                 # Store token information
                 await self._store_token_data(entry)
+                
+                # Store pool information
+                await self._store_pool_data(entry)                
                 
                 # Store historical entry FIRST (before watchlist check)
                 await self._store_enhanced_watchlist_history_entry(entry)
