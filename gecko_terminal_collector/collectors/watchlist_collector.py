@@ -777,7 +777,19 @@ class WatchlistCollector(BaseDataCollector):
             # Extract token information
             base_token_id = pool_data.get("base_token_id", "")
             quote_token_id = pool_data.get("quote_token_id", "")
-            
+
+            normalized_base_token_id = base_token_id
+            if isinstance(normalized_base_token_id, str) and "_" in normalized_base_token_id:
+                prefix, _, remainder = normalized_base_token_id.partition('_')
+                if prefix and remainder:
+                    normalized_base_token_id = remainder
+
+            normalized_quote_token_id = quote_token_id
+            if isinstance(normalized_quote_token_id, str) and "_" in normalized_quote_token_id:
+                prefix, _, remainder = normalized_quote_token_id.partition('_')
+                if prefix and remainder:
+                    normalized_quote_token_id = remainder
+
             # Extract financial data
             reserve_usd_str = pool_data.get("reserve_in_usd", "0")
             try:
@@ -804,8 +816,8 @@ class WatchlistCollector(BaseDataCollector):
                 address=address,
                 name=name,
                 dex_id=dex_id,
-                base_token_id=base_token_id,
-                quote_token_id=quote_token_id,
+                base_token_id=normalized_base_token_id,
+                quote_token_id=normalized_quote_token_id,
                 reserve_usd=reserve_usd,
                 created_at=created_at or datetime.now(),
                 discovery_source="watchlist"  # Mark as watchlist-discovered
