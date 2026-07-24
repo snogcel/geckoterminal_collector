@@ -757,6 +757,7 @@ def main():
         ("smart_money_full", strategy_smart_money_full, "Signal SM Full"),
         ("combined", strategy_combined, "Combined Filter"),
         ("momentum", strategy_momentum, "Momentum + SM"),
+        ("momentum_clean", strategy_momentum_clean, "V2 Momentum + SM"),
         ("contrarianModerate", strategy_contrarian_moderate, "Contrarian Moderate"),
         ("contrarianBalanced", strategy_contrarian_balanced, "Contrarian Balanced"),
         ("contrarianOrganic", strategy_contrarian_organic, "Contrarian Organic"),
