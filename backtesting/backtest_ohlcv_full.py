@@ -201,7 +201,13 @@ def build_timelines(observations, min_observations=MIN_OBSERVATIONS):
             skipped += 1
             continue
 
-        # Find entry price for each observation
+        # Find entry price for each observation. Skip (don't just leave
+        # un-keyed) any observation with no candle at/after its own
+        # timestamp - simulate_strategy() reads obs['entry_price']
+        # unconditionally, so an observation missing this key will KeyError
+        # downstream rather than silently doing the wrong thing.
+        valid_obs = []
+        dropped_no_price = 0
         for obs in obs_list:
             obs_time = obs['collected_at'].replace(tzinfo=None) if obs['collected_at'].tzinfo else obs['collected_at']
             entry_price = None
@@ -213,9 +219,25 @@ def build_timelines(observations, min_observations=MIN_OBSERVATIONS):
                     entry_candle_idx = i
                     break
             if entry_price is None:
-                continue  # no candle covers this observation's time - skip rather than use a stale price
+                # No candle covers this observation's time - skip it rather
+                # than substituting a stale (possibly earlier-than-entry)
+                # candle price, which previously produced negative hold
+                # times when the exit-scan found a trigger before entry_ts.
+                dropped_no_price += 1
+                continue
             obs['entry_price'] = entry_price
             obs['entry_candle_idx'] = entry_candle_idx
+            valid_obs.append(obs)
+
+        if dropped_no_price:
+            print("  [WARN] pool %s: dropped %d/%d observation(s) with no covering candle" % (
+                pool, dropped_no_price, len(obs_list)))
+
+        if len(valid_obs) < min_observations:
+            skipped += 1
+            continue
+
+        obs_list = valid_obs
 
         key = pool
         timelines[key] = {
@@ -459,17 +481,14 @@ def strategy_combined(snap):
 
 
 def strategy_momentum(snap):
-    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
+    if snap['score'] is None or snap['price_change_5m'] is None:
         return False, ''
-    if (snap['price_change_5m'] >= -10 and
-        snap['price_change_1h'] >= 25 and
-        snap.get('endpoint') == 'trending' and
+    if (snap.get('endpoint') == 'trending' and
         snap['score'] >= 50 and
         snap['smart_degen'] >= 3 and
         snap['liquidity'] >= 5000 and
         snap['dex'] in ['pump_amm']):
-        return True, 'momentum:score=%s,sm=%s,pc5m=%s,pc1h=%s' % (
-            snap['score'], snap['smart_degen'], snap['price_change_5m'], snap['price_change_1h'])
+        return True, 'momentum:score=%s,sm=%s' % (snap['score'], snap['smart_degen'])
     return False, ''
 
 
