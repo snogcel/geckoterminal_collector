@@ -2253,6 +2253,49 @@ async def restore_command(args):
         return 1
 
 
+async def _resolve_watchlist_item_from_database(db_manager, identifier: str) -> Optional[Dict[str, Any]]:
+    """Resolve a watchlist item from the database-backed watchlist table."""
+    identifier_lower = (identifier or "").strip().lower()
+    if not identifier_lower:
+        return None
+
+    active_entries = await db_manager.get_active_watchlist_entries()
+    all_entries = []
+    if hasattr(db_manager, "get_all_watchlist_entries"):
+        all_entries = await db_manager.get_all_watchlist_entries()
+
+    seen = set()
+    entries = []
+    for entry in list(active_entries or []) + list(all_entries or []):
+        entry_id = id(entry)
+        if entry_id in seen:
+            continue
+        seen.add(entry_id)
+        entries.append(entry)
+
+    for entry in entries:
+        if not entry:
+            continue
+
+        pool_id = getattr(entry, "pool_id", "") or ""
+        token_symbol = getattr(entry, "token_symbol", "") or ""
+        token_name = getattr(entry, "token_name", "") or ""
+        network_address = getattr(entry, "network_address", "") or ""
+
+        if (token_symbol.lower() == identifier_lower or
+            token_name.lower() == identifier_lower or
+            pool_id.lower() == identifier_lower or
+            network_address.lower() == identifier_lower):
+            return {
+                "poolAddress": pool_id,
+                "networkAddress": network_address,
+                "tokenSymbol": token_symbol,
+                "tokenName": token_name,
+            }
+
+    return None
+
+
 async def build_ohlcv_command(args):
     """Build OHLCV dataset for a single watchlist item."""
     try:
@@ -2262,7 +2305,6 @@ async def build_ohlcv_command(args):
         from gecko_terminal_collector.collectors.watchlist_collector import WatchlistCollector
         from gecko_terminal_collector.collectors.ohlcv_collector import OHLCVCollector
         from gecko_terminal_collector.collectors.historical_ohlcv_collector import HistoricalOHLCVCollector
-        from gecko_terminal_collector.utils.watchlist_processor import WatchlistProcessor        
 
         # Load configuration
         manager = ConfigManager(args.config)
@@ -2280,24 +2322,11 @@ async def build_ohlcv_command(args):
         print("=" * 50)
         
         # Step 1: Find the watchlist item
-        print("Step 1: Locating watchlist item (this could take awhile)...")
-        watchlist_processor = WatchlistProcessor(config)
-        watchlist_items = await watchlist_processor.load_watchlist()
-
-        print("--_build_ohlcv_command (from database)--")
-        print(watchlist_items)
-        print("--")
-        
-        target_item = None
-        for item in watchlist_items:
-            if (item.get('tokenSymbol', '').lower() == args.watchlist_item.lower() or
-                item.get('poolAddress', '') == args.watchlist_item or
-                item.get('networkAddress', '') == args.watchlist_item):
-                target_item = item
-                break
+        print("Step 1: Locating watchlist item in the database watchlist...")
+        target_item = await _resolve_watchlist_item_from_database(db_manager, args.watchlist_item)
         
         if not target_item:
-            print(f"✗ Watchlist item '{args.watchlist_item}' not found")
+            print(f"✗ Watchlist item '{args.watchlist_item}' not found in database watchlist")
             return 1
         
         print(f"  Found: {target_item.get('tokenSymbol', 'Unknown')} ({target_item.get('tokenName', 'Unknown')})")
