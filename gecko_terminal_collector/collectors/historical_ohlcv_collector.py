@@ -239,7 +239,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     print("--__pool_id for lookup in SQL db: ", pool_id)
                     print("self.network context: ", self.network)
 
-                    database_id = self.network+"_"+pool_id
+                    database_id = self.network+"_"+normalized_pool_id
 
                     print("database_id: ", database_id)
 
