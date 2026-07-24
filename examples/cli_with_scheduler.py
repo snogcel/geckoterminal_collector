@@ -1136,6 +1136,102 @@ def reset_watchlist(config):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--json-path', '-j', default='watchlist_state.json', help='Path to watchlist state JSON file')
+@click.option('--dry-run', is_flag=True, help='Preview changes without updating database')
+def sync_watchlist_status(config, json_path, dry_run):
+    """Synchronize watchlist is_active status from watchlist_state.json file.
+    
+    This command reads the watchlist_state.json file and updates the is_active
+    field in the database based on the 'active' field in the JSON.
+    """
+    async def sync_status():
+        import json
+        from pathlib import Path
+        
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=True)
+        
+        try:
+            # Load watchlist state JSON
+            json_file = Path(json_path)
+            if not json_file.exists():
+                logger.error(f"Watchlist state file not found: {json_path}")
+                print(f"❌ Error: File not found: {json_path}")
+                return
+            
+            logger.info(f"Loading watchlist state from {json_path}...")
+            with open(json_file, 'r') as f:
+                state_data = json.load(f)
+            
+            tokens = state_data.get('tokens', {})
+            meta = state_data.get('meta', {})
+            
+            if not tokens:
+                logger.warning("No tokens found in watchlist state")
+                print("⚠️  Warning: No tokens found in watchlist state file")
+                return
+            
+            # Extract active and inactive addresses
+            active_addresses = []
+            inactive_addresses = []
+            
+            for token_address, token_data in tokens.items():
+                is_active = token_data.get('active', False)
+                if is_active:
+                    active_addresses.append(token_address)
+                else:
+                    inactive_addresses.append(token_address)
+            
+            logger.info(f"Loaded {len(tokens)} tokens from state file")
+            logger.info(f"Active: {len(active_addresses)}, Inactive: {len(inactive_addresses)}")
+            
+            print(f"\n=== Watchlist State Analysis ===")
+            print(f"Total tokens: {len(tokens)}")
+            print(f"✅ Active: {len(active_addresses)}")
+            print(f"❌ Inactive: {len(inactive_addresses)}")
+            print(f"📅 Total cycles: {meta.get('total_cycles', 'N/A')}")
+            print(f"🕐 Last run: {meta.get('last_run', 'N/A')}")
+            
+            if dry_run:
+                print(f"\n🔍 DRY RUN MODE - No changes will be made")
+                print(f"Would update {len(active_addresses)} tokens to active")
+                print(f"Would update {len(inactive_addresses)} tokens to inactive")
+                return
+            
+            # Perform bulk update using the existing method
+            logger.info("Performing bulk update...")
+            addresses_by_status = {
+                'active': active_addresses,
+                'inactive': inactive_addresses
+            }
+            
+            stats = await scheduler_cli.db_manager.bulk_update_watchlist_active_status(addresses_by_status)
+            
+            print(f"\n=== Synchronization Results ===")
+            print(f"✅ Tokens set to active: {stats.get('active_updated', 0)}")
+            print(f"❌ Tokens set to inactive: {stats.get('inactive_updated', 0)}")
+            print(f"⚠️  Tokens not found in DB: {stats.get('not_found', 0)}")
+            
+            if stats.get('not_found', 0) > 0:
+                print(f"\n💡 Note: 'Not found' means tokens are in JSON but not in database watchlist")
+            
+            logger.info("Synchronization completed successfully")
+            print(f"\n✅ Synchronization completed successfully!")
+            
+        except Exception as e:
+            logger.error(f"Failed to synchronize watchlist status: {e}")
+            print(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(sync_status())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
 @click.option('--collector', help='Reset rate limiter for specific collector (e.g., dex_monitoring, new_pools_solana)')
 @click.option('--network', help='Reset rate limiter for new pools collector of specific network (e.g., solana, ethereum)')
 @click.option('--all', 'reset_all', is_flag=True, help='Reset all rate limiters')

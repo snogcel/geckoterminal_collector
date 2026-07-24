@@ -1488,6 +1488,71 @@ class SQLAlchemyDatabaseManager(DatabaseManager):
                 logger.error(f"Error updating watchlist entry status: {e}")
                 raise
     
+    async def bulk_update_watchlist_active_status(self, token_addresses: dict) -> dict:
+        """
+        Bulk update active status for watchlist entries based on token addresses.
+        
+        Args:
+            token_addresses: Dict with keys 'active' and 'inactive', each containing list of token addresses
+                            Example: {'active': ['addr1', 'addr2'], 'inactive': ['addr3', 'addr4']}
+        
+        Returns:
+            Dict with counts of updated entries: {'active_updated': int, 'inactive_updated': int, 'not_found': int}
+        """
+        from sqlalchemy import text
+        
+        active_list = token_addresses.get('active', [])
+        inactive_list = token_addresses.get('inactive', [])
+        
+        stats = {'active_updated': 0, 'inactive_updated': 0, 'not_found': 0}
+        
+        with self.connection.get_session() as session:
+            try:
+                # Update active tokens
+                if active_list:
+                    logger.info(f"🔄 Updating {len(active_list)} tokens to active status...")
+                    result = session.execute(
+                        text("""
+                            UPDATE watchlist 
+                            SET is_active = :is_active, updated_at = CURRENT_TIMESTAMP 
+                            WHERE network_address IN :addresses
+                        """),
+                        {"is_active": True, "addresses": tuple(active_list)}
+                    )
+                    stats['active_updated'] = result.rowcount
+                    logger.info(f"✅ Set {stats['active_updated']} tokens to active")
+                
+                # Update inactive tokens
+                if inactive_list:
+                    logger.info(f"🔄 Updating {len(inactive_list)} tokens to inactive status...")
+                    result = session.execute(
+                        text("""
+                            UPDATE watchlist 
+                            SET is_active = :is_active, updated_at = CURRENT_TIMESTAMP 
+                            WHERE network_address IN :addresses
+                        """),
+                        {"is_active": False, "addresses": tuple(inactive_list)}
+                    )
+                    stats['inactive_updated'] = result.rowcount
+                    logger.info(f"✅ Set {stats['inactive_updated']} tokens to inactive")
+                
+                session.commit()
+                
+                # Calculate not found (total addresses - updated)
+                total_addresses = len(active_list) + len(inactive_list)
+                total_updated = stats['active_updated'] + stats['inactive_updated']
+                stats['not_found'] = total_addresses - total_updated
+                
+                if stats['not_found'] > 0:
+                    logger.warning(f"⚠️ {stats['not_found']} token addresses not found in watchlist")
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"❌ Error bulk updating watchlist active status: {e}")
+                raise
+        
+        return stats
+    
     async def get_watchlist_pools(self) -> List[str]:
         """Get all active watchlist pool IDs."""
         pool_ids = []

@@ -1,75 +1,143 @@
-# Watchlist Sync - Quick Reference
+# Watchlist Active Status Sync - Quick Reference
 
-## One-Time Setup
+## 🚀 Quick Commands
 
+### CLI Command (Recommended for Production)
 ```bash
-# 1. Add database indexes for performance
-python add_address_indexes.py
+# Basic usage (matches your workflow)
+python -m examples.cli_with_scheduler sync-watchlist-status
 
-# 2. Test manual sync
-sync_watchlist.bat  # Windows
-./sync_watchlist.sh # Linux/Mac
+# Dry run (preview only)
+python -m examples.cli_with_scheduler sync-watchlist-status --dry-run
+
+# Custom paths
+python -m examples.cli_with_scheduler sync-watchlist-status \
+    --config config.yaml \
+    --json-path watchlist_state.json
 ```
 
-## Manual Sync Commands
-
+### Shell Script (Linux)
 ```bash
-# Full sync (both steps)
-sync_watchlist.bat
+# Make executable (first time)
+chmod +x sync_watchlist_status.sh
 
-# Or run steps individually:
+# Run sync
+./sync_watchlist_status.sh
+
+# Dry run
+./sync_watchlist_status.sh --dry-run
+```
+
+### Standalone Scripts (Alternative)
+```cmd
+# Test/preview changes
+python test_watchlist_sync.py
+
+# Run sync (Windows)
+sync_watchlist_status.bat
+
+# Run sync (Python)
+python sync_watchlist_active_status.py
+```
+
+## 📋 What It Does
+
+✅ Reads `watchlist_state.json`  
+✅ Extracts active/inactive token addresses  
+✅ Bulk updates database `watchlist.is_active` field  
+✅ Reports statistics (active, inactive, not found)  
+
+## 🎯 When to Use
+
+- After enhanced watchlist collector runs
+- When `watchlist_state.json` changes
+- To sync database with JSON state
+- Before sending notifications (ensure accurate active status)
+
+## 📊 Example Results
+
+```
+=== Watchlist State Analysis ===
+Total tokens: 66
+✅ Active: 0
+❌ Inactive: 66
+
+=== Synchronization Results ===
+✅ Tokens set to active: 0
+❌ Tokens set to inactive: 66
+⚠️  Tokens not found in DB: 0
+
+✅ Synchronization completed successfully!
+```
+
+## ⚡ Performance
+
+- **Small** (< 100 tokens): < 1 second
+- **Medium** (100-1K tokens): 1-3 seconds  
+- **Large** (1K-10K tokens): 3-10 seconds
+
+## 🔍 Command Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--config` / `-c` | Configuration file path | `config.yaml` |
+| `--json-path` / `-j` | Watchlist state JSON path | `watchlist_state.json` |
+| `--dry-run` | Preview without updating | disabled |
+
+## 🔗 Integration with Workflow
+
+Your current workflow:
+```bash
 python -m examples.cli_with_scheduler reset-watchlist
+```
+
+New sync command:
+```bash
+python -m examples.cli_with_scheduler sync-watchlist-status
+```
+
+Complete workflow:
+```bash
+# 1. Collect watchlist
 python -m examples.cli_with_scheduler collect-enhanced-watchlist --sources "micro"
+
+# 2. Sync active status
+python -m examples.cli_with_scheduler sync-watchlist-status
+
+# 3. Monitor or notify
+python -m examples.cli_with_scheduler run-once --collector watchlist_monitor
 ```
 
-## Scheduling
+## 🔍 Files Involved
 
-### Windows Task Scheduler
-- Program: `C:\path\to\your\project\sync_watchlist.bat`
-- Start in: `C:\path\to\your\project`
-- Trigger: Daily, repeat every 1 hour
+| File | Purpose |
+|------|---------|
+| `watchlist_state.json` | Source of truth for active status |
+| `examples/cli_with_scheduler.py` | CLI command implementation |
+| `sync_watchlist_status.sh` | Linux shell script wrapper |
+| `config.yaml` | Database configuration |
 
-### Linux/Mac Cron
-```bash
-0 * * * * cd /path/to/project && ./sync_watchlist.sh >> logs/watchlist_sync.log 2>&1
-```
+## ⚠️ Important Notes
 
-## Monitoring
+1. Always test with `--dry-run` first
+2. Tokens "not found" means they're in JSON but not in database watchlist
+3. Sync is idempotent - safe to run multiple times
+4. Uses bulk update for efficiency
+5. Automatically creates backup transaction
 
-```bash
-# Check active entries
-psql -c "SELECT COUNT(*) FROM watchlist WHERE is_active = TRUE;"
+## 🆘 Troubleshooting
 
-# Check recent updates
-psql -c "SELECT token_symbol, is_active, updated_at FROM watchlist ORDER BY updated_at DESC LIMIT 10;"
+| Issue | Solution |
+|-------|----------|
+| "File not found" | Check `watchlist_state.json` path |
+| "Database locked" | Wait or stop other DB operations |
+| "Tokens not found" | Normal - tokens in JSON but not in DB watchlist |
+| Import errors | Install requirements: `pip install -r requirements.txt` |
+| Permission denied | `chmod +x sync_watchlist_status.sh` |
 
-# View sync logs
-tail -f logs/watchlist_sync.log
-```
+## 📖 Full Documentation
 
-## Troubleshooting
-
-```bash
-# If sync is slow, add indexes
-python add_address_indexes.py
-
-# Check if indexes exist
-psql -c "SELECT indexname FROM pg_indexes WHERE tablename = 'pools' AND indexname LIKE 'idx_%';"
-
-# Test individual commands
-python -m examples.cli_with_scheduler reset-watchlist
-python -m examples.cli_with_scheduler collect-enhanced-watchlist --sources "micro"
-```
-
-## Performance
-
-- **Initialization:** <1 second (lazy loading)
-- **Sync 100 entries:** 5-10 seconds
-- **Memory usage:** ~5MB
-
-## Files
-
-- `sync_watchlist.bat` - Windows sync script
-- `sync_watchlist.sh` - Unix sync script  
-- `WATCHLIST_SYNC_GUIDE.md` - Full documentation
-- `DATABASE_RESOLVER_OPTIMIZATION.md` - Performance details
+- **CLI Guide**: `WATCHLIST_SYNC_CLI_GUIDE.md` ← **Start here for CLI usage**
+- **Status Guide**: `WATCHLIST_SYNC_STATUS_GUIDE.md`
+- **Implementation**: `WATCHLIST_SYNC_IMPLEMENTATION.md`
+- **Examples**: `example_integration_sync.py`
