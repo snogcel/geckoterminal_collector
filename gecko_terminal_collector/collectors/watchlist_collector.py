@@ -131,8 +131,15 @@ class WatchlistCollector(BaseDataCollector):
             pool_address = watchlist_item.get('poolAddress')
             network_address = watchlist_item.get('networkAddress')
             
+            normalized_pool_address = pool_address
+            if isinstance(normalized_pool_address, str) and "_" in normalized_pool_address:
+                prefix, _, remainder = normalized_pool_address.partition('_')
+                if prefix and remainder:
+                    normalized_pool_address = remainder
+            
             print("-watchlist_collector--Wheres the Prefix? prefix bug resolved.")
-            print(pool_address)            
+            print(pool_address)
+            print(normalized_pool_address)
             print("---")
 
             # Collect pool data if pool address is provided
@@ -142,7 +149,7 @@ class WatchlistCollector(BaseDataCollector):
                     response = await self.make_api_request(
                         self.client.get_pool_by_network_address,
                         self.network, 
-                        pool_address
+                        normalized_pool_address
                     )
 
                     print("---collect_single_item__")

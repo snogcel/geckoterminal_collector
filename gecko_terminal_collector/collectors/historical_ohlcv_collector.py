@@ -197,8 +197,15 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             if start_date is None:
                 start_date = end_date - timedelta(days=self.max_history_days)
             
+            normalized_pool_id = pool_id
+            if isinstance(normalized_pool_id, str) and "_" in normalized_pool_id:
+                prefix, _, remainder = normalized_pool_id.partition('_')
+                if prefix and remainder:
+                    normalized_pool_id = remainder
+
             logger.info(f"Collecting historical OHLCV data for pool {pool_id}, timeframe {timeframe}")
             logger.info(f"Date range: {start_date.date()} to {end_date.date()}")
+            logger.info(f"Normalized pool id for API requests: {normalized_pool_id}")
             
             # Initialize HTTP session
             async with aiohttp.ClientSession(
@@ -240,7 +247,7 @@ class HistoricalOHLCVCollector(BaseDataCollector):
 
                     # Collect historical data for the specified range
                     pool_records = await self._collect_historical_data_with_pagination(
-                        pool_id, database_id, timeframe, start_date, end_date
+                        normalized_pool_id, database_id, timeframe, start_date, end_date
                     )
                     records_collected = len(pool_records) if pool_records else 0
                     
@@ -521,11 +528,17 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             return await self._get_mock_historical_response(pool_id, timeframe, before_timestamp)
         
         try:
+            normalized_pool_id = pool_id
+            if isinstance(normalized_pool_id, str) and "_" in normalized_pool_id:
+                prefix, _, remainder = normalized_pool_id.partition('_')
+                if prefix and remainder:
+                    normalized_pool_id = remainder
+
             # Convert timeframe to API format
             api_timeframe = self._convert_timeframe_to_api_format(timeframe)
             
             # Build API endpoint URL
-            endpoint = f"networks/{self.network}/pools/{pool_id}/ohlcv/{api_timeframe}"
+            endpoint = f"networks/{self.network}/pools/{normalized_pool_id}/ohlcv/{api_timeframe}"
             url = f"{self.api_base_url}/{endpoint}"
             
             print("-_make_direct_ohlcv_request--")
