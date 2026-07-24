@@ -213,8 +213,7 @@ def build_timelines(observations, min_observations=MIN_OBSERVATIONS):
                     entry_candle_idx = i
                     break
             if entry_price is None:
-                entry_price = float(candles[-1]['close'])
-                entry_candle_idx = len(candles) - 1
+                continue  # no candle covers this observation's time - skip rather than use a stale price
             obs['entry_price'] = entry_price
             obs['entry_candle_idx'] = entry_candle_idx
 
