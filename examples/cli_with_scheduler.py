@@ -1232,6 +1232,170 @@ def sync_watchlist_status(config, json_path, dry_run):
 
 @cli.command()
 @click.option('--config', '-c', default='config.yaml', help='Configuration file path')
+@click.option('--json-path', '-j', default='watchlist_state.json', help='Path to watchlist state JSON file')
+def diagnose_watchlist(config, json_path):
+    """Diagnose which tokens are in watchlist_state.json but not in database.
+    
+    This command helps identify why some tokens show as "not found" during sync.
+    """
+    async def run_diagnosis():
+        import json
+        from pathlib import Path
+        from sqlalchemy import text
+        
+        scheduler_cli = SchedulerCLI(config)
+        await scheduler_cli.initialize(use_mock=True)
+        
+        try:
+            # Load JSON
+            json_file = Path(json_path)
+            if not json_file.exists():
+                print(f"❌ Error: File not found: {json_path}")
+                return
+            
+            with open(json_file, 'r') as f:
+                state_data = json.load(f)
+            
+            tokens = state_data.get('tokens', {})
+            json_addresses = set(tokens.keys())
+            
+            # Get addresses from database
+            with scheduler_cli.db_manager.connection.get_session() as session:
+                result = session.execute(
+                    text("SELECT network_address FROM watchlist WHERE network_address IS NOT NULL")
+                )
+                db_addresses = {row[0] for row in result}
+                
+                # Get total stats
+                result = session.execute(text("SELECT COUNT(*) FROM watchlist"))
+                total_entries = result.scalar()
+                
+                result = session.execute(
+                    text("SELECT COUNT(*) FROM watchlist WHERE is_active = :active"),
+                    {"active": True}
+                )
+                active_entries = result.scalar()
+            
+            # Find missing
+            missing_addresses = json_addresses - db_addresses
+            found_addresses = json_addresses & db_addresses
+            
+            # Analyze missing tokens
+            active_missing = []
+            inactive_missing = []
+            
+            for address in missing_addresses:
+                token_data = tokens[address]
+                is_active = token_data.get('active', False)
+                if is_active:
+                    active_missing.append((address, token_data))
+                else:
+                    inactive_missing.append((address, token_data))
+            
+            # Print results
+            print(f"\n{'=' * 70}")
+            print("WATCHLIST SYNC DIAGNOSTIC")
+            print(f"{'=' * 70}")
+            print(f"\nTokens in watchlist_state.json: {len(json_addresses)}")
+            print(f"Tokens found in database: {len(found_addresses)}")
+            print(f"Tokens NOT in database: {len(missing_addresses)}")
+            print(f"Match rate: {len(found_addresses)/len(json_addresses)*100:.1f}%")
+            
+            print(f"\n{'=' * 70}")
+            print("MISSING TOKENS BREAKDOWN")
+            print(f"{'=' * 70}")
+            print(f"Active missing (⚠️  CRITICAL): {len(active_missing)}")
+            print(f"Inactive missing (ℹ️  Normal): {len(inactive_missing)}")
+            
+            if active_missing:
+                print(f"\n🔴 ACTIVE TOKENS NOT IN DATABASE:")
+                for i, (address, data) in enumerate(active_missing[:5], 1):
+                    print(f"\n{i}. {address}")
+                    print(f"   Peak score: {data.get('peak_score', 'N/A')}")
+                    print(f"   Liquidity: ${data.get('prev_metrics', {}).get('liquidity', 0):,.2f}")
+                    print(f"   First seen: {data.get('first_seen', 'N/A')[:19]}")
+                
+                if len(active_missing) > 5:
+                    print(f"\n... and {len(active_missing) - 5} more")
+            
+            if inactive_missing:
+                print(f"\n⚪ INACTIVE TOKENS NOT IN DATABASE (Sample):")
+                
+                # Group by reason
+                by_reason = {}
+                for address, data in inactive_missing:
+                    reason = data.get('deactivation_reason', 'unknown')
+                    by_reason[reason] = by_reason.get(reason, 0) + 1
+                
+                print(f"\nBy deactivation reason:")
+                for reason, count in sorted(by_reason.items(), key=lambda x: x[1], reverse=True):
+                    print(f"  • {reason}: {count}")
+            
+            # Database stats
+            print(f"\n{'=' * 70}")
+            print("DATABASE WATCHLIST TABLE")
+            print(f"{'=' * 70}")
+            print(f"Total entries: {total_entries}")
+            print(f"Active entries: {active_entries}")
+            print(f"Inactive entries: {total_entries - active_entries}")
+            
+            # Explanation
+            print(f"\n{'=' * 70}")
+            print("WHY ARE TOKENS MISSING?")
+            print(f"{'=' * 70}")
+            print("""
+Common reasons:
+
+1. NORMAL BEHAVIOR (Most Common)
+   • watchlist_state.json tracks ALL monitored tokens
+   • Database watchlist only contains tokens that met entry criteria
+   • Missing = monitored but didn't qualify for watchlist
+
+2. TIMING ISSUE
+   • Token became inactive before being added to database
+   • Token appeared briefly then disappeared
+   • Collector cycles vs database update timing
+
+3. CRITERIA NOT MET
+   • Token didn't meet minimum score/liquidity threshold
+   • Token filtered out by enhanced watchlist collector rules
+   • Token from excluded DEX or network
+            """)
+            
+            if active_missing:
+                print(f"""
+⚠️  ACTION REQUIRED:
+
+You have {len(active_missing)} ACTIVE tokens missing from database!
+
+Recommendations:
+1. Re-run enhanced watchlist collector:
+   python -m examples.cli_with_scheduler collect-enhanced-watchlist
+   
+2. Check collector logs for why these weren't added
+
+3. Verify enhanced_watchlist_collector entry criteria
+                """)
+            else:
+                print("""
+✅ All active tokens are in database - system is healthy!
+   Missing tokens are all inactive (normal behavior).
+                """)
+            
+        except Exception as e:
+            logger.error(f"Diagnosis failed: {e}")
+            print(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        finally:
+            await scheduler_cli.shutdown()
+    
+    asyncio.run(run_diagnosis())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config.yaml', help='Configuration file path')
 @click.option('--collector', help='Reset rate limiter for specific collector (e.g., dex_monitoring, new_pools_solana)')
 @click.option('--network', help='Reset rate limiter for new pools collector of specific network (e.g., solana, ethereum)')
 @click.option('--all', 'reset_all', is_flag=True, help='Reset all rate limiters')

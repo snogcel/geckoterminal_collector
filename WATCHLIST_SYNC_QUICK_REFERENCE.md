@@ -10,6 +10,9 @@ python -m examples.cli_with_scheduler sync-watchlist-status
 # Dry run (preview only)
 python -m examples.cli_with_scheduler sync-watchlist-status --dry-run
 
+# Diagnose missing tokens
+python -m examples.cli_with_scheduler diagnose-watchlist
+
 # Custom paths
 python -m examples.cli_with_scheduler sync-watchlist-status \
     --config config.yaml \
