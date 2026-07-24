@@ -100,6 +100,7 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
             e.token_symbol,
             e.collected_at,
             e.liquidity,
+            e.volume,
             e.price_change_5m,
             e.price_change_1h,
             e.market_cap,
@@ -265,6 +266,7 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 'rug_ratio': obs['rug_ratio'],
                 'bundler_rate': obs['bundler_rate'],
                 'liquidity': obs['liquidity'],
+                'volume': obs['volume'],
                 'market_cap': obs['market_cap'],
                 'endpoint': obs['endpoint'],
                 'dex': obs['dex'],
@@ -481,15 +483,33 @@ def strategy_combined(snap):
 
 
 def strategy_momentum(snap):
-    if snap['score'] is None or snap['price_change_5m'] is None:
+    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
         return False, ''
-    if (snap.get('endpoint') == 'trending' and
+    if (snap['price_change_5m'] >= 0 and
+        snap['price_change_1h'] >= 50 and
+        snap.get('endpoint') == 'trending' and
         snap['score'] >= 50 and
         snap['smart_degen'] >= 3 and
         snap['liquidity'] >= 5000 and
         snap['dex'] in ['pump_amm']):
-        return True, 'momentum:score=%s,sm=%s' % (snap['score'], snap['smart_degen'])
+        return True, 'momentum:score=%s,sm=%s,pc5m=%s,pc1h=%s' % (
+            snap['score'], snap['smart_degen'], snap['price_change_5m'], snap['price_change_1h'])
     return False, ''
+
+
+def strategy_momentum_clean(snap):
+    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
+        return False, ''
+    if not (snap['price_change_5m'] >= 0 and snap['price_change_1h'] >= 50
+            and snap.get('endpoint') == 'trending'
+            and snap['score'] >= 50 and snap['smart_degen'] >= 3
+            and snap['liquidity'] >= 5000 and snap['dex'] in ['pump_amm']):
+        return False, ''
+    vol_liq_ratio = (snap['volume'] / snap['liquidity']) if snap['liquidity'] else 999
+    if vol_liq_ratio >= 15:
+        return False, ''
+    return True, 'momentum_clean:pc5m=%s,pc1h=%s,vol_liq=%.1f' % (
+        snap['price_change_5m'], snap['price_change_1h'], vol_liq_ratio)
 
 
 def strategy_contrarian_moderate(snap):
