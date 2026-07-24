@@ -128,7 +128,77 @@ python -m examples.cli_with_scheduler run-once --collector watchlist_monitor
 4. Uses bulk update for efficiency
 5. Automatically creates backup transaction
 
-## 🆘 Troubleshooting
+## 🔍 Troubleshooting "Tokens Not Found"
+
+### Quick Diagnosis
+```bash
+# Step 1: See which tokens are missing (with full addresses)
+python -m examples.cli_with_scheduler diagnose-watchlist
+
+# Step 2: Investigate WHY they're missing
+python check_rejected_tokens.py
+```
+
+### Understanding "Not Found"
+
+**20 tokens not found = 20 tokens in JSON but not in database**
+
+This is usually **NORMAL** because:
+- `watchlist_state.json` = tracks ALL monitored tokens
+- Database `watchlist` table = contains ONLY qualified tokens
+- Missing = monitored but didn't meet entry criteria
+
+### When to Investigate
+
+✅ **Normal (no action needed)**:
+- Missing tokens are inactive
+- Missing tokens have low scores (< 50)
+- Missing tokens have low liquidity (< $5K)
+
+⚠️ **Needs investigation**:
+- Missing tokens are ACTIVE
+- Missing tokens have high scores (> 70)
+- Missing tokens have good liquidity (> $10K)
+
+### Get Full Token Addresses
+
+The `diagnose-watchlist` command now shows **complete token addresses**:
+```
+💾 All 20 inactive missing token addresses:
+   BQYc6c5hivsPrEEmTxBVjGT16setk2gmPvbv7YBxpump
+   55TLkaCjVD3if5pnMdcUN3cvUh2CaSYnXSqEinqgpump
+   ... (full addresses for copy/paste)
+```
+
+### Deep Investigation
+
+```bash
+# Check if tokens were collected but rejected
+python check_rejected_tokens.py
+
+# Check specific token
+python check_rejected_tokens.py watchlist_state.json config.yaml "TOKEN_ADDRESS"
+```
+
+### Common Findings
+
+1. **In enhanced_watchlist_history but not watchlist**
+   - Token was collected successfully
+   - Rejected due to low score/liquidity/other criteria
+   - System working correctly ✅
+
+2. **Not in enhanced_watchlist_history**
+   - Token was never collected
+   - Check source configuration
+   - Timing issue or different collector
+
+### Full Guide
+
+See **TROUBLESHOOT_MISSING_TOKENS.md** for complete investigation steps.
+
+---
+
+## 🆘 Troubleshooting Other Issues
 
 | Issue | Solution |
 |-------|----------|
