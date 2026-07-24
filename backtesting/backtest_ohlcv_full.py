@@ -131,18 +131,20 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
             'symbol': row[1],
             'collected_at': row[2],
             'liquidity': row[3] or 0,
-            'price_change_5m': row[4],
-            'price_change_1h': row[5],
-            'market_cap': row[6] or 0,
-            'score': row[7],
-            'smart_degen': row[8] or 0,
-            'rug_ratio': row[9] or 0,
-            'bundler_rate': row[10] or 0,
-            'renowned': row[11] or 0,
-            'endpoint': row[12] or 'unknown',
-            'dex': row[13] or '',
-            'notif_price': row[14],
+            'volume': row[4] or 0,
+            'price_change_5m': row[5],
+            'price_change_1h': row[6],
+            'market_cap': row[7] or 0,
+            'score': row[8],
+            'smart_degen': row[9] or 0,
+            'rug_ratio': row[10] or 0,
+            'bundler_rate': row[11] or 0,
+            'renowned': row[12] or 0,
+            'endpoint': row[13] or 'unknown',
+            'dex': row[14] or '',
+            'notif_price': row[15],
         })
+
 
     conn.close()
     print("Loaded %d observations with score/SM data" % len(observations))
