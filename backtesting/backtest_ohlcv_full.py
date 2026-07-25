@@ -34,9 +34,30 @@ def normalize_ts(ts):
         return ts.replace(tzinfo=None)
     return ts
 
+
+def parse_age_minutes(age_str):
+    """Parse age string like '32m', '1.5h', '2h30m' to minutes."""
+    if not age_str:
+        return None
+    import re
+    age_str = str(age_str).strip().lower()
+    total = 0.0
+    h_match = re.search(r'([\d.]+)\s*h', age_str)
+    if h_match:
+        total += float(h_match.group(1)) * 60
+    m_match = re.search(r'([\d.]+)\s*m', age_str)
+    if m_match:
+        total += float(m_match.group(1))
+    if total == 0:
+        try:
+            total = float(age_str)
+        except:
+            return None
+    return total if total > 0 else None
+
 # --- Config ------------------------------------------------------
 DB = {
-    'host': 'localhost',
+    'host': '172.17.0.1',
     'port': 5432,
     'database': 'gecko_terminal_collector',
     'user': 'trixia',
@@ -44,8 +65,8 @@ DB = {
 }
 
 # Strategy parameters
-STOP_LOSS_PCT = -30
-TAKE_PROFIT_PCT = 50
+STOP_LOSS_PCT = -50
+TAKE_PROFIT_PCT = 75
 MAX_HOLD_MINUTES = 60
 POSITION_SIZE_USD = 100
 BANKROLL = 1000
@@ -111,7 +132,8 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
             (e.metadata_json::json->'original_data'->>'renowned_count')::int as renowned,
             (e.metadata_json::json->'original_data'->>'endpoint') as endpoint,
             (e.metadata_json::json->'original_data'->>'dex') as dex,
-            (e.metadata_json::json->'original_data'->>'price')::float as notif_price
+            (e.metadata_json::json->'original_data'->>'price')::float as notif_price,
+            e.age
         FROM enhanced_watchlist_history e
         WHERE e.metadata_json IS NOT NULL
           AND (e.metadata_json::json->'original_data'->>'smart_degen_count') IS NOT NULL
@@ -143,11 +165,22 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
             'endpoint': row[13] or 'unknown',
             'dex': row[14] or '',
             'notif_price': row[15],
+            'age': row[16],
         })
 
 
     conn.close()
     print("Loaded %d observations with score/SM data" % len(observations))
+
+    # Compute prev_volume for each observation (volume at previous observation for same pool)
+    by_pool = {}
+    for obs in observations:
+        by_pool.setdefault(obs['pool_address'], []).append(obs)
+    for pool, obs_list in by_pool.items():
+        obs_list.sort(key=lambda x: x['collected_at'])
+        for i, obs in enumerate(obs_list):
+            obs['prev_volume'] = obs_list[i-1]['volume'] if i > 0 else None
+
     return observations
 
 
@@ -269,12 +302,14 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 'bundler_rate': obs['bundler_rate'],
                 'liquidity': obs['liquidity'],
                 'volume': obs['volume'],
+                'prev_volume': obs.get('prev_volume'),
                 'market_cap': obs['market_cap'],
                 'endpoint': obs['endpoint'],
                 'dex': obs['dex'],
                 'price': obs['entry_price'],
                 'price_change_5m': obs['price_change_5m'],
                 'price_change_1h': obs['price_change_1h'],
+                'age_minutes': parse_age_minutes(obs.get('age')),
             }
             entries.append((obs['collected_at'], key, tl, snap, obs))
 
@@ -601,6 +636,362 @@ def strategy_organic_growth(snap):
     return False, ''
 
 
+def strategy_volume_growth(snap):
+    """Volume up 15-100% between observations + quality gates."""
+    if snap['score'] is None or snap.get('prev_volume') is None:
+        return False, ''
+    prev_vol = snap['prev_volume']
+    cur_vol = snap['volume']
+    if prev_vol <= 0 or cur_vol <= 0:
+        return False, ''
+    vol_change = (cur_vol - prev_vol) / prev_vol * 100
+    if not (15 <= vol_change <= 100):
+        return False, ''
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'vol_growth:sc=%s,sm=%s,vol+%d%%' % (
+            snap['score'], snap['smart_degen'], vol_change)
+    return False, ''
+
+
+def strategy_volume_floor(snap):
+    """Minimum absolute volume floor + quality gates."""
+    if snap['score'] is None:
+        return False, ''
+    if (snap['volume'] >= 15000 and
+        snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'vol_floor:sc=%s,sm=%s,vol=%sk' % (
+            snap['score'], snap['smart_degen'], int(snap['volume']/1000))
+    return False, ''
+
+
+def strategy_volume_sweet_spot(snap):
+    """Volume/liquidity ratio between 0.5-2.0x + quality gates."""
+    if snap['score'] is None:
+        return False, ''
+    if snap['liquidity'] <= 0 or snap['volume'] <= 0:
+        return False, ''
+    vol_liq = snap['volume'] / snap['liquidity']
+    if not (0.5 <= vol_liq <= 2.0):
+        return False, ''
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'vol_sweet:sc=%s,sm=%s,v/l=%.2f' % (
+            snap['score'], snap['smart_degen'], vol_liq)
+    return False, ''
+
+
+def strategy_volume_momentum_combo(snap):
+    """Volume growth 15-100% + positive 5m momentum + quality gates."""
+    if snap['score'] is None or snap.get('prev_volume') is None:
+        return False, ''
+    prev_vol = snap['prev_volume']
+    cur_vol = snap['volume']
+    if prev_vol <= 0 or cur_vol <= 0:
+        return False, ''
+    vol_change = (cur_vol - prev_vol) / prev_vol * 100
+    if not (15 <= vol_change <= 100):
+        return False, ''
+    if snap.get('price_change_5m', 0) <= 0:
+        return False, ''
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'vol_mom:sc=%s,sm=%s,vol+%d%%,pc5m=%s' % (
+            snap['score'], snap['smart_degen'], vol_change, snap.get('price_change_5m'))
+    return False, ''
+
+
+def strategy_volume_consolidation(snap):
+    """Volume decreasing (consolidation) + high quality = potential breakout."""
+    if snap['score'] is None or snap.get('prev_volume') is None:
+        return False, ''
+    prev_vol = snap['prev_volume']
+    cur_vol = snap['volume']
+    if prev_vol <= 0 or cur_vol <= 0:
+        return False, ''
+    vol_change = (cur_vol - prev_vol) / prev_vol * 100
+    if vol_change >= 0:  # Only when volume is DECREASING
+        return False, ''
+    # High quality gate — consolidation only interesting with strong fundamentals
+    if (snap['score'] >= 70 and snap['smart_degen'] >= 10 and
+        snap['liquidity'] >= 15000 and snap['rug_ratio'] <= 0.05):
+        return True, 'vol_consolid:sc=%s,sm=%s,vol%.0f%%' % (
+            snap['score'], snap['smart_degen'], vol_change)
+    return False, ''
+
+
+# --- Combo strategies: winning strategies + volume filter ---
+
+def strategy_organic_growth_vol_stable(snap):
+    """Organic Growth + volume stable or increasing (not crashing)."""
+    # First check base Organic Growth criteria
+    if snap['score'] is None:
+        return False, ''
+    if not (snap.get('bundler_rate', 1) < 0.10 and
+        snap['smart_degen'] >= 5 and snap['score'] >= 55 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return False, ''
+    # Volume filter: must have prev_volume and it must not be crashing
+    if snap.get('prev_volume') and snap['prev_volume'] > 0:
+        vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+        if vol_change < -50:  # Volume crashed more than 50% — skip
+            return False, ''
+    return True, 'organic_vol_stable:sc=%s,sm=%s' % (snap['score'], snap['smart_degen'])
+
+
+def strategy_organic_growth_vol_up(snap):
+    """Organic Growth + volume increasing between observations."""
+    if snap['score'] is None or snap.get('prev_volume') is None:
+        return False, ''
+    if not (snap.get('bundler_rate', 1) < 0.10 and
+        snap['smart_degen'] >= 5 and snap['score'] >= 55 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return False, ''
+    if snap['prev_volume'] <= 0:
+        return False, ''
+    vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+    if vol_change < 10:  # Volume must be up at least 10%
+        return False, ''
+    return True, 'organic_vol_up:sc=%s,sm=%s,vol+%d%%' % (
+        snap['score'], snap['smart_degen'], vol_change)
+
+
+def strategy_momentum_vol_stable(snap):
+    """Momentum + SM + volume stable or increasing."""
+    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
+        return False, ''
+    if not (snap['price_change_5m'] >= 0 and snap['price_change_1h'] >= 50 and
+        snap.get('endpoint') == 'trending' and
+        snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000 and snap['dex'] in ['pump_amm']):
+        return False, ''
+    if snap.get('prev_volume') and snap['prev_volume'] > 0:
+        vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+        if vol_change < -50:
+            return False, ''
+    return True, 'momentum_vol_stable:sc=%s,sm=%s' % (snap['score'], snap['smart_degen'])
+
+
+def strategy_momentum_vol_up(snap):
+    """Momentum + SM + volume increasing between observations."""
+    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
+        return False, ''
+    if not (snap['price_change_5m'] >= 0 and snap['price_change_1h'] >= 50 and
+        snap.get('endpoint') == 'trending' and
+        snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000 and snap['dex'] in ['pump_amm']):
+        return False, ''
+    if snap.get('prev_volume') is None or snap['prev_volume'] <= 0:
+        return False, ''
+    vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+    if vol_change < 10:
+        return False, ''
+    return True, 'momentum_vol_up:sc=%s,sm=%s,vol+%d%%' % (
+        snap['score'], snap['smart_degen'], vol_change)
+
+
+def strategy_momentum_vol_moderate(snap):
+    """Momentum + SM + volume in sweet spot (15-100% increase)."""
+    if snap['score'] is None or snap['price_change_5m'] is None or snap['price_change_1h'] is None:
+        return False, ''
+    if not (snap['price_change_5m'] >= 0 and snap['price_change_1h'] >= 50 and
+        snap.get('endpoint') == 'trending' and
+        snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000 and snap['dex'] in ['pump_amm']):
+        return False, ''
+    if snap.get('prev_volume') is None or snap['prev_volume'] <= 0:
+        return False, ''
+    vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+    if not (15 <= vol_change <= 100):
+        return False, ''
+    return True, 'momentum_vol_mod:sc=%s,sm=%s,vol+%d%%' % (
+        snap['score'], snap['smart_degen'], vol_change)
+
+
+def strategy_high_conviction_vol_stable(snap):
+    """High Conviction + volume stable or increasing."""
+    if snap['score'] is None:
+        return False, ''
+    if not (snap['score'] >= 70 and snap['smart_degen'] >= 10 and
+        snap['liquidity'] >= 15000 and snap['rug_ratio'] <= 0.10):
+        return False, ''
+    if snap.get('prev_volume') and snap['prev_volume'] > 0:
+        vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+        if vol_change < -50:
+            return False, ''
+    return True, 'high_conv_vol_stable:sc=%s,sm=%s' % (snap['score'], snap['smart_degen'])
+
+
+def strategy_combined_vol_stable(snap):
+    """Combined Filter + volume stable or increasing."""
+    if snap['score'] is None:
+        return False, ''
+    if not (snap['score'] >= 65 and snap['smart_degen'] >= 7 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10 and
+        snap.get('endpoint', '').startswith('signal')):
+        return False, ''
+    if snap.get('prev_volume') and snap['prev_volume'] > 0:
+        vol_change = (snap['volume'] - snap['prev_volume']) / snap['prev_volume'] * 100
+        if vol_change < -50:
+            return False, ''
+    return True, 'combined_vol_stable:sc=%s,sm=%s' % (snap['score'], snap['smart_degen'])
+
+
+# --- Pullback strategies: buy the dip in an uptrend ---
+
+def strategy_pullback_basic(snap):
+    """Strong pullback (pc5m < -25%) in confirmed uptrend (pc1h >= 100%)."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if pc5m >= -25 or pc1h < 100:
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'pullback_basic:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_sweet_spot(snap):
+    """Sweet spot pullback: pc5m -50% to -25%, pc1h 100-500%."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if not (-50 <= pc5m <= -25):
+        return False, ''
+    if not (100 <= pc1h <= 500):
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'pullback_sweet:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_quality(snap):
+    """Pullback + quality gates (score >= 65, SM >= 7)."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if pc5m >= -25 or pc1h < 100:
+        return False, ''
+    if (snap['score'] >= 65 and snap['smart_degen'] >= 7 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'pullback_quality:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_deep(snap):
+    """Deep pullback: pc5m < -50%, pc1h >= 200%."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if pc5m >= -50 or pc1h < 200:
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'pullback_deep:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_momentum(snap):
+    """Pullback + positive momentum confirmation: pc5m -50% to -10%, pc1h 100-500%, endpoint trending."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if not (-50 <= pc5m <= -10):
+        return False, ''
+    if not (100 <= pc1h <= 500):
+        return False, ''
+    if snap.get('endpoint') != 'trending':
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000 and snap['dex'] in ['pump_amm']):
+        return True, 'pullback_mom:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_conservative(snap):
+    """Conservative pullback: pc5m -25% to -10%, pc1h 100-300%, high quality."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    if not (-25 <= pc5m <= -10):
+        return False, ''
+    if not (100 <= pc1h <= 300):
+        return False, ''
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'pullback_cons:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_aged(snap):
+    """Pullback Basic + age filter: 45-90 minutes old."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    age = snap.get('age_minutes')
+    if pc5m >= -25 or pc1h < 100:
+        return False, ''
+    if age is None or not (45 <= age <= 90):
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'pullback_aged:age=%dm,pc5m=%+.1f,sc=%s' % (
+            int(age), pc5m, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_aged_quality(snap):
+    """Pullback Quality + age filter: 45-90 minutes old."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    age = snap.get('age_minutes')
+    if pc5m >= -25 or pc1h < 100:
+        return False, ''
+    if age is None or not (45 <= age <= 90):
+        return False, ''
+    if (snap['score'] >= 65 and snap['smart_degen'] >= 7 and
+        snap['liquidity'] >= 10000 and snap['rug_ratio'] <= 0.10):
+        return True, 'pullback_aged_q:age=%dm,pc5m=%+.1f,sc=%s' % (
+            int(age), pc5m, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_aged_wide(snap):
+    """Pullback + wider age filter: 30-90 minutes old."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    age = snap.get('age_minutes')
+    if pc5m >= -25 or pc1h < 100:
+        return False, ''
+    if age is None or not (30 <= age <= 90):
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'pullback_aged_w:age=%dm,pc5m=%+.1f,sc=%s' % (
+            int(age), pc5m, snap['score'])
+    return False, ''
+
+
 # --- Analysis ----------------------------------------------------
 
 def compute_drawdown(trades):
@@ -764,6 +1155,27 @@ def main():
         ("highConviction", strategy_high_conviction, "High Conviction"),
         ("lowCapMomentum", strategy_low_cap_momentum, "Low Cap Momentum"),
         ("organicGrowth", strategy_organic_growth, "Organic Growth"),
+        ("volumeGrowth", strategy_volume_growth, "Volume Growth"),
+        ("volumeFloor", strategy_volume_floor, "Volume Floor"),
+        ("volumeSweetSpot", strategy_volume_sweet_spot, "Volume Sweet Spot"),
+        ("volumeMomCombo", strategy_volume_momentum_combo, "Volume + Momentum"),
+        ("volumeConsolidation", strategy_volume_consolidation, "Volume Consolidation"),
+        ("organicVolStable", strategy_organic_growth_vol_stable, "Organic + Vol Stable"),
+        ("organicVolUp", strategy_organic_growth_vol_up, "Organic + Vol Up"),
+        ("momentumVolStable", strategy_momentum_vol_stable, "Momentum + Vol Stable"),
+        ("momentumVolUp", strategy_momentum_vol_up, "Momentum + Vol Up"),
+        ("momentumVolModerate", strategy_momentum_vol_moderate, "Momentum + Vol 15-100%"),
+        ("highConvVolStable", strategy_high_conviction_vol_stable, "High Conv + Vol Stable"),
+        ("combinedVolStable", strategy_combined_vol_stable, "Combined + Vol Stable"),
+        ("pullbackBasic", strategy_pullback_basic, "Pullback Basic"),
+        ("pullbackSweetSpot", strategy_pullback_sweet_spot, "Pullback Sweet Spot"),
+        ("pullbackQuality", strategy_pullback_quality, "Pullback Quality"),
+        ("pullbackDeep", strategy_pullback_deep, "Pullback Deep"),
+        ("pullbackMomentum", strategy_pullback_momentum, "Pullback + Trending"),
+        ("pullbackConservative", strategy_pullback_conservative, "Pullback Conservative"),
+        ("pullbackAged", strategy_pullback_aged, "Pullback Aged 45-90m"),
+        ("pullbackAgedQuality", strategy_pullback_aged_quality, "Pullback Aged + Quality"),
+        ("pullbackAgedWide", strategy_pullback_aged_wide, "Pullback Aged 30-90m"),
     ]
 
     if args.strategies == 'all':
