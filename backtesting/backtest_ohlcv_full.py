@@ -172,7 +172,7 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
     conn.close()
     print("Loaded %d observations with score/SM data" % len(observations))
 
-    # Compute prev_volume for each observation (volume at previous observation for same pool)
+    # Compute prev_volume and prev_pc5m for each observation
     by_pool = {}
     for obs in observations:
         by_pool.setdefault(obs['pool_address'], []).append(obs)
@@ -180,6 +180,7 @@ def load_watchlist_observations(min_observations=MIN_OBSERVATIONS):
         obs_list.sort(key=lambda x: x['collected_at'])
         for i, obs in enumerate(obs_list):
             obs['prev_volume'] = obs_list[i-1]['volume'] if i > 0 else None
+            obs['prev_pc5m'] = obs_list[i-1]['price_change_5m'] if i > 0 else None
 
     return observations
 
@@ -303,6 +304,7 @@ def simulate_strategy(timelines, strategy_fn, strategy_name):
                 'liquidity': obs['liquidity'],
                 'volume': obs['volume'],
                 'prev_volume': obs.get('prev_volume'),
+                'prev_pc5m': obs.get('prev_pc5m'),
                 'market_cap': obs['market_cap'],
                 'endpoint': obs['endpoint'],
                 'dex': obs['dex'],
@@ -992,6 +994,229 @@ def strategy_pullback_aged_wide(snap):
     return False, ''
 
 
+# --- Toggle strategies: pc5m flip signals with pc1h context ---
+
+def strategy_toggle_pos_to_neg(snap):
+    """pc5m flips positive → negative, pc1h positive (in uptrend)."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    # Need: was positive, now negative
+    if prev_pc5m <= 0 or pc5m >= 0:
+        return False, ''
+    # pc1h positive = in uptrend
+    if pc1h <= 0:
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'toggle_p2n:prev5m=%+.1f,cur5m=%+.1f,pc1h=%+.0f' % (
+            prev_pc5m, pc5m, pc1h)
+    return False, ''
+
+
+def strategy_toggle_pos_to_neg_quality(snap):
+    """pc5m flips positive → negative, pc1h positive, relaxed quality."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    if prev_pc5m <= 0 or pc5m >= 0:
+        return False, ''
+    if pc1h <= 0:
+        return False, ''
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 8000):
+        return True, 'toggle_p2n_q:prev5m=%+.1f,cur5m=%+.1f,sc=%s' % (
+            prev_pc5m, pc5m, snap['score'])
+    return False, ''
+
+
+def strategy_toggle_pos_to_neg_wide(snap):
+    """pc5m flips positive → negative, pc1h positive, minimal gates."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    if prev_pc5m <= 0 or pc5m >= 0:
+        return False, ''
+    if pc1h <= 0:
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'toggle_p2n_w:prev5m=%+.1f,cur5m=%+.1f,pc1h=%+.0f' % (
+            prev_pc5m, pc5m, pc1h)
+    return False, ''
+
+
+def strategy_toggle_pos_to_neg_aged(snap):
+    """pc5m flips positive → negative, pc1h positive, age 45-90m."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    age = snap.get('age_minutes')
+    if prev_pc5m <= 0 or pc5m >= 0:
+        return False, ''
+    if pc1h <= 0:
+        return False, ''
+    if age is None or not (45 <= age <= 90):
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'toggle_p2n_age:age=%dm,prev5m=%+.1f,cur5m=%+.1f' % (
+            int(age), prev_pc5m, pc5m)
+    return False, ''
+
+
+def strategy_toggle_pos_to_neg_100plus(snap):
+    """pc5m flips positive → negative, pc1h >= 100% (stronger uptrend)."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    if prev_pc5m <= 0 or pc5m >= 0:
+        return False, ''
+    if pc1h < 100:
+        return False, ''
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        return True, 'toggle_p2n_100:prev5m=%+.1f,cur5m=%+.1f,pc1h=%+.0f' % (
+            prev_pc5m, pc5m, pc1h)
+    return False, ''
+
+
+def strategy_pullback_toggle_merged(snap):
+    """Merged: Pullback (pc5m<-25%) OR Toggle (pos→neg), both with pc1h 100-500%."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    
+    # pc1h must be in sweet spot for both paths
+    if not (100 <= pc1h <= 500):
+        return False, ''
+    
+    # Path 1: Deep pullback (pc5m < -25%)
+    pullback = pc5m < -25
+    
+    # Path 2: Toggle (prev positive, now negative)
+    toggle = prev_pc5m > 0 and pc5m <= 0
+    
+    if not (pullback or toggle):
+        return False, ''
+    
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        entry_type = 'PB' if pullback else 'TG'
+        return True, 'merged_%s:pc5m=%+.1f,pc1h=%+.0f,sc=%s' % (
+            entry_type, pc5m, pc1h, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_toggle_merged_quality(snap):
+    """Merged with quality gates: pc1h 100-500%, score>=60, SM>=5, liq>=$8k."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    
+    if not (100 <= pc1h <= 500):
+        return False, ''
+    
+    pullback = pc5m < -25
+    toggle = prev_pc5m > 0 and pc5m <= 0
+    
+    if not (pullback or toggle):
+        return False, ''
+    
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 8000):
+        entry_type = 'PB' if pullback else 'TG'
+        return True, 'merged_q_%s:pc5m=%+.1f,sc=%s' % (
+            entry_type, pc5m, snap['score'])
+    return False, ''
+
+
+def strategy_pullback_toggle_merged_wide(snap):
+    """Merged with wider pc1h: pc1h >= 100% (no upper cap)."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    
+    if pc1h < 100:
+        return False, ''
+    
+    pullback = pc5m < -25
+    toggle = prev_pc5m > 0 and pc5m <= 0
+    
+    if not (pullback or toggle):
+        return False, ''
+    
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        entry_type = 'PB' if pullback else 'TG'
+        return True, 'merged_w_%s:pc5m=%+.1f,pc1h=%+.0f' % (
+            entry_type, pc5m, pc1h)
+    return False, ''
+
+
+def strategy_pullback_toggle_dual(snap):
+    """Merged with separate pc1h: PB needs pc1h>=100%, TG needs pc1h 100-500%."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    
+    # Path 1: Deep pullback — pc5m < -25%, pc1h >= 100% (no cap)
+    pullback = pc5m < -25 and pc1h >= 100
+    
+    # Path 2: Toggle — prev positive, now negative, pc1h 100-500%
+    toggle = prev_pc5m > 0 and pc5m <= 0 and 100 <= pc1h <= 500
+    
+    if not (pullback or toggle):
+        return False, ''
+    
+    if (snap['score'] >= 50 and snap['smart_degen'] >= 3 and
+        snap['liquidity'] >= 5000):
+        entry_type = 'PB' if pullback else 'TG'
+        return True, 'dual_%s:pc5m=%+.1f,pc1h=%+.0f' % (
+            entry_type, pc5m, pc1h)
+    return False, ''
+
+
+def strategy_pullback_toggle_dual_quality(snap):
+    """Dual with quality gates: score>=60, SM>=5, liq>=$8k."""
+    if snap['score'] is None:
+        return False, ''
+    pc5m = snap.get('price_change_5m', 0) or 0
+    pc1h = snap.get('price_change_1h', 0) or 0
+    prev_pc5m = snap.get('prev_pc5m', 0) or 0
+    
+    pullback = pc5m < -25 and pc1h >= 100
+    toggle = prev_pc5m > 0 and pc5m <= 0 and 100 <= pc1h <= 500
+    
+    if not (pullback or toggle):
+        return False, ''
+    
+    if (snap['score'] >= 60 and snap['smart_degen'] >= 5 and
+        snap['liquidity'] >= 8000):
+        entry_type = 'PB' if pullback else 'TG'
+        return True, 'dual_q_%s:pc5m=%+.1f,sc=%s' % (
+            entry_type, pc5m, snap['score'])
+    return False, ''
+
+
 # --- Analysis ----------------------------------------------------
 
 def compute_drawdown(trades):
@@ -1176,6 +1401,16 @@ def main():
         ("pullbackAged", strategy_pullback_aged, "Pullback Aged 45-90m"),
         ("pullbackAgedQuality", strategy_pullback_aged_quality, "Pullback Aged + Quality"),
         ("pullbackAgedWide", strategy_pullback_aged_wide, "Pullback Aged 30-90m"),
+        ("togglePosToNeg", strategy_toggle_pos_to_neg, "Toggle pos→neg 100-500"),
+        ("togglePosToNegQ", strategy_toggle_pos_to_neg_quality, "Toggle pos→neg Quality"),
+        ("togglePosToNegWide", strategy_toggle_pos_to_neg_wide, "Toggle pos→neg 50-500"),
+        ("togglePosToNegAged", strategy_toggle_pos_to_neg_aged, "Toggle pos→neg Aged"),
+        ("togglePosToNeg100", strategy_toggle_pos_to_neg_100plus, "Toggle pos→neg pc1h>100"),
+        ("merged", strategy_pullback_toggle_merged, "Merged PB+TG 100-500"),
+        ("mergedQuality", strategy_pullback_toggle_merged_quality, "Merged Quality"),
+        ("mergedWide", strategy_pullback_toggle_merged_wide, "Merged pc1h>100"),
+        ("dual", strategy_pullback_toggle_dual, "Dual PB/TG pc1h"),
+        ("dualQuality", strategy_pullback_toggle_dual_quality, "Dual Quality"),
     ]
 
     if args.strategies == 'all':
