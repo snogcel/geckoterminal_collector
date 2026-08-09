@@ -445,6 +445,16 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                                 
                 if not response_data:
                     logger.debug(f"No more data available for pool {pool_id}, timeframe {timeframe}")
+                    
+                    # Store what we've collected so far before breaking
+                    if all_records:
+                        logger.info(f"Storing {len(all_records)} records collected before API returned no data")
+                        try:
+                            stored_count = await self.db_manager.store_ohlcv_data(all_records)
+                            logger.info(f"Successfully stored {stored_count} records")
+                        except Exception as store_error:
+                            logger.error(f"Failed to store records: {store_error}")
+                    
                     break
                 
                 # Parse OHLCV data from response
@@ -456,6 +466,16 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 
                 if not records:
                     logger.debug(f"No records parsed from response for pool {pool_id}, timeframe {timeframe}")
+                    
+                    # Store what we've collected so far before breaking
+                    if all_records:
+                        logger.info(f"Storing {len(all_records)} records collected before empty response")
+                        try:
+                            stored_count = await self.db_manager.store_ohlcv_data(all_records)
+                            logger.info(f"Successfully stored {stored_count} records")
+                        except Exception as store_error:
+                            logger.error(f"Failed to store records: {store_error}")
+                    
                     break
                 
                 # Filter records to only include those in our target time range
