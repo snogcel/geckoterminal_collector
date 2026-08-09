@@ -25,6 +25,7 @@ class APIConfig:
     timeout: int = 30
     max_concurrent: int = 5
     rate_limit_delay: float = 1.0
+    pagination_delay: float = 3.0  # Delay between paginated requests for historical data
 
 
 @dataclass

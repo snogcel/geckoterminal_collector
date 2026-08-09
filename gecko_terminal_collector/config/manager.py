@@ -374,7 +374,8 @@ class ConfigManager:
             base_url=api_data.get('base_url', 'https://api.geckoterminal.com/api/v2'),
             timeout=api_data.get('timeout', 30),
             max_concurrent=api_data.get('max_concurrent', 5),
-            rate_limit_delay=api_data.get('rate_limit_delay', 1.0)
+            rate_limit_delay=api_data.get('rate_limit_delay', 3.0),
+            pagination_delay=api_data.get('pagination_delay', 3.0)
         )
         
         error_data = config_data.get('error_handling', {})
