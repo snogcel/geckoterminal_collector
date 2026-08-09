@@ -62,7 +62,14 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         self.max_history_days = getattr(config, 'max_history_days', 180)  # 6 months
         self.limit_per_request = getattr(config, 'historical_limit', 1000)
         self.include_empty_intervals = getattr(config, 'include_empty_intervals', False)
-        self.pagination_delay = getattr(config, 'pagination_delay', 1.0)  # Delay between paginated requests
+        
+        # Get pagination delay from API config or fallback to config attribute or default
+        if isinstance(config.api, dict):
+            self.pagination_delay = config.api.get('pagination_delay', 3.0)
+        else:
+            self.pagination_delay = getattr(config.api, 'pagination_delay', getattr(config, 'pagination_delay', 3.0))
+        
+        logger.info(f"Historical OHLCV Collector initialized with pagination_delay={self.pagination_delay}s")
         
         # Session for direct API calls
         self._session: Optional[aiohttp.ClientSession] = None
@@ -498,6 +505,16 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                     f"Error in paginated request for pool {pool_id}, timeframe {timeframe}: {e}"
                 )
                 self._collection_stats['failed_requests'] += 1
+                
+                # Store what we've collected so far before breaking
+                if all_records:
+                    logger.info(f"Storing {len(all_records)} records collected before error")
+                    try:
+                        stored_count = await self.db_manager.store_ohlcv_data(all_records)
+                        logger.info(f"Successfully stored {stored_count} records despite error")
+                    except Exception as store_error:
+                        logger.error(f"Failed to store records on error: {store_error}")
+                
                 break
         
         logger.debug(
