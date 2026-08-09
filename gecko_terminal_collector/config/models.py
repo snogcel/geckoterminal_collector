@@ -26,6 +26,7 @@ class APIConfig:
     max_concurrent: int = 5
     rate_limit_delay: float = 1.0
     pagination_delay: float = 3.0  # Delay between paginated requests for historical data
+    rate_limit_retries: int = 3  # Number of retries when hitting rate limits (429)
 
 
 @dataclass

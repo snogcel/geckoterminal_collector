@@ -66,10 +66,15 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         # Get pagination delay from API config or fallback to config attribute or default
         if isinstance(config.api, dict):
             self.pagination_delay = config.api.get('pagination_delay', 3.0)
+            self.rate_limit_retries = config.api.get('rate_limit_retries', 3)
         else:
             self.pagination_delay = getattr(config.api, 'pagination_delay', getattr(config, 'pagination_delay', 3.0))
+            self.rate_limit_retries = getattr(config.api, 'rate_limit_retries', 3)
         
-        logger.info(f"Historical OHLCV Collector initialized with pagination_delay={self.pagination_delay}s")
+        logger.info(
+            f"Historical OHLCV Collector initialized with pagination_delay={self.pagination_delay}s, "
+            f"rate_limit_retries={self.rate_limit_retries}"
+        )
         
         # Session for direct API calls
         self._session: Optional[aiohttp.ClientSession] = None
@@ -548,15 +553,19 @@ class HistoricalOHLCVCollector(BaseDataCollector):
         self,
         pool_id: str,
         timeframe: str,
-        before_timestamp: int
+        before_timestamp: int,
+        retry_count: int = 0,
+        max_retries: int = 3
     ) -> Optional[Dict[str, Any]]:
         """
-        Make a direct API request for OHLCV data.
+        Make a direct API request for OHLCV data with retry logic for rate limits.
         
         Args:
             pool_id: Pool identifier
             timeframe: Data timeframe
             before_timestamp: Timestamp to get data before
+            retry_count: Current retry attempt number
+            max_retries: Maximum number of retries for rate limit errors
             
         Returns:
             API response data or None if request failed
@@ -582,10 +591,6 @@ class HistoricalOHLCVCollector(BaseDataCollector):
             print(url)
             print("---")
 
-            # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/1h
-
-            # https://api.geckoterminal.com/api/v2/networks/solana/pools/7bqJG2ZdMKbEkgSmfuqNVBvqEvWavgL8UEo33ZqdL3NP/ohlcv/hour?aggregate=1
-
             # Build query parameters
             params = {
                 'before_timestamp': before_timestamp,
@@ -604,6 +609,36 @@ class HistoricalOHLCVCollector(BaseDataCollector):
                 if response.status == 200:
                     self._collection_stats['successful_requests'] += 1
                     return await response.json()
+                    
+                elif response.status == 429:
+                    # Rate limit hit - implement exponential backoff retry
+                    self._collection_stats['failed_requests'] += 1
+                    
+                    if retry_count < max_retries:
+                        # Calculate exponential backoff delay
+                        base_delay = self.pagination_delay * 2  # Start with 2x normal delay
+                        backoff_delay = base_delay * (2 ** retry_count)  # Exponential: 2x, 4x, 8x
+                        
+                        logger.warning(
+                            f"Rate limit (429) hit for pool {pool_id}, timeframe {timeframe}. "
+                            f"Retry {retry_count + 1}/{max_retries} after {backoff_delay:.1f}s backoff"
+                        )
+                        
+                        # Wait with exponential backoff
+                        await asyncio.sleep(backoff_delay)
+                        
+                        # Retry the request
+                        return await self._make_direct_ohlcv_request(
+                            pool_id, timeframe, before_timestamp, 
+                            retry_count + 1, max_retries
+                        )
+                    else:
+                        logger.error(
+                            f"Rate limit (429) persists after {max_retries} retries for pool {pool_id}. "
+                            f"Giving up on this request."
+                        )
+                        return None
+                        
                 else:
                     self._collection_stats['failed_requests'] += 1
                     logger.warning(

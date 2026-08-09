@@ -60,6 +60,7 @@ class APIConfigValidator(BaseModel):
     max_concurrent: int = Field(default=5, ge=1, le=50, description="Maximum concurrent requests")
     rate_limit_delay: float = Field(default=1.0, ge=0.1, le=10.0, description="Rate limit delay in seconds")
     pagination_delay: float = Field(default=3.0, ge=0.5, le=30.0, description="Delay between paginated requests for historical data (seconds)")
+    rate_limit_retries: int = Field(default=3, ge=0, le=10, description="Number of retries when hitting rate limits (429)")
     
     @field_validator('base_url')
     @classmethod
@@ -518,7 +519,8 @@ class CollectionConfigValidator(BaseModel):
                 timeout=self.api.timeout,
                 max_concurrent=self.api.max_concurrent,
                 rate_limit_delay=self.api.rate_limit_delay,
-                pagination_delay=self.api.pagination_delay
+                pagination_delay=self.api.pagination_delay,
+                rate_limit_retries=self.api.rate_limit_retries
             ),
             error_handling=ErrorConfig(
                 max_retries=self.error_handling.max_retries,
